@@ -10,57 +10,59 @@
             padding: 10px;
             margin-top: 10px;
         }
-
         .output {
             border: 1px solid #ccc;
             padding: 10px;
-            margin-top: 10px;
+            margin-top: 5px;
             background-color: #f9f9f9;
+            white-space: pre-wrap; /* 保证格式化正确 */
         }
     </style>
 </head>
 <body>
-<div id="content">
-    {{ content|safe }}
-</div>
+    <div id="content">
+        {{ content|safe }}
+    </div>
 
-<script>
-    async function loadPyodideAndPackages() {
-        self.pyodide = await loadPyodide();
-    }
+    <script>
+        async function loadPyodideAndPackages() {
+            self.pyodide = await loadPyodide({
+                indexURL : "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+            });
+        }
+        loadPyodideAndPackages();
 
-    loadPyodideAndPackages();
+        function createRunButton(codeBlock) {
+            const button = document.createElement('button');
+            button.textContent = 'Run Code';
+            button.onclick = async function () {
+                const outputElement = document.createElement('div');
+                outputElement.className = 'output';
+                codeBlock.parentNode.appendChild(outputElement);
 
-    function createRunButton(codeBlock) {
-        const button = document.createElement('button');
-        button.textContent = 'Run Code';
-        button.onclick = async function () {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            codeBlock.parentNode.appendChild(outputElement);
+                try {
+                    // 确保Python代码的输出能被捕捉并显示
+                    const output = await pyodide.runPythonAsync(codeBlock.textContent);
+                    outputElement.textContent = `Output:\n${output}`; // 显示输出
+                } catch (error) {
+                    outputElement.textContent = `Error:\n${error}`; // 显示错误
+                }
+            };
+            return button;
+        }
 
-            try {
-                const output = await pyodide.runPythonAsync(codeBlock.textContent);
-                outputElement.textContent = output;
-            } catch (error) {
-                outputElement.textContent = error;
-            }
-        };
-        return button;
-    }
-
-    window.onload = function () {
-        const codeBlocks = document.querySelectorAll('pre > code');
-        codeBlocks.forEach(codeBlock => {
-            if (codeBlock.classList.contains('language-python')) {
-                const container = document.createElement('div');
-                container.className = 'code-block';
-                codeBlock.parentNode.insertBefore(container, codeBlock);
-                container.appendChild(codeBlock);
-                container.appendChild(createRunButton(codeBlock));
-            }
-        });
-    }
-</script>
+        window.onload = function() {
+            const codeBlocks = document.querySelectorAll('pre > code');
+            codeBlocks.forEach(codeBlock => {
+                if (codeBlock.classList.contains('language-python')) {
+                    const container = document.createElement('div');
+                    container.className = 'code-block';
+                    codeBlock.parentNode.insertBefore(container, codeBlock);
+                    container.appendChild(codeBlock);
+                    container.appendChild(createRunButton(codeBlock));
+                }
+            });
+        }
+    </script>
 </body>
 </html>
