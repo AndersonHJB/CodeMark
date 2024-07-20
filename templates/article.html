@@ -5,28 +5,54 @@
     <title>Article</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
     <style>
+        body {
+            font-family: "Arial", sans-serif;
+            background-color: #f8f8f8;
+            color: #333;
+        }
         .code-block {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-top: 10px;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin: 20px;
             position: relative;
+            padding: 20px;
         }
         .output {
-            border: 1px solid #ccc;
+            background-color: #fff;
+            color: #333;
+            border: none;
             padding: 10px;
             margin-top: 5px;
-            background-color: #f9f9f9;
-            white-space: pre-wrap; /* Ensures formatting is maintained */
+            white-space: pre-wrap;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            min-height: 20px;
         }
         textarea {
             width: 100%;
             height: 150px;
-            font-family: monospace;
+            font-family: "Monaco", "Menlo", monospace;
+            background-color: #282c34;
+            color: #abb2bf;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
         }
         button {
             position: absolute;
             right: 10px;
             top: 10px;
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            background-color: #5292e2;
         }
     </style>
 </head>
