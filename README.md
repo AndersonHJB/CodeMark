@@ -14,6 +14,12 @@
 
 - [pyodide](https://pyodide.org/en/stable/index.html)
 
-## 声名
+## 声明
 
 本项目全权由 AI悦创维护，如果想要拿去当作毕业设计、课设等。请及时联系与我沟通，严禁商用。
+
+## deploy
+
+```bash
+sh /home/huangjiabao/domains/cm.class1v1.com/public_python/CodeMark/cp_opt.sh
+```
