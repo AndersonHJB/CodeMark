@@ -8,3 +8,7 @@
 
 - 2024-07-20 15:32:17: 不停的尝试，使用 Django 到使用 Flask 实现；
 - 2024-07-20 15:52:49: 试运行版本，可以正常运行 Python 代码了
+
+## 项目依赖开源
+
+- [pyodide](https://pyodide.org/en/stable/index.html)
