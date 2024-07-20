@@ -9,7 +9,6 @@
             border: 1px solid #ccc;
             padding: 10px;
             margin-top: 10px;
-            position: relative;
         }
         .output {
             border: 1px solid #ccc;
@@ -17,16 +16,6 @@
             margin-top: 5px;
             background-color: #f9f9f9;
             white-space: pre-wrap; /* Ensures formatting is maintained */
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            font-family: monospace;
-        }
-        button {
-            position: absolute;
-            right: 10px;
-            top: 10px;
         }
     </style>
 </head>
@@ -44,13 +33,13 @@
         }
         loadPyodideAndPackages();
 
-        function createRunButton(textarea) {
+        function createRunButton(codeBlock) {
             const button = document.createElement('button');
             button.textContent = 'Run Code';
             button.onclick = async function () {
                 const outputElement = document.createElement('div');
                 outputElement.className = 'output';
-                textarea.parentNode.appendChild(outputElement);
+                codeBlock.parentNode.appendChild(outputElement);
 
                 try {
                     // Redirect Python's stdout and stderr
@@ -61,7 +50,7 @@
                         sys.stderr = io.StringIO()
                     `);
 
-                    await self.pyodide.runPythonAsync(textarea.value);
+                    await self.pyodide.runPythonAsync(codeBlock.textContent);
 
                     // Capture Python's stdout and stderr
                     const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
@@ -76,16 +65,15 @@
         }
 
         window.onload = function() {
-            const codeBlocks = document.querySelectorAll('pre > code.language-python');
+            const codeBlocks = document.querySelectorAll('pre > code');
             codeBlocks.forEach(codeBlock => {
-                const textarea = document.createElement('textarea');
-                textarea.value = codeBlock.textContent.trim();
-                const container = document.createElement('div');
-                container.className = 'code-block';
-                codeBlock.parentNode.insertBefore(container, codeBlock);
-                container.appendChild(textarea);
-                container.appendChild(createRunButton(textarea));
-                codeBlock.style.display = 'none'; // Hide original code block
+                if (codeBlock.classList.contains('language-python')) {
+                    const container = document.createElement('div');
+                    container.className = 'code-block';
+                    codeBlock.parentNode.insertBefore(container, codeBlock);
+                    container.appendChild(codeBlock);
+                    container.appendChild(createRunButton(codeBlock));
+                }
             });
         }
     </script>
