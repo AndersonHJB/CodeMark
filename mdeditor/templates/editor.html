@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor</title>
+</head>
+<body>
+    <textarea id="markdown-content" rows="10" cols="50"></textarea>
+    <button onclick="saveMarkdown()">Save</button>
+    <button onclick="loadMarkdown()">Load</button>
+    <button onclick="runCode()">Run Python Code</button>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.18.1/full/pyodide.js"></script>
+    <script>
+        async function runCode() {
+            let pyodide = await loadPyodide();
+            let code = document.getElementById('markdown-content').value;
+            let result = await pyodide.runPythonAsync(code);
+            console.log(result);
+        }
+        function saveMarkdown() {
+            // AJAX to save Markdown
+        }
+        function loadMarkdown() {
+            // AJAX to load Markdown
+        }
+    </script>
+</body>
+</html>
