@@ -15,7 +15,7 @@
             padding: 10px;
             margin-top: 5px;
             background-color: #f9f9f9;
-            white-space: pre-wrap; /* 保证格式化正确 */
+            white-space: pre-wrap; /* Ensures formatting is maintained */
         }
     </style>
 </head>
@@ -29,6 +29,7 @@
             self.pyodide = await loadPyodide({
                 indexURL : "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
             });
+            await self.pyodide.loadPackage(['micropip']);
         }
         loadPyodideAndPackages();
 
@@ -41,11 +42,23 @@
                 codeBlock.parentNode.appendChild(outputElement);
 
                 try {
-                    // 确保Python代码的输出能被捕捉并显示
-                    const output = await pyodide.runPythonAsync(codeBlock.textContent);
-                    outputElement.textContent = `Output:\n${output}`; // 显示输出
+                    // Redirect Python's stdout and stderr
+                    self.pyodide.runPython(`
+                        import sys
+                        import io
+                        sys.stdout = io.StringIO()
+                        sys.stderr = io.StringIO()
+                    `);
+
+                    await self.pyodide.runPythonAsync(codeBlock.textContent);
+
+                    // Capture Python's stdout and stderr
+                    const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                    const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+
+                    outputElement.textContent = stdout + stderr || 'No output.';
                 } catch (error) {
-                    outputElement.textContent = `Error:\n${error}`; // 显示错误
+                    outputElement.textContent = `Error:\n${error}`;
                 }
             };
             return button;
