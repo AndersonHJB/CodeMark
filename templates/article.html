@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
+    <style>
+        .code-block {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+        {{ content|safe }}
+    </div>
+
+    <script>
+        async function loadPyodideAndPackages() {
+            self.pyodide = await loadPyodide();
+        }
+        loadPyodideAndPackages();
+
+        function createRunButton(codeBlock) {
+            const button = document.createElement('button');
+            button.textContent = 'Run Code';
+            button.onclick = async function () {
+                const outputElement = document.createElement('pre');
+                codeBlock.parentNode.insertBefore(outputElement, codeBlock.nextSibling);
+
+                try {
+                    const output = await pyodide.runPythonAsync(codeBlock.textContent);
+                    outputElement.textContent = output;
+                } catch (error) {
+                    outputElement.textContent = error;
+                }
+            };
+            return button;
+        }
+
+        window.onload = function() {
+            const codeBlocks = document.querySelectorAll('pre > code');
+            codeBlocks.forEach(codeBlock => {
+                if (codeBlock.classList.contains('language-python')) {
+                    const container = document.createElement('div');
+                    container.className = 'code-block';
+                    codeBlock.parentNode.insertBefore(container, codeBlock);
+                    container.appendChild(codeBlock);
+                    container.appendChild(createRunButton(codeBlock));
+                }
+            });
+        }
+    </script>
+</body>
+</html>
