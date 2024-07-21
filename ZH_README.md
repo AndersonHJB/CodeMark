@@ -45,13 +45,10 @@ sh /home/huangjiabao/domains/cm.class1v1.com/public_python/CodeMark/cp_opt.sh
 pip freeze > requirements.txt
 ```
 
-## 作者✍️
 
-<img src="static/info/img.png" alt="img.png" style="zoom:25%;" />
+## 作者✍️&请我喝咖啡☕️
 
-## 请我喝咖啡☕️
-
-<img src="static/info/wx.png" alt="img.png" style="zoom:25%;" />
+![img_1.png](static/info/img_1.png)
 
 ## Plan🖥️
 
@@ -65,3 +62,5 @@ pip freeze > requirements.txt
   - [ ] 代码复制
   - [ ] 文章禁止复制
   - [ ] 用户可以导出当前编辑的文章
+  - [ ] 用户需要登录，登录之后可以选择点击分享当前页面编辑的代码和运行结果。数据存储到数据库；
+
