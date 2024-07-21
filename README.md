@@ -1,54 +1,57 @@
 # CodeMark🦭
 
-结合“Code”和“Markdown”的特点，用户可以在 Markdown 中编写并执行代码的功能。
+- [Simplified Chinese](ZH_README.md)
+- [English](README.md)
 
-减少学生学习编程的压力，虽然还是推荐本地运行，不过前期线上运行是不错的体验～
+Combining the features of "Code" and "Markdown," users can write and execute code within Markdown.
 
-如果，你热衷于开源或者想要一起加入这个富有意义的项目当中，可以与我联系。
+Aiming to reduce the stress of learning programming for students, although local execution is still recommended, an online running experience is good for the initial phase.
 
-诚招 Web 精通的伙伴～
+If you are passionate about open-source or want to join this meaningful project, please contact me.
+
+Actively seeking web-savvy partners～
 
 ## ChangeLog📔
 
-- 2024-07-20 15:32:17: 不停的尝试，使用 Django 到使用 Flask 实现;
-- 2024-07-20 15:52:49: 试运行版本，可以正常运行 Python 代码了;
-- 2024-07-20 19:15:23: 增加文章页面可编辑代码;
-- 2024-07-20 23:26:59: 改进文章内页；
-- 2024-07-21 13:50:55: 发布最新版 UI 内页 V0.4
+- 2024-07-20 15:32:17: Constant trials, from using Django to using Flask;
+- 2024-07-20 15:52:49: Trial run version, now capable of running Python code;
+- 2024-07-20 19:15:23: Added editable code to the article pages;
+- 2024-07-20 23:26:59: Improved article internal pages;
+- 2024-07-21 13:50:55: Released the latest version of the UI internal pages V0.4
 
-## 项目依赖开🖲️
+## Project Dependencies🖲️
 
 - [pyodide](https://pyodide.org/en/stable/index.html)
 
-## 声明🖨️
+## Statement🖨️
 
-本项目全权由 AI悦创维护，如果想要拿去当作毕业设计、课设等。请及时联系与我沟通，严禁商用。
+This project is fully maintained by AI Yue Creation. If you want to use it for your thesis, course design, etc., please contact me in time. Commercial use is strictly prohibited.
 
-## deploy🧿
+## Deploy🧿
 
 ```bash
 sh /home/huangjiabao/domains/cm.class1v1.com/public_python/CodeMark/cp_opt.sh
 ```
 
-## 导出依赖⚙️
+## Export Dependencies⚙️
 
 ```bash
 pip freeze > requirements.txt
 ```
 
-## 作者✍️
+## Author✍️
 
 <img src="static/info/img.png" alt="img.png" style="zoom:25%;" />
 
-## 请我喝咖啡☕️
+## Buy Me a Coffee☕️
 
 <img src="static/info/wx.png" alt="img.png" style="zoom:25%;" />
 
 ## Plan🖥️
 
 - [ ] UI
-  - [x] 基础代码框
-  - [ ] 代码框高度按现有代码来生成；
-  - [ ] 代码行数；
-  - [ ] 代码运行快捷键：Ctrl/Command + Enter；
-  - [ ] 代码高亮；
+  - [x] Basic code box
+  - [ ] Code box height generated based on existing code;
+  - [ ] Code line numbers;
+  - [ ] Code execution shortcut: Ctrl/Command + Enter;
+  - [ ] Code highlighting;
