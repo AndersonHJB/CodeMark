@@ -2,13 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Article</title>
+    <title>{{ metadata.title or 'Article' }}</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
     <style>
         body {
             font-family: "Arial", sans-serif;
             background-color: #f8f8f8;
             color: #333;
+        }
+        .article-header {
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #e8e8e8;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .article-title {
+            font-size: 24px;
+            color: #333;
+        }
+        .article-meta {
+            font-size: 16px;
+            color: #666;
         }
         .code-block {
             border-radius: 5px;
@@ -57,6 +72,16 @@
     </style>
 </head>
 <body>
+    <div class="article-header">
+        <div class="article-title">{{ metadata.title }}</div>
+        <div class="article-meta">
+            Written by {{ metadata.author }} on {{ metadata.date }}
+            <br>
+            Category: {{ metadata.category | join(', ') }}
+            <br>
+            Tags: {{ metadata.tag | join(', ') }}
+        </div>
+    </div>
     <div id="content">
         {{ content|safe }}
     </div>

@@ -8,19 +8,6 @@ category:
     - Python notebook
 tag:
     - Python 1v1
-sticky: false
-star: false
-article: true
-timeline: true
-navbar: true
-sidebarIcon: true
-headerDepth: 5
-comment: true
-lastUpdated: true
-editLink: true
-backToTop: true
-toc: true
-watermark: true
 ---
 
 ## 1. 理解变量——生活中的例子
