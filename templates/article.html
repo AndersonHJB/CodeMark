@@ -2,59 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ metadata.title or 'Article' }}</title>
+    <title>Article</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+          rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
     <style>
         body {
-            font-family: "Arial", sans-serif;
-            background-color: #f8f8f8;
-            color: #333;
-        }
-        .article-header {
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: #e8e8e8;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .article-title {
-            font-size: 24px;
-            color: #333;
-        }
-        .article-meta {
-            font-size: 16px;
-            color: #666;
-        }
-        .code-block {
-            border-radius: 5px;
-            background-color: #f0f0f0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            margin: 20px;
-            position: relative;
-            padding: 20px;
-        }
-        .output {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            font-size: 18px;
             background-color: #fff;
             color: #333;
-            border: none;
-            padding: 10px;
-            margin-top: 5px;
-            white-space: pre-wrap;
-            border-radius: 4px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-            min-height: 20px;
+            padding: 20px;
+            margin: 0;
         }
+
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: auto;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            position: relative;
+        }
+
         textarea {
-            width: 100%;
+            width: calc(100% - 20px);
             height: 150px;
-            font-family: "Monaco", "Menlo", monospace;
+            font-family: 'Monaco', 'Menlo', monospace;
             background-color: #282c34;
             color: #abb2bf;
             border: none;
-            border-radius: 4px;
             padding: 10px;
+            resize: none; /* Disable resizing */
         }
-        button {
+
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            min-height: 25px;
+        {#// 确保即使是空输出也有一定的高度显示#}
+        }
+
+        button.run-button {
             position: absolute;
             right: 10px;
             top: 10px;
@@ -64,81 +73,80 @@
             border-radius: 4px;
             padding: 8px 16px;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        button:hover {
+
+        button.run-button:hover {
             background-color: #5292e2;
         }
     </style>
 </head>
 <body>
-    <div class="article-header">
-        <div class="article-title">{{ metadata.title }}</div>
-        <div class="article-meta">
-            Written by {{ metadata.author }} on {{ metadata.date }}
-            <br>
-            Category: {{ metadata.category | join(', ') }}
-            <br>
-            Tags: {{ metadata.tag | join(', ') }}
-        </div>
-    </div>
+<div class="content">
     <div id="content">
         {{ content|safe }}
     </div>
+</div>
 
-    <script>
-        async function loadPyodideAndPackages() {
-            self.pyodide = await loadPyodide({
-                indexURL : "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
-            });
-            await self.pyodide.loadPackage(['micropip']);
-        }
-        loadPyodideAndPackages();
+<script>
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip']);
+    }
 
-        function createRunButton(textarea) {
-            const button = document.createElement('button');
-            button.textContent = 'Run Code';
-            button.onclick = async function () {
-                const outputElement = document.createElement('div');
+    loadPyodideAndPackages();
+
+    function createRunButton(textarea) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = 'Run Code';
+        button.onclick = async function () {
+            let outputElement = textarea.parentNode.querySelector('.output');
+            if (!outputElement) {
+                // 如果不存在输出框，则创建一个新的输出框
+                outputElement = document.createElement('div');
                 outputElement.className = 'output';
-                textarea.parentNode.appendChild(outputElement);
+                textarea.parentNode.appendChild(outputElement); // 确保输出框添加到代码块的容器中
+            }
 
-                try {
-                    // Redirect Python's stdout and stderr
-                    self.pyodide.runPython(`
-                        import sys
-                        import io
-                        sys.stdout = io.StringIO()
-                        sys.stderr = io.StringIO()
-                    `);
+            try {
+                // 重定向Python的stdout和stderr
+                self.pyodide.runPython(`
+                import sys, io
+                sys.stdout = io.StringIO()
+                sys.stderr = io.StringIO()
+            `);
 
-                    await self.pyodide.runPythonAsync(textarea.value);
+                // 执行文本区域中的Python代码
+                await self.pyodide.runPythonAsync(textarea.value);
 
-                    // Capture Python's stdout and stderr
-                    const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
-                    const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                // 获取Python的stdout和stderr输出
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
 
-                    outputElement.textContent = stdout + stderr || 'No output.';
-                } catch (error) {
-                    outputElement.textContent = `Error:\n${error}`;
-                }
-            };
-            return button;
-        }
+                // 更新输出框的文本内容
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        };
+        return button;
+    }
 
-        window.onload = function() {
-            const codeBlocks = document.querySelectorAll('pre > code.language-python');
-            codeBlocks.forEach(codeBlock => {
-                const textarea = document.createElement('textarea');
-                textarea.value = codeBlock.textContent.trim();
-                const container = document.createElement('div');
-                container.className = 'code-block';
-                codeBlock.parentNode.insertBefore(container, codeBlock);
-                container.appendChild(textarea);
-                container.appendChild(createRunButton(textarea));
-                codeBlock.style.display = 'none'; // Hide original code block
-            });
-        }
-    </script>
+    window.onload = function () {
+        const codeBlocks = document.querySelectorAll('pre > code.language-python');
+        codeBlocks.forEach(codeBlock => {
+            const textarea = document.createElement('textarea');
+            textarea.value = codeBlock.textContent.trim();
+            const container = document.createElement('div');
+            container.className = 'code-block';
+            codeBlock.parentNode.insertBefore(container, codeBlock);
+            container.appendChild(textarea);
+            container.appendChild(createRunButton(textarea));
+            codeBlock.style.display = 'none'; // Hide original code block
+        });
+    }
+</script>
 </body>
 </html>
