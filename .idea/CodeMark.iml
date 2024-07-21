@@ -12,6 +12,7 @@
     <orderEntry type="library" name="bootstrap" level="application" />
     <orderEntry type="library" name="codemirror" level="application" />
     <orderEntry type="library" name="prismjs" level="application" />
+    <orderEntry type="library" name="highlight.js" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Jinja2" />

@@ -42,14 +42,15 @@
         }
 
         textarea {
-            width: calc(100% - 20px);
-            height: 150px;
+            width: calc(100% - 40px);
             font-family: 'Monaco', 'Menlo', monospace;
             background-color: #282c34;
             color: #abb2bf;
             border: none;
             padding: 10px;
-            resize: none; /* Disable resizing */
+            resize: none;
+            overflow: hidden;
+            min-height: 150px;
         }
 
         .output {
@@ -61,7 +62,6 @@
             margin-top: 10px;
             white-space: pre-wrap;
             min-height: 25px;
-        {#// 确保即使是空输出也有一定的高度显示#}
         }
 
         button.run-button {
@@ -87,7 +87,6 @@
         {{ content|safe }}
     </div>
 </div>
-
 <script>
     async function loadPyodideAndPackages() {
         self.pyodide = await loadPyodide({
@@ -105,28 +104,19 @@
         button.onclick = async function () {
             let outputElement = textarea.parentNode.querySelector('.output');
             if (!outputElement) {
-                // 如果不存在输出框，则创建一个新的输出框
                 outputElement = document.createElement('div');
                 outputElement.className = 'output';
-                textarea.parentNode.appendChild(outputElement); // 确保输出框添加到代码块的容器中
+                textarea.parentNode.appendChild(outputElement);
             }
-
             try {
-                // 重定向Python的stdout和stderr
                 self.pyodide.runPython(`
-                import sys, io
-                sys.stdout = io.StringIO()
-                sys.stderr = io.StringIO()
-            `);
-
-                // 执行文本区域中的Python代码
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
                 await self.pyodide.runPythonAsync(textarea.value);
-
-                // 获取Python的stdout和stderr输出
                 const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
                 const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
-
-                // 更新输出框的文本内容
                 outputElement.textContent = (stdout + stderr).trim() || 'No output.';
             } catch (error) {
                 outputElement.textContent = `Error:\n${error}`;
@@ -145,8 +135,15 @@
             codeBlock.parentNode.insertBefore(container, codeBlock);
             container.appendChild(textarea);
             container.appendChild(createRunButton(textarea));
-            codeBlock.style.display = 'none'; // Hide original code block
+            codeBlock.style.display = 'none';
+            adjustTextareaHeight(textarea);
+            textarea.addEventListener('input', () => adjustTextareaHeight(textarea));
         });
+    }
+
+    function adjustTextareaHeight(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
     }
 </script>
 </body>
