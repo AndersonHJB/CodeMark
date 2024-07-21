@@ -34,8 +34,8 @@ pip freeze > requirements.txt
 
 ## 作者✍️
 
-![img.png](static/info/img.png)
+<img src="static/info/img.png" alt="img.png" style="zoom:25%;" />
 
 ## 请我喝咖啡☕️
 
-![img.png](static/info/wx.png)
+<img src="static/info/wx.png" alt="img.png" style="zoom:25%;" />
