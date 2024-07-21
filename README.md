@@ -39,3 +39,8 @@ pip freeze > requirements.txt
 ## 请我喝咖啡☕️
 
 <img src="static/info/wx.png" alt="img.png" style="zoom:25%;" />
+
+## Plan🖥️
+
+- [] UI
+  - [x] 基础代码框
