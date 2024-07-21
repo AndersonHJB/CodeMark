@@ -46,5 +46,5 @@ pip freeze > requirements.txt
   - [x] 基础代码框
   - [ ] 代码框高度按现有代码来生成；
   - [ ] 代码行数；
-  - [ ] 代码运行快捷键：Ctrl/Command + Enter
-  - 
+  - [ ] 代码运行快捷键：Ctrl/Command + Enter；
+  - [ ] 代码高亮；
