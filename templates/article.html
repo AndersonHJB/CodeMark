@@ -9,8 +9,7 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -67,7 +66,6 @@
             border-radius: 4px;
             padding: 8px 16px;
             cursor: pointer;
-            margin: 10px 5px;
         }
 
         button.run-button:hover, button.reset-button:hover {
@@ -75,11 +73,10 @@
         }
 
         .button-container {
-            position: absolute;
-            right: 10px;
-            top: 10px;
             display: flex;
+            justify-content: flex-end;
             gap: 10px;
+            padding: 10px;
         }
 
         .code-block-container {
@@ -118,7 +115,7 @@
     function createRunButton(editor) {
         const button = document.createElement('button');
         button.className = 'run-button';
-        button.textContent = 'Run Code';
+        button.textContent = '运行代码';
         button.onclick = runCode;
 
         async function runCode() {
@@ -162,7 +159,7 @@
     function createResetButton(editor, initialCode) {
         const button = document.createElement('button');
         button.className = 'reset-button';
-        button.textContent = 'Reset Code';
+        button.textContent = '重置代码';
         button.onclick = function () {
             editor.setValue(initialCode);
             const outputElement = editor.getWrapperElement().nextSibling;
@@ -194,8 +191,8 @@
 
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'button-container';
-            buttonContainer.appendChild(createRunButton(editor));
             buttonContainer.appendChild(createResetButton(editor, initialCode));
+            buttonContainer.appendChild(createRunButton(editor));
 
             codeBlockContainer.appendChild(container);
             codeBlockContainer.appendChild(buttonContainer);
