@@ -76,4 +76,6 @@ pip freeze > requirements.txt
   - [ ] Vuepress 版本
   - [ ] Django 版本
   - [x] Flask 版本「V0.5」
+- [ ] 待优化的功能 & 界面
+  - [ ] 代码框初始化时，有些初始代码小于代码框高度设置的默认最小值，应该按当前代码初始化
 
