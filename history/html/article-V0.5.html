@@ -39,19 +39,10 @@
             padding: 20px;
             margin-top: 20px;
             position: relative;
-            display: flex;
-        }
-
-        .line-numbers {
-            color: #888;
-            text-align: right;
-            padding-right: 10px;
-            user-select: none; /* Prevent user from selecting the line numbers */
         }
 
         textarea {
-            flex: 1;
-            width: 100%;
+            width: calc(100% - 40px);
             font-family: 'Monaco', 'Menlo', monospace;
             background-color: #282c34;
             color: #abb2bf;
@@ -134,35 +125,19 @@
         return button;
     }
 
-    function updateLineNumbers(textarea, lineNumbersDiv) {
-        const lineCount = textarea.value.split('\n').length;
-        let lines = '';
-        for (let i = 1; i <= lineCount; i++) {
-            lines += i + '\n';
-        }
-        lineNumbersDiv.textContent = lines;
-    }
-
     window.onload = function () {
         const codeBlocks = document.querySelectorAll('pre > code.language-python');
         codeBlocks.forEach(codeBlock => {
-            const container = document.createElement('div');
-            container.className = 'code-block';
-            const lineNumbersDiv = document.createElement('div');
-            lineNumbersDiv.className = 'line-numbers';
             const textarea = document.createElement('textarea');
             textarea.value = codeBlock.textContent.trim();
+            const container = document.createElement('div');
+            container.className = 'code-block';
             codeBlock.parentNode.insertBefore(container, codeBlock);
-            container.appendChild(lineNumbersDiv);
             container.appendChild(textarea);
             container.appendChild(createRunButton(textarea));
             codeBlock.style.display = 'none';
             adjustTextareaHeight(textarea);
-            textarea.addEventListener('input', () => {
-                adjustTextareaHeight(textarea);
-                updateLineNumbers(textarea, lineNumbersDiv);
-            });
-            updateLineNumbers(textarea, lineNumbersDiv);
+            textarea.addEventListener('input', () => adjustTextareaHeight(textarea));
         });
     }
 
