@@ -34,6 +34,8 @@
 
 - [Bornforthis](https://bornforthis.cn/)
 - [flask](https://flask.palletsprojects.com/en/3.0.x/)
+- [codemirror](https://codemirror.net/)
+- [codemirror](https://cdnjs.com/libraries/codemirror)
 - [pyodide](https://pyodide.org/en/stable/index.html)
 
 ## 声明🖨️

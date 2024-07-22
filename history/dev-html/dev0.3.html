@@ -45,7 +45,7 @@
             padding: 0;
             margin-top: 20px;
             position: relative;
-            overflow: auto; /* 确保代码框可以水平滚动 */
+            overflow: hidden; /* 确保代码框可以水平滚动 */
         }
 
         .output {
@@ -85,10 +85,7 @@
 
         .CodeMirror {
             height: auto;
-        }
-
-        .CodeMirror-scroll {
-            overflow: auto; /* 确保滚动条正常显示 */
+            overflow: hidden; /* 确保没有竖直滚动条 */
         }
     </style>
 </head>
@@ -164,7 +161,7 @@
                 theme: "material-darker",
                 lineNumbers: true,
                 viewportMargin: Infinity, // 确保代码在初始化时显示
-                lineWrapping: false // 禁用行包裹，确保水平滚动
+                lineWrapping: true // 启用行包裹，确保横向内容不会导致高度增加
             });
 
             const codeBlockContainer = document.createElement('div');

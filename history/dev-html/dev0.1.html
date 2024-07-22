@@ -42,10 +42,9 @@
             background-color: #282c34;
             color: #abb2bf;
             border-radius: 8px;
-            padding: 0;
+            padding: 20px;
             margin-top: 20px;
             position: relative;
-            overflow: auto; /* 确保代码框可以水平滚动 */
         }
 
         .output {
@@ -79,16 +78,6 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .CodeMirror {
-            height: auto;
-        }
-
-        .CodeMirror-scroll {
-            overflow: auto; /* 确保滚动条正常显示 */
         }
     </style>
 </head>
@@ -143,12 +132,6 @@
             }
         });
 
-        // 确保代码框高度自动适配内容
-        editor.on('changes', function () {
-            editor.getWrapperElement().style.height = 'auto';
-            editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
-        });
-
         return button;
     }
 
@@ -163,8 +146,7 @@
                 mode: "python",
                 theme: "material-darker",
                 lineNumbers: true,
-                viewportMargin: Infinity, // 确保代码在初始化时显示
-                lineWrapping: false // 禁用行包裹，确保水平滚动
+                viewportMargin: Infinity // 确保代码在初始化时显示
             });
 
             const codeBlockContainer = document.createElement('div');
@@ -179,7 +161,6 @@
             // 确保代码在初始化时显示
             setTimeout(() => {
                 editor.refresh();
-                editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
             }, 100);
         });
     }
