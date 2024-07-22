@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            font-size: 18px;
+            background-color: #fff;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+        }
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+        }
+        .content {
+            max-width: 800px;
+            margin: auto;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            position: relative;
+        }
+        .line-numbers {
+            color: #768390;
+            text-align: right;
+            padding-right: 10px;
+            user-select: none;
+            font-family: 'Monaco', 'Menlo', monospace;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+        textarea {
+            flex: 1;
+            background-color: #282c34;
+            color: #abb2bf;
+            border: none;
+            padding: 0 10px;
+            resize: none;
+            overflow: hidden;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            outline: none;
+        }
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            min-height: 25px;
+        }
+        button.run-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        button.run-button:hover {
+            background-color: #5292e2;
+        }
+        .code-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+    <div id="content">
+        {{ content|safe }}
+    </div>
+</div>
+<script>
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip']);
+    }
+    loadPyodideAndPackages();
+
+    function createRunButton(textarea) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = 'Run Code';
+        button.onclick = async function () {
+            let outputElement = textarea.parentNode.parentNode.querySelector('.output');
+            if (!outputElement) {
+                outputElement = document.createElement('div');
+                outputElement.className = 'output';
+                textarea.parentNode.parentNode.appendChild(outputElement);
+            }
+            try {
+                self.pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
+                await self.pyodide.runPythonAsync(textarea.value);
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        };
+        return button;
+    }
+
+    function updateLineNumbers(textarea, lineNumbersDiv) {
+        const lines = textarea.value.split('\n').length;
+        let numbers = '';
+        for (let i = 1; i <= lines; i++) {
+            numbers += i + '\n';
+        }
+        lineNumbersDiv.textContent = numbers;
+    }
+
+    window.onload = function () {
+        const codeBlocks = document.querySelectorAll('pre > code.language-python');
+        codeBlocks.forEach(codeBlock => {
+            const container = document.createElement('div');
+            container.className = 'code-block';
+
+            const lineNumbersDiv = document.createElement('div');
+            lineNumbersDiv.className = 'line-numbers';
+
+            const textarea = document.createElement('textarea');
+            textarea.value = codeBlock.textContent.trim();
+
+            updateLineNumbers(textarea, lineNumbersDiv);
+            textarea.addEventListener('input', () => updateLineNumbers(textarea, lineNumbersDiv));
+
+            const codeContainer = document.createElement('div');
+            codeContainer.className = 'code-container';
+
+            codeContainer.appendChild(lineNumbersDiv);
+            codeContainer.appendChild(textarea);
+
+            const codeBlockContainer = document.createElement('div');
+            codeBlockContainer.className = 'code-block-container';
+
+            codeBlockContainer.appendChild(codeContainer);
+            codeBlockContainer.appendChild(createRunButton(textarea));
+
+            container.appendChild(codeBlockContainer);
+            codeBlock.parentNode.insertBefore(container, codeBlock);
+            codeBlock.style.display = 'none'; // Hide original code block
+            adjustTextareaHeight(textarea); // Call immediately to adjust height based on content
+            textarea.addEventListener('input', () => adjustTextareaHeight(textarea));
+        });
+    }
+
+    function adjustTextareaHeight(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px'; // Adjust height based on scroll height
+    }
+</script>
+</body>
+</html>
