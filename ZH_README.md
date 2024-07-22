@@ -65,6 +65,7 @@ pip freeze > requirements.txt
   - [ ] 代码运行快捷键：Ctrl/Command + Enter；
   - [ ] 代码高亮；
   - [ ] 输出长度超出输出框，不要换行要可以滑动；
+  - [ ] 支持 yaml 数据 metadata
 - [ ] 功能计划
   - [ ] 代码复制；
   - [ ] 文章禁止复制；
