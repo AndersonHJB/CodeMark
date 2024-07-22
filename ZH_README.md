@@ -29,6 +29,8 @@
 
 ## 项目依赖开🖲️
 
+- [Bornforthis](https://bornforthis.cn/)
+- [flask](https://flask.palletsprojects.com/en/3.0.x/)
 - [pyodide](https://pyodide.org/en/stable/index.html)
 
 ## 声明🖨️
