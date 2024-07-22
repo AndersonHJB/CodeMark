@@ -34,7 +34,6 @@
 
         .code-block {
             background-color: #282c34;
-            {#background-color: #f0f0f0;#}
             color: #abb2bf;
             border-radius: 8px;
             padding: 20px;
@@ -55,7 +54,6 @@
         textarea {
             flex: 1;
             background-color: #282c34;
-            {#background-color: #f0f0f0;#}
             color: #abb2bf;
             border: none;
             padding: 0 10px;
@@ -125,7 +123,9 @@
         const button = document.createElement('button');
         button.className = 'run-button';
         button.textContent = 'Run Code';
-        button.onclick = async function () {
+        button.onclick = runCode;
+
+        async function runCode() {
             let outputElement = textarea.parentNode.parentNode.querySelector('.output');
             if (!outputElement) {
                 outputElement = document.createElement('div');
@@ -145,7 +145,15 @@
             } catch (error) {
                 outputElement.textContent = `Error:\n${error}`;
             }
-        };
+        }
+
+        // Listen for Ctrl+Enter or Command+Enter
+        textarea.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                runCode();
+            }
+        });
+
         return button;
     }
 
