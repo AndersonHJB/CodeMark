@@ -9,8 +9,7 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -60,26 +59,20 @@
             min-height: 25px;
         }
 
-        button.run-button, button.reset-button {
+        button.run-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
             background-color: #61afef;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 8px 16px;
             cursor: pointer;
-            margin: 10px 5px;
         }
 
-        button.run-button:hover, button.reset-button:hover {
+        button.run-button:hover {
             background-color: #5292e2;
-        }
-
-        .button-container {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            display: flex;
-            gap: 10px;
         }
 
         .code-block-container {
@@ -159,29 +152,14 @@
         return button;
     }
 
-    function createResetButton(editor, initialCode) {
-        const button = document.createElement('button');
-        button.className = 'reset-button';
-        button.textContent = 'Reset Code';
-        button.onclick = function () {
-            editor.setValue(initialCode);
-            const outputElement = editor.getWrapperElement().nextSibling;
-            if (outputElement && outputElement.classList.contains('output')) {
-                outputElement.textContent = '';
-            }
-        };
-        return button;
-    }
-
     window.onload = function () {
         const codeBlocks = document.querySelectorAll('pre > code.language-python');
         codeBlocks.forEach(codeBlock => {
-            const initialCode = codeBlock.textContent.trim();
             const container = document.createElement('div');
             container.className = 'code-block';
 
             const editor = CodeMirror(container, {
-                value: initialCode,
+                value: codeBlock.textContent.trim(),
                 mode: "python",
                 theme: "material-darker",
                 lineNumbers: true,
@@ -192,13 +170,8 @@
             const codeBlockContainer = document.createElement('div');
             codeBlockContainer.className = 'code-block-container';
 
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'button-container';
-            buttonContainer.appendChild(createRunButton(editor));
-            buttonContainer.appendChild(createResetButton(editor, initialCode));
-
             codeBlockContainer.appendChild(container);
-            codeBlockContainer.appendChild(buttonContainer);
+            codeBlockContainer.appendChild(createRunButton(editor));
 
             codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
             codeBlock.style.display = 'none'; // 隐藏原始代码块
