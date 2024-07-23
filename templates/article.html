@@ -9,7 +9,8 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -95,6 +96,11 @@
         .CodeMirror-scroll {
             overflow: auto; /* 确保滚动条正常显示 */
         }
+
+        /* 自定义选中行颜色 */
+        .CodeMirror-selected {
+            background: #3399ff !important; /* 更改为你想要的颜色 */
+        }
     </style>
 </head>
 <body>
@@ -179,7 +185,7 @@
 
         // 仅在不是重置操作且高度增加时滚动
         if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
-            wrapperElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
         }
     }
 
