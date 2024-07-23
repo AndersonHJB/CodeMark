@@ -117,7 +117,7 @@
         self.pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
         });
-        await self.pyodide.loadPackage(['micropip']);
+        await self.pyodide.loadPackage(['micropip', 'numpy']);
     }
 
     loadPyodideAndPackages();
