@@ -12,6 +12,8 @@ echo "进入 cm.bornforthis.cn CodeMark"
 git pull
 echo "同步成功"
 cd ..
+echo "回到上级目录"
 cp -r ./CodeMark/* .
+echo "复制成功..."
 cd ~
-echo ""
+echo "全部成功"
