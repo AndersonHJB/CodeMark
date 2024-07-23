@@ -1,54 +1,4 @@
-```python
-string = "我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 \
-\
-浅者见浅，深者见深——黄家宝\
-\
-起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。\
-\
-先实现功能，再去优化，否则一切会很乱。——AI悦创\
-\
-凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"  # 外面使用双引号进行包裹即可
-print(string)
-```
-
-```python
-string = """我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 
-
-浅者见浅，深者见深——黄家宝
-
-起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。
-
-先实现功能，再去优化，否则一切会很乱。——AI悦创
-
-凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"""  # 外面使用双引号进行包裹即可
-print(string)
-```
----
-```python
-string = "我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 \
-\
-浅者见浅，深者见深——黄家宝\
-\
-起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。\
-\
-先实现功能，再去优化，否则一切会很乱。——AI悦创\
-\
-凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"  # 外面使用双引号进行包裹即可
-print(string)
-
-string = """我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 
-
-浅者见浅，深者见深——黄家宝
-
-起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。
-
-先实现功能，再去优化，否则一切会很乱。——AI悦创
-
-凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"""  # 外面使用双引号进行包裹即可
-print(string)
-```
-```python
-string = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -74,9 +24,9 @@ string = """<!DOCTYPE html>
             font-size: 18px;
             background-color: #fff;
             color: #333;
-            padding: 20px;
             margin: 0;
             display: flex;
+            justify-content: center;
         }
 
         h1, h2, h3 {
@@ -84,27 +34,43 @@ string = """<!DOCTYPE html>
             color: #444;
         }
 
+        .container {
+            display: flex;
+            max-width: 1200px;
+            width: 100%;
+            margin: 20px;
+        }
+
         .content {
-            max-width: 800px;
-            margin: auto;
+            flex: 2;
             background: #f9f9f9;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            flex: 1;
+            margin-right: 20px;
         }
 
         .outline {
             width: 300px;
             padding: 20px;
-            margin-left: 20px;
             background: #f1f1f1;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 20px;
-            max-height: 80vh;
-            overflow-y: auto;
+            height: fit-content;
+        }
+
+        .outline a {
+            display: block;
+            color: #444;
+            text-decoration: none;
+            margin: 5px 0;
+            transition: color 0.3s;
+        }
+
+        .outline a:hover {
+            color: #61afef;
         }
 
         .code-block {
@@ -172,27 +138,36 @@ string = """<!DOCTYPE html>
     </style>
 </head>
 <body>
-<div class="content">
-    <div id="content">
-        {{ content|safe }}
+<div class="container">
+    <div class="content">
+        <div id="content">
+            {{ content|safe }}
+        </div>
     </div>
-</div>
-<div class="outline">
-    <h3>大纲</h3>
-    <div id="outline-content"></div>
+    <div class="outline">
+        <h3>大纲</h3>
+        <div id="outline-content"></div>
+    </div>
 </div>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const outlineContent = document.getElementById('outline-content');
         const content = document.getElementById('content');
-        
+
         const headers = content.querySelectorAll('h1, h2, h3');
-        headers.forEach(header => {
+        headers.forEach((header, index) => {
+            const id = `header-${index}`;
+            header.id = id;
+
             const link = document.createElement('a');
             link.textContent = header.textContent;
-            link.href = `#${header.id}`;
-            link.style.display = 'block';
+            link.href = `#${id}`;
             link.style.marginLeft = `${(parseInt(header.tagName.charAt(1)) - 1) * 20}px`;
+            link.onclick = function (event) {
+                event.preventDefault();
+                document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+            };
+
             outlineContent.appendChild(link);
         });
     });
@@ -325,9 +300,4 @@ string = """<!DOCTYPE html>
     }
 </script>
 </body>
-</html>"""
-# print(f"string:>>>\n{string}")
-n = string.split('\n')[:10]
-print(f"string:>>>\n{n}")
-```
-
+</html>
