@@ -42,7 +42,7 @@ def index():
 def article(filename):
     with open(os.path.join('articles', filename), 'r') as f:
         content = f.read()
-        html_content = markdown.markdown(content, extensions=['fenced_code', 'codehilite'])
+        html_content = markdown.markdown(content, extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
     return render_template('article.html', content=html_content)
 
 
