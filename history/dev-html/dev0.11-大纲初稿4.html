@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            font-size: 18px;
+            background-color: #fff;
+            color: #333;
+            margin: 0;
+            display: flex;
+            flex-direction: row;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 20px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 3;
+        }
+
+        .outline {
+            max-width: 200px;
+            margin: 20px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+            position: relative;
+            overflow: auto;
+        }
+
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre;
+            min-height: 25px;
+            display: none;
+            overflow-x: auto;
+        }
+
+        button.run-button, button.reset-button {
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        button.run-button:hover, button.reset-button:hover {
+            background-color: #5292e2;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: auto;
+        }
+
+        .CodeMirror-scroll {
+            overflow: auto;
+        }
+
+        .CodeMirror-selected {
+            background: #3399ff !important;
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+    <div id="content">
+        {{ content|safe }}
+    </div>
+</div>
+<div class="outline" id="outline">
+    <h3>大纲</h3>
+    <ul id="outline-list"></ul>
+</div>
+<script>
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip', 'numpy']);
+    }
+
+    loadPyodideAndPackages();
+
+    function createRunButton(editor, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = '运行代码';
+        button.onclick = runCode;
+
+        async function runCode() {
+            outputElement.textContent = '';
+            outputElement.style.display = 'block';
+            try {
+                self.pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
+                await self.pyodide.runPythonAsync(editor.getValue());
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        }
+
+        editor.on('keydown', function (cm, event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                runCode();
+            }
+        });
+
+        editor.on('changes', function () {
+            adjustEditorHeight(editor);
+        });
+
+        return button;
+    }
+
+    function createResetButton(editor, initialCode, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'reset-button';
+        button.textContent = '重置代码';
+        button.onclick = function () {
+            editor.setValue(initialCode);
+            outputElement.textContent = '';
+            outputElement.style.display = 'none';
+            adjustEditorHeight(editor, true);
+        };
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false) {
+        const lineCount = editor.lineCount();
+        const wrapperElement = editor.getWrapperElement();
+        const previousHeight = wrapperElement.style.height;
+
+        if (lineCount > 30) {
+            wrapperElement.style.height = '480px';
+        } else {
+            wrapperElement.style.height = 'auto';
+            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
+        }
+
+        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
+            wrapperElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    window.onload = function () {
+        const codeBlocks = document.querySelectorAll('pre > code');
+        codeBlocks.forEach(codeBlock => {
+            const initialCode = codeBlock.textContent.trim();
+            const language = codeBlock.className.replace('language-', '');
+            const container = document.createElement('div');
+            container.className = 'code-block';
+
+            const editor = CodeMirror(container, {
+                value: initialCode,
+                mode: language,
+                theme: "material-darker",
+                lineNumbers: true,
+                viewportMargin: Infinity,
+                lineWrapping: false
+            });
+
+            const codeBlockContainer = document.createElement('div');
+            codeBlockContainer.className = 'code-block-container';
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+
+            const outputContainer = document.createElement('div');
+            outputContainer.className = 'output';
+
+            buttonContainer.appendChild(createResetButton(editor, initialCode, outputContainer));
+
+            if (language === 'python') {
+                buttonContainer.appendChild(createRunButton(editor, outputContainer));
+            }
+
+            codeBlockContainer.appendChild(container);
+            codeBlockContainer.appendChild(buttonContainer);
+            codeBlockContainer.appendChild(outputContainer);
+
+            codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
+            codeBlock.style.display = 'none';
+
+            setTimeout(() => {
+                editor.refresh();
+                adjustEditorHeight(editor);
+            }, 100);
+        });
+
+        generateOutline();
+    };
+
+    function generateOutline() {
+        const contentElement = document.getElementById('content');
+        const outlineElement = document.getElementById('outline-list');
+        const headers = contentElement.querySelectorAll('h1, h2, h3');
+
+        headers.forEach(header => {
+            const listItem = document.createElement('li');
+            listItem.textContent = header.textContent;
+            listItem.style.marginLeft = `${(parseInt(header.tagName[1]) - 1) * 20}px`;
+            listItem.onclick = () => {
+                header.scrollIntoView({ behavior: 'smooth' });
+            };
+            outlineElement.appendChild(listItem);
+        });
+    }
+</script>
+</body>
+</html>
