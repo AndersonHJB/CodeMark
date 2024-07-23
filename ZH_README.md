@@ -66,6 +66,7 @@ pip freeze > requirements.txt
   - [x] 代码框高度按现有代码来生成；「实现动态适配」；
   - [x] 代码行数；
   - [x] 代码运行快捷键：Ctrl/Command + Enter；
+  - [ ] Ctrl/Command + B 运行代码；
   - [x] 代码高亮；
   - [x] 输出长度超出输出框，不要换行要可以滑动；
   - [ ] 支持 yaml 数据 metadata；
