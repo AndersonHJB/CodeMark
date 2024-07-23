@@ -9,8 +9,7 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -58,7 +57,7 @@
             margin-top: 10px;
             white-space: pre-wrap;
             min-height: 25px;
-            display: none; /* 初始隐藏输出框 */
+            display: none; /* 默认不显示输出框 */
         }
 
         button.run-button, button.reset-button {
@@ -120,8 +119,8 @@
         button.onclick = runCode;
 
         async function runCode() {
-            outputElement.textContent = ''; // 清空现有的输出内容
             outputElement.style.display = 'block'; // 显示输出框
+            outputElement.textContent = ''; // 清空现有的输出内容
             try {
                 self.pyodide.runPython(`
                     import sys, io
@@ -137,19 +136,6 @@
             }
         }
 
-        // 监听 Ctrl+Enter 或 Command+Enter
-        editor.on('keydown', function (cm, event) {
-            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-                runCode();
-            }
-        });
-
-        // 确保代码框高度自动适配内容
-        editor.on('changes', function () {
-            editor.getWrapperElement().style.height = 'auto';
-            editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
-        });
-
         return button;
     }
 
@@ -159,8 +145,8 @@
         button.textContent = '重置代码';
         button.onclick = function () {
             editor.setValue(initialCode);
-            outputElement.textContent = '';
             outputElement.style.display = 'none'; // 隐藏输出框
+            outputElement.textContent = ''; // 清空内容
         };
         return button;
     }
