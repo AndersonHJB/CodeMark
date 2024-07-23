@@ -159,18 +159,26 @@
             editor.setValue(initialCode);
             outputElement.textContent = '';
             outputElement.style.display = 'none'; // 隐藏输出框
-            adjustEditorHeight(editor); // 重置高度
+            adjustEditorHeight(editor, true); // 重置高度
         };
         return button;
     }
 
-    function adjustEditorHeight(editor) {
+    function adjustEditorHeight(editor, isReset = false) {
         const lineCount = editor.lineCount();
-        if (lineCount > 80) {
-            editor.getWrapperElement().style.height = '480px'; // 固定高度，启用滚动条
+        const wrapperElement = editor.getWrapperElement();
+        const previousHeight = wrapperElement.style.height;
+
+        if (lineCount > 30) {
+            wrapperElement.style.height = '480px'; // 固定高度，启用滚动条
         } else {
-            editor.getWrapperElement().style.height = 'auto'; // 根据内容调整高度
-            editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
+            wrapperElement.style.height = 'auto'; // 根据内容调整高度
+            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
+        }
+
+        // 仅在不是重置操作且高度增加时滚动
+        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
+            wrapperElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
