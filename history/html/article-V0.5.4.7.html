@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            font-size: 18px;
+            background-color: #fff;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: auto;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+            position: relative;
+            overflow: auto; /* 确保代码框可以水平滚动 */
+        }
+
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            min-height: 25px;
+            display: none; /* 初始隐藏输出框 */
+        }
+
+        button.run-button, button.reset-button {
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        button.run-button:hover, button.reset-button:hover {
+            background-color: #5292e2;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: auto;
+        }
+
+        .CodeMirror-scroll {
+            overflow: auto; /* 确保滚动条正常显示 */
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+    <div id="content">
+        {{ content|safe }}
+    </div>
+</div>
+<script>
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip']);
+    }
+
+    loadPyodideAndPackages();
+
+    function createRunButton(editor, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = '运行代码';
+        button.onclick = runCode;
+
+        async function runCode() {
+            outputElement.textContent = ''; // 清空现有的输出内容
+            outputElement.style.display = 'block'; // 显示输出框
+            try {
+                self.pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
+                await self.pyodide.runPythonAsync(editor.getValue());
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        }
+
+        // 监听 Ctrl+Enter 或 Command+Enter
+        editor.on('keydown', function (cm, event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                runCode();
+            }
+        });
+
+        // 确保代码框高度自动适配内容
+        editor.on('changes', function () {
+            adjustEditorHeight(editor);
+        });
+
+        return button;
+    }
+
+    function createResetButton(editor, initialCode, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'reset-button';
+        button.textContent = '重置代码';
+        button.onclick = function () {
+            editor.setValue(initialCode);
+            outputElement.textContent = '';
+            outputElement.style.display = 'none'; // 隐藏输出框
+            adjustEditorHeight(editor, true); // 重置高度
+        };
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false) {
+        const lineCount = editor.lineCount();
+        const wrapperElement = editor.getWrapperElement();
+        const previousHeight = wrapperElement.style.height;
+
+        if (lineCount > 30) {
+            wrapperElement.style.height = '480px'; // 固定高度，启用滚动条
+        } else {
+            wrapperElement.style.height = 'auto'; // 根据内容调整高度
+            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
+        }
+
+        // 仅在不是重置操作且高度增加时滚动
+        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
+            wrapperElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    window.onload = function () {
+        const codeBlocks = document.querySelectorAll('pre > code.language-python');
+        codeBlocks.forEach(codeBlock => {
+            const initialCode = codeBlock.textContent.trim();
+            const container = document.createElement('div');
+            container.className = 'code-block';
+
+            const editor = CodeMirror(container, {
+                value: initialCode,
+                mode: "python",
+                theme: "material-darker",
+                lineNumbers: true,
+                viewportMargin: Infinity, // 确保代码在初始化时显示
+                lineWrapping: false // 禁用行包裹，确保水平滚动
+            });
+
+            const codeBlockContainer = document.createElement('div');
+            codeBlockContainer.className = 'code-block-container';
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+
+            const outputContainer = document.createElement('div');
+            outputContainer.className = 'output';
+
+            buttonContainer.appendChild(createResetButton(editor, initialCode, outputContainer));
+            buttonContainer.appendChild(createRunButton(editor, outputContainer));
+
+            codeBlockContainer.appendChild(container);
+            codeBlockContainer.appendChild(buttonContainer);
+            codeBlockContainer.appendChild(outputContainer);
+
+            codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
+            codeBlock.style.display = 'none'; // 隐藏原始代码块
+
+            // 确保代码在初始化时显示
+            setTimeout(() => {
+                editor.refresh();
+                adjustEditorHeight(editor);
+            }, 100);
+        });
+    }
+</script>
+</body>
+</html>
