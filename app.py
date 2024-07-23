@@ -4,6 +4,7 @@
 
 from flask import Flask, render_template
 import markdown
+from markdown.extensions.toc import TocExtension
 import os, re
 
 app = Flask(__name__)
@@ -40,10 +41,13 @@ def index():
 #     return render_template('article.html', content=html_content)
 @app.route('/article/<path:filename>')
 def article(filename):
-    with open(os.path.join('articles', filename), 'r') as f:
+    with open(os.path.join('articles', filename), 'r', encoding='utf-8') as f:
         content = f.read()
-        html_content = markdown.markdown(content, extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
-    return render_template('article.html', content=html_content)
+        # html_content = markdown.markdown(content, extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
+        md = markdown.Markdown(extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
+        html_content = md.convert(content)
+        toc = md.toc
+    return render_template('article.html', content=html_content, toc=toc)
 
 
 if __name__ == '__main__':
