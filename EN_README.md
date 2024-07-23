@@ -1,6 +1,6 @@
 # CodeMark🦭
 
-- [简体中文](README)
+- [简体中文](README.md)
 - [English](EN_README.md)
 - [Releases info](Releases.md)
 
