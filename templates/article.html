@@ -9,7 +9,8 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -26,6 +27,7 @@
             color: #333;
             padding: 20px;
             margin: 0;
+            display: flex;
         }
 
         h1, h2, h3 {
@@ -40,6 +42,7 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
         }
 
         .code-block {
@@ -104,6 +107,40 @@
         .CodeMirror-selected {
             background: #3399ff !important; /* 更改为你想要的颜色 */
         }
+
+        /* 新增大纲样式 */
+        .toc-container {
+            width: 200px;
+            margin-left: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .toc-container h2 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+            margin-top: 0;
+        }
+
+        .toc {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            margin-bottom: 10px;
+        }
+
+        .toc a {
+            text-decoration: none;
+            color: #61afef;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +148,12 @@
     <div id="content">
         {{ content|safe }}
     </div>
+</div>
+<div class="toc-container">
+    <h2>大纲</h2>
+    <ul class="toc">
+        {{ toc|safe }}
+    </ul>
 </div>
 <script>
     async function loadPyodideAndPackages() {
@@ -188,7 +231,7 @@
 
         // 仅在不是重置操作且高度增加时滚动
         if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
-            wrapperElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
         }
     }
 
