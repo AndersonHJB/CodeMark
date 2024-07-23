@@ -46,6 +46,7 @@
             margin-top: 20px;
             position: relative;
             overflow: auto; /* 确保代码框可以水平滚动 */
+            max-height: 500px; /* 设置最大高度 */
         }
 
         .output {
@@ -145,7 +146,15 @@
 
         // 确保代码框高度自动适配内容
         editor.on('changes', function () {
-            adjustEditorHeight(editor);
+            const lineCount = editor.lineCount();
+            if (lineCount > 100) {
+                editor.getWrapperElement().style.height = '500px';
+                editor.getWrapperElement().style.overflowY = 'scroll';
+            } else {
+                editor.getWrapperElement().style.height = 'auto';
+                editor.getWrapperElement().style.overflowY = 'hidden';
+                editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
+            }
         });
 
         return button;
@@ -159,21 +168,11 @@
             editor.setValue(initialCode);
             outputElement.textContent = '';
             outputElement.style.display = 'none'; // 隐藏输出框
-            adjustEditorHeight(editor);
-        };
-        return button;
-    }
-
-    function adjustEditorHeight(editor) {
-        const lineCount = editor.lineCount();
-        if (lineCount > 100) {
-            editor.getWrapperElement().style.height = '500px';
-            editor.getWrapperElement().style.overflowY = 'scroll';
-        } else {
             editor.getWrapperElement().style.height = 'auto';
             editor.getWrapperElement().style.overflowY = 'hidden';
             editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
-        }
+        };
+        return button;
     }
 
     window.onload = function () {
@@ -214,7 +213,14 @@
             // 确保代码在初始化时显示
             setTimeout(() => {
                 editor.refresh();
-                adjustEditorHeight(editor);
+                const lineCount = editor.lineCount();
+                if (lineCount > 100) {
+                    editor.getWrapperElement().style.height = '500px';
+                    editor.getWrapperElement().style.overflowY = 'scroll';
+                } else {
+                    editor.getWrapperElement().style.height = 'auto';
+                    editor.getWrapperElement().style.height = editor.getScrollerElement().scrollHeight + 'px';
+                }
             }, 100);
         });
     }
