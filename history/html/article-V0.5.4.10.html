@@ -122,7 +122,7 @@
 
     loadPyodideAndPackages();
 
-    function createRunButton(editor, outputElement) {
+    function createRunButton(editor, outputElement, language) {
         const button = document.createElement('button');
         button.className = 'run-button';
         button.textContent = '运行代码';
@@ -132,15 +132,20 @@
             outputElement.textContent = ''; // 清空现有的输出内容
             outputElement.style.display = 'block'; // 显示输出框
             try {
-                self.pyodide.runPython(`
-                    import sys, io
-                    sys.stdout = io.StringIO()
-                    sys.stderr = io.StringIO()
-                `);
-                await self.pyodide.runPythonAsync(editor.getValue());
-                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
-                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
-                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+                if (language === 'python') {
+                    self.pyodide.runPython(`
+                        import sys, io
+                        sys.stdout = io.StringIO()
+                        sys.stderr = io.StringIO()
+                    `);
+                    await self.pyodide.runPythonAsync(editor.getValue());
+                    const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                    const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                    outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+                } else {
+                    // 处理其他语言的运行逻辑
+                    outputElement.textContent = '不支持此语言的运行。';
+                }
             } catch (error) {
                 outputElement.textContent = `Error:\n${error}`;
             }
@@ -219,11 +224,7 @@
             outputContainer.className = 'output';
 
             buttonContainer.appendChild(createResetButton(editor, initialCode, outputContainer));
-
-            // 仅在语言为Python时添加运行按钮
-            if (language === 'python') {
-                buttonContainer.appendChild(createRunButton(editor, outputContainer));
-            }
+            buttonContainer.appendChild(createRunButton(editor, outputContainer, language));
 
             codeBlockContainer.appendChild(container);
             codeBlockContainer.appendChild(buttonContainer);
