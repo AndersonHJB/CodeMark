@@ -179,7 +179,7 @@
         const wrapperElement = editor.getWrapperElement();
         const previousHeight = wrapperElement.style.height;
 
-        if (lineCount > 80) {
+        if (lineCount > 30) {
             wrapperElement.style.height = '480px'; // 固定高度，启用滚动条
         } else {
             wrapperElement.style.height = 'auto'; // 根据内容调整高度
