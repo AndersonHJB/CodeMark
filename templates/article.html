@@ -55,9 +55,10 @@
             padding: 10px;
             border-radius: 4px;
             margin-top: 10px;
-            white-space: pre-wrap;
+            white-space: pre; /* 保持空白符号，启用水平滚动 */
             min-height: 25px;
             display: none; /* 初始隐藏输出框 */
+            overflow-x: auto; /* 启用水平滚动 */
         }
 
         button.run-button, button.reset-button {
