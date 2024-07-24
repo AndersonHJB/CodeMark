@@ -3,6 +3,7 @@
 - [简体中文](README.md)
 - [English](EN_README.md)
 - [Releases info](Releases.md)
+- [Plan🖥](./docs/Plan.md)
 
 结合“Code”和“Markdown”的特点，用户可以在 Markdown 中编写并执行代码的功能。
 
@@ -42,9 +43,6 @@
 
 本项目全权由 AI悦创维护，如果想要拿去当作毕业设计、课设等。请及时联系与我沟通，严禁商用。
 
-
-
-## [Plan🖥](./docs/Plan.md)
 
 ## 作者✍️&请我喝咖啡☕️
 
