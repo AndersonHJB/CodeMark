@@ -123,6 +123,7 @@
             overflow-y: auto; /* 启用垂直滚动条 */
             font-size: 14px; /* 调整大纲字体大小 */
             flex-shrink: 0; /* 调整大纲字体大小 */
+            text-align: left; /* 确保文字靠左对齐 */
         }
 
         .toc-container h2 {
@@ -133,6 +134,8 @@
 
         .toc ul {
             list-style-type: none;
+            margin-left: 0; /* 移除默认的margin-left */
+            padding-left: 10px; /* 设置适当的左侧填充 */
         }
 
         .toc {
@@ -147,8 +150,8 @@
         .toc a {
             text-decoration: none;
             color: #61afef;
-            display: inline-block;
-            padding-left: 10px;
+            display: block; /* 使链接占据整行，增强点击区域 */
+            padding: 2px 0; /* 调整链接的垂直填充 */
             word-wrap: break-word; /* 自动换行 */
         }
 
