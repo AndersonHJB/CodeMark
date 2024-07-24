@@ -25,9 +25,10 @@
             font-size: 18px;
             background-color: #fff;
             color: #333;
-            padding: 20px;
             margin: 0;
             display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
 
         h1, h2, h3, h4, h5, h6 {
@@ -37,7 +38,7 @@
 
         .content {
             max-width: 800px;
-            margin: auto;
+            margin: 20px;
             background: #f9f9f9;
             padding: 20px;
             border-radius: 10px;
@@ -111,17 +112,17 @@
         /* 新增大纲样式 */
         .toc-container {
             width: 260px;
-            margin-left: 20px;
+            margin: 20px;
             padding: 20px;
             background: #f9f9f9;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: fixed; /* 固定位置 */
+            position: sticky;
             top: 20px; /* 距离顶部 */
-            right: 20px; /* 距离右侧 */
             height: calc(100vh - 40px); /* 高度自适应 */
             overflow-y: auto; /* 启用垂直滚动条 */
             font-size: 14px; /* 调整大纲字体大小 */
+            flex-shrink: 0; /* 调整大纲字体大小 */
         }
 
         .toc-container h2 {
