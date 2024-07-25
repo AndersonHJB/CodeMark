@@ -336,10 +336,14 @@
 
         window.addEventListener('scroll', () => {
             let currentId = '';
-            headings.forEach(heading => {
+            let offset = 100; // 可调整的偏移量，用于增加容错范围
+
+            headings.forEach((heading, index) => {
                 const rect = heading.getBoundingClientRect();
-                // 检查标题的顶部是否进入了可视区域，并且底部没有完全离开可视区域
-                if (rect.top <= 50 && rect.bottom >= 50) { // 50可以调整为标题高度的一半或其他适合的数值
+                const nextRect = (headings[index + 1]) ? headings[index + 1].getBoundingClientRect() : {top: Infinity};
+
+                // 检查当前标题的底部在可视区域内或者下一个标题的顶部在可视区域内
+                if (rect.top <= offset && nextRect.top > offset) {
                     currentId = heading.id;
                 }
             });
@@ -351,6 +355,7 @@
                 }
             });
         });
+
 
     };
 </script>
