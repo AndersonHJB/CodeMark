@@ -331,3 +331,75 @@ n = string.split('\n')[:10]
 print(f"string:>>>\n{n}")
 ```
 
+```python
+
+# import random
+#
+# number_to_guess = random.randint(1, 100)
+# guess_count = 0
+# max_tries = 10
+# print("猜数字游戏开始！尝试猜测一个在 1 到 100 之间的数字。你有 10 次机会。")
+#
+# while guess_count < max_tries:
+#     guess_str = input("请输入你猜测的数字：")
+#     guess_count += 1
+#     if not guess_str.isdigit():
+#         print("请输入一个有效数字")
+#     elif int(guess_str) > number_to_guess:
+#         print("太高了！再试一次。")
+#     elif int(guess_str) < number_to_guess:
+#         print("太低了！再试一次。")
+#     else:
+#         print(f"恭喜！你猜对了数字 {number_to_guess}！你总共猜了 {guess_count} 次。")
+#         guess_count = 10
+
+# import random
+#
+# number_to_guess = random.randint(1, 100)
+# guess_count = 0
+# max_tries = 10
+# print("猜数字游戏开始！尝试猜测一个在 1 到 100 之间的数字。你有 10 次机会。")
+#
+# while guess_count < max_tries:
+#     guess_str = input("请输入你猜测的数字：")
+#     guess_count += 1
+#     if not guess_str.isdigit():
+#         print("请输入一个有效数字")
+#         continue  # 循环按正常情况，是需要循环内的代码全部执行完成后，才会进入到下一次的循环。
+#         # 但是 continue 遇到不想要的情况，这次循环的剩余部分，可以跳过。直接进入下一次循环
+#     guess = int(guess_str)
+#     if guess > number_to_guess:  # 需要重启一组 if，上面的被 guess = int(guess_str) 截断了，不算一整组
+#         print("太高了！再试一次。")
+#     elif guess < number_to_guess:
+#         print("太低了！再试一次。")
+#     else:
+#         print(f"恭喜！你猜对了数字 {number_to_guess}！你总共猜了 {guess_count} 次。")
+#         guess_count = 10
+
+import random
+
+number_to_guess = random.randint(1, 100)
+guess_count = 0
+max_tries = 10
+print("猜数字游戏开始！尝试猜测一个在 1 到 100 之间的数字。你有 10 次机会。")
+
+while guess_count < max_tries:
+    guess_str = input("请输入你猜测的数字：")
+    guess_count += 1
+    if not guess_str.isdigit():
+        print("请输入一个有效数字")
+        continue  # 循环按正常情况，是需要循环内的代码全部执行完成后，才会进入到下一次的循环。
+        # 但是 continue 遇到不想要的情况，可以跳过当前循环剩余部分，直接进入下一次循环。
+    guess = int(guess_str)
+    if guess > number_to_guess:  # 需要重启一组 if，上面的被 guess = int(guess_str) 截断了，不算一整组
+        print("太高了！再试一次。")
+    elif guess < number_to_guess:
+        print("太低了！再试一次。")
+    else:
+        print(f"恭喜！你猜对了数字 {number_to_guess}！你总共猜了 {guess_count} 次。")
+        break  # 用来结束当前循环，当前循环一遇到就结束。「也就是不进入下一个循环」
+if guess != number_to_guess:
+    print(f"很遗憾，你的机会已用完。正确的数字是 {number_to_guess}。")
+
+```
+
