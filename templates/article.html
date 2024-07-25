@@ -183,6 +183,12 @@
         .toc .toc-h6 {
             padding-left: 100px;
         }
+
+        .toc .active {
+            background-color: #e0e0e0;
+            border-left: 4px solid #61afef;
+            color: #61afef;
+        }
     </style>
 </head>
 <body>
@@ -323,7 +329,30 @@
                 adjustEditorHeight(editor);
             }, 100);
         });
-    }
+
+        // 大纲滚动高亮功能
+        const tocLinks = document.querySelectorAll('.toc a');
+        const headings = document.querySelectorAll('.content h1, .content h2, .content h3, .content h4, .content h5, .content h6');
+
+        window.addEventListener('scroll', () => {
+            let currentId = '';
+            headings.forEach(heading => {
+                const rect = heading.getBoundingClientRect();
+                // 检查标题的顶部是否进入了可视区域，并且底部没有完全离开可视区域
+                if (rect.top <= 50 && rect.bottom >= 50) { // 50可以调整为标题高度的一半或其他适合的数值
+                    currentId = heading.id;
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentId) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+    };
 </script>
 </body>
 </html>
