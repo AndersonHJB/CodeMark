@@ -352,10 +352,23 @@
                 link.classList.remove('active');
                 if (link.getAttribute('href') === '#' + currentId) {
                     link.classList.add('active');
+                    ensureLinkVisible(link);
                 }
             });
         });
     };
+
+    function ensureLinkVisible(link) {
+        const linkRect = link.getBoundingClientRect();
+        const tocRect = document.querySelector('.toc-container').getBoundingClientRect();
+
+        if (linkRect.top < tocRect.top) {
+            link.scrollIntoView(true); // 如果大纲条目在容器顶部之上，则向上滚动
+        } else if (linkRect.bottom > tocRect.bottom) {
+            link.scrollIntoView(false); // 如果大纲条目在容器底部之下，则向下滚动
+        }
+    }
+
 </script>
 </body>
 </html>
