@@ -334,7 +334,11 @@
         const tocLinks = document.querySelectorAll('.toc a');
         const headings = document.querySelectorAll('.content h1, .content h2, .content h3, .content h4, .content h5, .content h6');
 
+        let isScrolling = false; // 用于检测是否在进行滚动操作
+
         window.addEventListener('scroll', () => {
+            if (isScrolling) return; // 如果正在滚动，则退出
+
             let currentId = '';
             let offset = 100; // 可调整的偏移量，用于增加容错范围
 
@@ -356,19 +360,27 @@
                 }
             });
         });
-    };
 
-    function ensureLinkVisible(link) {
-        const linkRect = link.getBoundingClientRect();
-        const tocRect = document.querySelector('.toc-container').getBoundingClientRect();
+        function ensureLinkVisible(link) {
+            const linkRect = link.getBoundingClientRect();
+            const tocRect = document.querySelector('.toc-container').getBoundingClientRect();
 
-        if (linkRect.top < tocRect.top) {
-            link.scrollIntoView(true); // 如果大纲条目在容器顶部之上，则向上滚动
-        } else if (linkRect.bottom > tocRect.bottom) {
-            link.scrollIntoView(false); // 如果大纲条目在容器底部之下，则向下滚动
+            // 记录当前滚动位置
+            const currentScroll = document.querySelector('.toc-container').scrollTop;
+
+            if (linkRect.top < tocRect.top) {
+                isScrolling = true;
+                link.scrollIntoView(true); // 如果大纲条目在容器顶部之上，则向上滚动
+            } else if (linkRect.bottom > tocRect.bottom) {
+                isScrolling = true;
+                link.scrollIntoView(false); // 如果大纲条目在容器底部之下，则向下滚动
+            }
+
+            // 确保不会导致无限滚动
+            document.querySelector('.toc-container').scrollTop = currentScroll;
+            setTimeout(() => isScrolling = false, 100); // 滚动完成后，解除滚动状态
         }
-    }
-
+    };
 </script>
 </body>
 </html>

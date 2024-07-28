@@ -27,7 +27,7 @@ watermark: true
 
 **字符串是由字母、数字和特殊字符来组成的序列。**
 
-![有序性](./04-python-string.assets/image-20231208131933540.png)
+![有序性](https://bornforthis.cn/assets/image-20231208131933540-D4UJmsso.png)
 
 ## 2. 创建字符串
 
