@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+# @Time    : 2024/11/16 09:07
+# @Author  : AI悦创
+# @FileName: app.py
+# @Software: PyCharm
+# @Blog    ：https://bornforthis.cn/
+# code is far away from bugs with the god animal protecting
+#    I love animals. They taste delicious.
 """
 注释的是原本的主页，没有注释的是新版自动生成“目录”的主页代码和详情页链接
 """
