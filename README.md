@@ -35,6 +35,9 @@
 
 本项目全权由 AI悦创维护，如果想要拿去当作毕业设计、课设等。请及时联系与我沟通，严禁商用。
 
+CodeMark is licensed under the GNU General Public License (GPL) Version 3.
+See the LICENSE file for more details.
+
 
 ## 作者✍️&请我喝咖啡☕️
 
