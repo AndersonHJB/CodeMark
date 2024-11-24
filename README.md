@@ -43,3 +43,16 @@ See the LICENSE file for more details.
 
 ![img_1.png](static/info/img_1.png)
 
+
+
+## About CodeMark
+
+CodeMark is an open-source project created by 黄家宝|Bornforthis. By using this project, you agree to the terms and conditions of the GNU General Public License (GPL) Version 3. Any modifications or derivative works based on CodeMark must also be licensed under the GNU GPL.
+
+---
+
+## How to Contribute
+
+Contributions to this project are welcome. By contributing, you agree that your contributions will be licensed under the same terms as the original project.
+
+
