@@ -1,0 +1,534 @@
+app.py:
+# -*- coding: utf-8 -*-
+# @Time    : 2024/11/16 09:07
+# @Author  : AI悦创
+# @FileName: app.py
+# @Software: PyCharm
+# @Blog    ：https://bornforthis.cn/
+# code is far away from bugs with the god animal protecting
+#    I love animals. They taste delicious.
+"""
+注释的是原本的主页，没有注释的是新版自动生成“目录”的主页代码和详情页链接
+"""
+
+from flask import Flask, render_template
+import markdown
+from markdown.extensions.toc import TocExtension
+import os, re
+
+app = Flask(__name__)
+
+
+def sort_articles(articles):
+    """ Sort articles by the number at the beginning of the filename """
+    return sorted(articles, key=lambda x: int(re.match(r'(\d+)', x).group()))
+
+
+# @app.route('/')
+# def index():
+#     # 渲染首页，可以显示博客文章列表
+#     articles = os.listdir('articles')
+#     return render_template('index.html', articles=articles)
+@app.route('/')
+def index():
+    # Organize articles by directories
+    categories = {}
+    for root, dirs, files in os.walk('articles'):
+        for d in dirs:
+            category_path = os.path.join(root, d)
+            articles = [f for f in os.listdir(category_path) if f.endswith('.md')]
+            categories[d] = sort_articles(articles)
+    return render_template('index.html', categories=categories)
+
+
+# @app.route('/article/<name>')
+# def article(name):
+#     # 读取并渲染markdown文章
+#     with open(f'articles/{name}.md', 'r') as f:
+#         content = f.read()
+#         html_content = markdown.markdown(content, extensions=['fenced_code', 'codehilite'])
+#     return render_template('article.html', content=html_content)
+@app.route('/article/<path:filename>')
+def article(filename):
+    with open(os.path.join('articles', filename), 'r', encoding='utf-8') as f:
+        content = f.read()
+        # html_content = markdown.markdown(content, extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
+        md = markdown.Markdown(extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
+        html_content = md.convert(content)
+        toc = md.toc
+    return render_template('article.html', content=html_content, toc=toc)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+article.html:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            font-size: 18px;
+            background-color: #fff;
+            color: #333;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 20px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+        }
+
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+            position: relative;
+            overflow: auto; /* 确保代码框可以水平滚动 */
+        }
+
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre; /* 保持空白符号，启用水平滚动 */
+            min-height: 25px;
+            display: none; /* 初始隐藏输出框 */
+            overflow-x: auto; /* 启用水平滚动 */
+        }
+
+        button.run-button, button.reset-button {
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        button.run-button:hover, button.reset-button:hover {
+            background-color: #5292e2;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: auto;
+        }
+
+        .CodeMirror-scroll {
+            overflow: auto; /* 确保滚动条正常显示 */
+        }
+
+        /* 自定义选中行颜色 */
+        .CodeMirror-selected {
+            background: #3399ff !important; /* 更改为你想要的颜色 */
+        }
+
+        /* 新增大纲样式 */
+        .toc-container {
+            width: 260px;
+            margin: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 20px; /* 距离顶部 */
+            height: calc(100vh - 40px); /* 高度自适应 */
+            overflow-y: auto; /* 启用垂直滚动条 */
+            font-size: 14px; /* 调整大纲字体大小 */
+            flex-shrink: 0; /* 调整大纲字体大小 */
+            text-align: left; /* 确保文字靠左对齐 */
+        }
+
+        .toc-container h2 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+            margin-top: 0;
+        }
+
+        .toc ul {
+            list-style-type: none;
+            margin-left: 0; /* 移除默认的margin-left */
+            padding-left: 10px; /* 设置适当的左侧填充 */
+        }
+
+        .toc {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            margin-bottom: 5px;
+        }
+
+        .toc a {
+            text-decoration: none;
+            color: #61afef;
+            display: block; /* 使链接占据整行，增强点击区域 */
+            padding: 2px 0; /* 调整链接的垂直填充 */
+            word-wrap: break-word; /* 自动换行 */
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .toc .toc-h1 {
+            font-weight: bold;
+            padding-left: 0px;
+        }
+
+        .toc .toc-h2 {
+            padding-left: 20px;
+        }
+
+        .toc .toc-h3 {
+            padding-left: 40px;
+        }
+
+        .toc .toc-h4 {
+            padding-left: 60px;
+        }
+
+        .toc .toc-h5 {
+            padding-left: 80px;
+        }
+
+        .toc .toc-h6 {
+            padding-left: 100px;
+        }
+
+        .toc .active {
+            background-color: #e0e0e0;
+            border-left: 4px solid #61afef;
+            color: #61afef;
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+    <div id="content">
+        {{ content|safe }}
+    </div>
+</div>
+<div class="toc-container">
+    <h2>大纲</h2>
+    <ul class="toc">
+        {{ toc|safe }}
+    </ul>
+</div>
+<script>
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip', 'numpy']);
+    }
+
+    loadPyodideAndPackages();
+
+    function createRunButton(editor, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = '运行代码';
+        button.onclick = runCode;
+
+        async function runCode() {
+            outputElement.textContent = ''; // 清空现有的输出内容
+            outputElement.style.display = 'block'; // 显示输出框
+            try {
+                self.pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
+                await self.pyodide.runPythonAsync(editor.getValue());
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        }
+
+        // 监听 Ctrl+Enter 或 Command+Enter
+        editor.on('keydown', function (cm, event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                runCode();
+            }
+        });
+
+        // 确保代码框高度自动适配内容
+        editor.on('changes', function () {
+            adjustEditorHeight(editor);
+        });
+
+        return button;
+    }
+
+    function createResetButton(editor, initialCode, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'reset-button';
+        button.textContent = '重置代码';
+        button.onclick = function () {
+            editor.setValue(initialCode);
+            outputElement.textContent = '';
+            outputElement.style.display = 'none'; // 隐藏输出框
+            adjustEditorHeight(editor, true); // 重置高度
+        };
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false) {
+        const lineCount = editor.lineCount();
+        const wrapperElement = editor.getWrapperElement();
+        const previousHeight = wrapperElement.style.height;
+
+        if (lineCount > 30) {
+            wrapperElement.style.height = '480px'; // 固定高度，启用滚动条
+        } else {
+            wrapperElement.style.height = 'auto'; // 根据内容调整高度
+            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
+        }
+
+        // 仅在不是重置操作且高度增加时滚动
+        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
+            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+    }
+
+    window.onload = function () {
+        const codeBlocks = document.querySelectorAll('pre > code');
+        codeBlocks.forEach(codeBlock => {
+            const initialCode = codeBlock.textContent.trim();
+            const language = codeBlock.className.replace('language-', '');
+            const container = document.createElement('div');
+            container.className = 'code-block';
+
+            const editor = CodeMirror(container, {
+                value: initialCode,
+                mode: language,
+                theme: "material-darker",
+                lineNumbers: true,
+                viewportMargin: Infinity, // 确保代码在初始化时显示
+                lineWrapping: false // 禁用行包裹，确保水平滚动
+            });
+
+            const codeBlockContainer = document.createElement('div');
+            codeBlockContainer.className = 'code-block-container';
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+
+            const outputContainer = document.createElement('div');
+            outputContainer.className = 'output';
+
+            buttonContainer.appendChild(createResetButton(editor, initialCode, outputContainer));
+
+            // 仅在语言为Python时添加运行按钮
+            if (language === 'python') {
+                buttonContainer.appendChild(createRunButton(editor, outputContainer));
+            }
+
+            codeBlockContainer.appendChild(container);
+            codeBlockContainer.appendChild(buttonContainer);
+            codeBlockContainer.appendChild(outputContainer);
+
+            codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
+            codeBlock.style.display = 'none'; // 隐藏原始代码块
+
+            // 确保代码在初始化时显示
+            setTimeout(() => {
+                editor.refresh();
+                adjustEditorHeight(editor);
+            }, 100);
+        });
+
+        // 大纲滚动高亮功能
+        const tocLinks = document.querySelectorAll('.toc a');
+        const headings = document.querySelectorAll('.content h1, .content h2, .content h3, .content h4, .content h5, .content h6');
+
+        let isScrolling = false; // 用于检测是否在进行滚动操作
+
+        window.addEventListener('scroll', () => {
+            if (isScrolling) return; // 如果正在滚动，则退出
+
+            let currentId = '';
+            let offset = 100; // 可调整的偏移量，用于增加容错范围
+
+            headings.forEach((heading, index) => {
+                const rect = heading.getBoundingClientRect();
+                const nextRect = (headings[index + 1]) ? headings[index + 1].getBoundingClientRect() : {top: Infinity};
+
+                // 检查当前标题的底部在可视区域内或者下一个标题的顶部在可视区域内
+                if (rect.top <= offset && nextRect.top > offset) {
+                    currentId = heading.id;
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentId) {
+                    link.classList.add('active');
+                    ensureLinkVisible(link);
+                }
+            });
+        });
+
+        function ensureLinkVisible(link) {
+            const linkRect = link.getBoundingClientRect();
+            const tocRect = document.querySelector('.toc-container').getBoundingClientRect();
+
+            // 记录当前滚动位置
+            const currentScroll = document.querySelector('.toc-container').scrollTop;
+
+            if (linkRect.top < tocRect.top) {
+                isScrolling = true;
+                link.scrollIntoView(true); // 如果大纲条目在容器顶部之上，则向上滚动
+            } else if (linkRect.bottom > tocRect.bottom) {
+                isScrolling = true;
+                link.scrollIntoView(false); // 如果大纲条目在容器底部之下，则向下滚动
+            }
+
+            // 确保不会导致无限滚动
+            document.querySelector('.toc-container').scrollTop = currentScroll;
+            setTimeout(() => isScrolling = false, 100); // 滚动完成后，解除滚动状态
+        }
+    };
+</script>
+</body>
+</html>
+
+index.html:
+{#<!DOCTYPE html>#}
+{#<html lang="en">#}
+{#<head>#}
+{#    <meta charset="UTF-8">#}
+{#    <title>My Blog</title>#}
+{#</head>#}
+{#<body>#}
+{#    <h1>My Blog</h1>#}
+{#    <ul>#}
+{#        {% for article in articles %}#}
+{#            <li><a href="/article/{{ article|replace('.md', '') }}">{{ article|replace('.md', '') }}</a></li>#}
+{#        {% endfor %}#}
+{#    </ul>#}
+{#</body>#}
+{#</html>#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Blog</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="sidebar">
+                <h3>Categories</h3>
+                <ul>
+                    {% for category, articles in categories.items() %}
+                        <li>{{ category }}
+                            <ul>
+                                {% for article in articles %}
+                                    <li><a href="/article/{{ category }}/{{ article }}">{{ article }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div id="content">
+                <h1>Welcome to My Blog</h1>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+
+style.css:
+body, textarea {
+    font-family: 'Consolas', 'Monaco', monospace;
+    background-color: #282A36; /* Dark background similar to Sublime Text */
+    color: #F8F8F2; /* Light text color */
+}
+
+textarea {
+    background-color: #282A36;
+    color: #F8F8F2;
+    border: none;
+}
+
+.output {
+    background-color: #44475A;
+    color: #F8F8F2;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar a {
+    color: #8BE9FD; /* A light blue color */
+    text-decoration: none;
+}
+
