@@ -111,25 +111,29 @@
 
         /* 原始大纲样式（基础） */
         .toc-container {
-            width: 260px;
-            margin: 20px;
+            background: #fdfdfd;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            line-height: 1.5;
             padding: 20px;
-            background: #f9f9f9;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
             position: sticky;
-            top: 20px; /* 距离顶部 */
-            height: calc(100vh - 40px); /* 高度自适应 */
-            overflow-y: auto; /* 启用垂直滚动条 */
-            font-size: 14px; /* 调整大纲字体大小 */
-            flex-shrink: 0; /* 调整大纲字体大小 */
-            text-align: left; /* 确保文字靠左对齐 */
+            top: 20px;
+            height: calc(100vh - 40px); /* 视口高度减去上下margin */
+            overflow-y: auto;
+            scroll-behavior: smooth; /* 平滑滚动 */
+            flex-shrink: 0;
+            text-align: left;
         }
 
         .toc-container h2 {
             font-family: 'Merriweather', serif;
-            color: #444;
+            color: #333;
+            font-size: 16px;
             margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
         }
 
         .toc ul {
@@ -141,75 +145,11 @@
         .toc {
             list-style-type: none;
             padding-left: 0;
+            counter-reset: h1counter;
         }
 
         .toc li {
             margin-bottom: 5px;
-        }
-
-        .toc a {
-            text-decoration: none;
-            color: #61afef;
-            display: block; /* 使链接占据整行，增强点击区域 */
-            padding: 2px 0; /* 调整链接的垂直填充 */
-            word-wrap: break-word; /* 自动换行 */
-        }
-
-        .toc a:hover {
-            text-decoration: underline;
-        }
-
-        .toc .toc-h1 {
-            font-weight: bold;
-            padding-left: 0px;
-        }
-
-        .toc .toc-h2 {
-            padding-left: 20px;
-        }
-
-        .toc .toc-h3 {
-            padding-left: 40px;
-        }
-
-        .toc .toc-h4 {
-            padding-left: 60px;
-        }
-
-        .toc .toc-h5 {
-            padding-left: 80px;
-        }
-
-        .toc .toc-h6 {
-            padding-left: 100px;
-        }
-
-        .toc .active {
-            background-color: #e0e0e0;
-            border-left: 4px solid #61afef;
-            color: #61afef;
-        }
-
-        /* --------------------------------------
-           大纲样式改进
-        -------------------------------------- */
-        .toc-container {
-            background: #fdfdfd;
-            border: 1px solid #ddd;
-            font-size: 14px;
-            line-height: 1.5;
-            padding: 20px;
-            box-shadow: none;
-        }
-
-        .toc-container h2 {
-            font-family: 'Merriweather', serif;
-            color: #333;
-            font-size: 16px;
-            margin-top: 0;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
         }
 
         .toc a {
@@ -224,10 +164,6 @@
         .toc a:hover {
             text-decoration: underline;
             color: #000;
-        }
-
-        .toc {
-            counter-reset: h1counter;
         }
 
         .toc .toc-h1 {
@@ -488,22 +424,22 @@
         });
 
         function ensureLinkVisible(link) {
+            const tocContainer = document.querySelector('.toc-container');
             const linkRect = link.getBoundingClientRect();
-            const tocRect = document.querySelector('.toc-container').getBoundingClientRect();
+            const tocRect = tocContainer.getBoundingClientRect();
+            let currentScroll = tocContainer.scrollTop;
 
-            // 记录当前滚动位置
-            const currentScroll = document.querySelector('.toc-container').scrollTop;
+            isScrolling = true;
 
+            // 如果链接在可视区域上方，则向上滚动至可见
             if (linkRect.top < tocRect.top) {
-                isScrolling = true;
-                link.scrollIntoView(true); // 如果大纲条目在容器顶部之上，则向上滚动
-            } else if (linkRect.bottom > tocRect.bottom) {
-                isScrolling = true;
-                link.scrollIntoView(false); // 如果大纲条目在容器底部之下，则向下滚动
+                tocContainer.scrollTop = currentScroll - (tocRect.top - linkRect.top) - 20;
+            }
+            // 如果链接在可视区域下方，则向下滚动至可见
+            else if (linkRect.bottom > tocRect.bottom) {
+                tocContainer.scrollTop = currentScroll + (linkRect.bottom - tocRect.bottom) + 20;
             }
 
-            // 确保不会导致无限滚动
-            document.querySelector('.toc-container').scrollTop = currentScroll;
             setTimeout(() => isScrolling = false, 100); // 滚动完成后，解除滚动状态
         }
     };
