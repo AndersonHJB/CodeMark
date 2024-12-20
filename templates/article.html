@@ -23,8 +23,8 @@
             font-family: 'Open Sans', sans-serif;
             line-height: 1.6;
             font-size: 18px;
-            background-color: #fff;
-            color: #333;
+            background-color: #ffffff;
+            color: #333333;
             margin: 0;
             display: flex;
             justify-content: center;
@@ -33,7 +33,7 @@
 
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Merriweather', serif;
-            color: #444;
+            color: #333333;
         }
 
         .content {
@@ -57,8 +57,8 @@
         }
 
         .output {
-            background-color: #fff;
-            color: #333;
+            background-color: #ffffff;
+            color: #333333;
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 4px;
@@ -106,17 +106,17 @@
 
         /* 自定义选中行颜色 */
         .CodeMirror-selected {
-            background: #3399ff !important; /* 更改为你想要的颜色 */
+            background: #3399ff !important;
         }
 
-        /* 新增大纲样式 */
+        /* 改进后的大纲样式 */
         .toc-container {
-            width: 260px;
+            width: 300px;
             margin: 20px;
             padding: 20px;
-            background: #f9f9f9;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 20px; /* 距离顶部 */
             height: calc(100vh - 40px); /* 高度自适应 */
@@ -128,35 +128,39 @@
 
         .toc-container h2 {
             font-family: 'Merriweather', serif;
-            color: #444;
-            margin-top: 0;
+            color: #333333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eaecef;
+            padding-bottom: 10px;
         }
 
         .toc ul {
-            list-style-type: none;
-            margin-left: 0; /* 移除默认的margin-left */
-            padding-left: 10px; /* 设置适当的左侧填充 */
-        }
-
-        .toc {
-            list-style-type: none;
+            list-style: none;
             padding-left: 0;
         }
 
         .toc li {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .toc a {
             text-decoration: none;
-            color: #61afef;
-            display: block; /* 使链接占据整行，增强点击区域 */
-            padding: 2px 0; /* 调整链接的垂直填充 */
-            word-wrap: break-word; /* 自动换行 */
+            color: #0366d6;
+            display: block;
+            padding: 4px 0;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
         }
 
         .toc a:hover {
-            text-decoration: underline;
+            color: #023e8a;
+            border-left: 4px solid #0366d6;
+        }
+
+        .toc .active {
+            color: #ffffff;
+            background-color: #0366d6;
+            border-left: 4px solid #0366d6;
         }
 
         .toc .toc-h1 {
@@ -184,10 +188,17 @@
             padding-left: 100px;
         }
 
-        .toc .active {
-            background-color: #e0e0e0;
-            border-left: 4px solid #61afef;
-            color: #61afef;
+        .toc-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .toc-container::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .toc-container::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -199,9 +210,9 @@
 </div>
 <div class="toc-container">
     <h2>大纲</h2>
-    <ul class="toc">
+    <nav class="toc">
         {{ toc|safe }}
-    </ul>
+    </nav>
 </div>
 <script>
     async function loadPyodideAndPackages() {
@@ -370,16 +381,32 @@
 
             if (linkRect.top < tocRect.top) {
                 isScrolling = true;
-                link.scrollIntoView(true); // 如果大纲条目在容器顶部之上，则向上滚动
+                link.scrollIntoView({behavior: 'smooth', block: 'start'});
             } else if (linkRect.bottom > tocRect.bottom) {
                 isScrolling = true;
-                link.scrollIntoView(false); // 如果大纲条目在容器底部之下，则向下滚动
+                link.scrollIntoView({behavior: 'smooth', block: 'end'});
             }
 
             // 确保不会导致无限滚动
             document.querySelector('.toc-container').scrollTop = currentScroll;
-            setTimeout(() => isScrolling = false, 100); // 滚动完成后，解除滚动状态
+            setTimeout(() => isScrolling = false, 500);
         }
+
+        // 平滑滚动
+        const tocLinksSmooth = document.querySelectorAll('.toc a');
+        tocLinksSmooth.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
     };
 </script>
 </body>
