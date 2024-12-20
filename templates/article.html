@@ -109,7 +109,7 @@
             background: #3399ff !important; /* 更改为你想要的颜色 */
         }
 
-        /* 新增大纲样式 */
+        /* 原始大纲样式（基础） */
         .toc-container {
             width: 260px;
             margin: 20px;
@@ -188,6 +188,132 @@
             background-color: #e0e0e0;
             border-left: 4px solid #61afef;
             color: #61afef;
+        }
+
+        /* --------------------------------------
+           大纲样式改进
+        -------------------------------------- */
+        .toc-container {
+            background: #fdfdfd;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px;
+            box-shadow: none;
+        }
+
+        .toc-container h2 {
+            font-family: 'Merriweather', serif;
+            color: #333;
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .toc a {
+            text-decoration: none;
+            color: #333;
+            display: inline-block;
+            position: relative;
+            padding: 2px 0;
+            word-wrap: break-word;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+            color: #000;
+        }
+
+        .toc {
+            counter-reset: h1counter;
+        }
+
+        .toc .toc-h1 {
+            counter-reset: h2counter;
+            padding-left: 0px;
+            margin-bottom: 8px;
+            font-weight: normal;
+        }
+
+        .toc .toc-h2 {
+            counter-reset: h3counter;
+            padding-left: 20px;
+            margin-bottom: 6px;
+            font-weight: normal;
+        }
+
+        .toc .toc-h3 {
+            counter-reset: h4counter;
+            padding-left: 40px;
+            margin-bottom: 4px;
+            font-weight: normal;
+        }
+
+        .toc .toc-h4 {
+            counter-reset: h5counter;
+            padding-left: 60px;
+            margin-bottom: 3px;
+            font-weight: normal;
+        }
+
+        .toc .toc-h5 {
+            counter-reset: h6counter;
+            padding-left: 80px;
+            margin-bottom: 2px;
+            font-weight: normal;
+        }
+
+        .toc .toc-h6 {
+            padding-left: 100px;
+            margin-bottom: 2px;
+            font-weight: normal;
+        }
+
+        .toc .toc-h1 > a::before {
+            counter-increment: h1counter;
+            content: counter(h1counter) ". ";
+            font-weight: bold;
+        }
+
+        .toc .toc-h2 > a::before {
+            counter-increment: h2counter;
+            content: counter(h1counter) "." counter(h2counter) " ";
+            font-weight: normal;
+            color: #555;
+        }
+
+        .toc .toc-h3 > a::before {
+            counter-increment: h3counter;
+            content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
+            color: #666;
+        }
+
+        .toc .toc-h4 > a::before {
+            counter-increment: h4counter;
+            content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
+            color: #777;
+        }
+
+        .toc .toc-h5 > a::before {
+            counter-increment: h5counter;
+            content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) " ";
+            color: #888;
+        }
+
+        .toc .toc-h6 > a::before {
+            counter-increment: h6counter;
+            content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) "." counter(h6counter) " ";
+            color: #999;
+        }
+
+        .toc .active {
+            background-color: #eee;
+            border-left: 4px solid #61afef;
+            color: #000;
+            font-weight: bold;
+            padding-left: 6px;
         }
     </style>
 </head>
