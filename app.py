@@ -6,6 +6,12 @@
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
+
+"""
+注释的是原本的主页，没有注释的是新版自动生成“目录”的主页代码和详情页链接。
+本示例增加了对目录树的递归获取及排序逻辑，并在 article.html 中实现左侧 VuePress 风格的目录（sidebar）。
+"""
+
 from flask import Flask, render_template, request
 import markdown
 from markdown.extensions.toc import TocExtension
@@ -89,6 +95,11 @@ def build_directory_tree(root_dir):
     return tree
 
 
+# @app.route('/')
+# def index():
+#     # 渲染首页，可以显示博客文章列表
+#     articles = os.listdir('articles')
+#     return render_template('index.html', articles=articles)
 @app.route('/')
 def index():
     """
@@ -100,12 +111,20 @@ def index():
     return render_template('index.html', directory_tree=directory_tree)
 
 
+# @app.route('/article/<name>')
+# def article(name):
+#     # 读取并渲染markdown文章
+#     with open(f'articles/{name}.md', 'r') as f:
+#         content = f.read()
+#         html_content = markdown.markdown(content, extensions=['fenced_code', 'codehilite'])
+#     return render_template('article.html', content=html_content)
 @app.route('/article/<path:filename>')
 def article(filename):
     """
     文章阅读页面。
     1. 根据 filename 打开指定 .md 文件，渲染为 HTML。
     2. 同时也把目录树传给 article.html，用以在左侧显示 VuePress 风格 sidebar。
+    3. 将 current_file=filename 传递给模板，用于高亮当前文章并展开所在目录。
     """
     full_path = os.path.join('articles', filename)
     if not os.path.isfile(full_path):
@@ -113,7 +132,6 @@ def article(filename):
 
     with open(full_path, 'r', encoding='utf-8') as f:
         content = f.read()
-        # html_content = markdown.markdown(content, extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
         md = markdown.Markdown(extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
         html_content = md.convert(content)
         toc = md.toc
@@ -122,10 +140,10 @@ def article(filename):
     directory_tree = build_directory_tree('articles')
 
     return render_template('article.html',
-                           content=html_content,
-                           toc=toc,
-                           directory_tree=directory_tree,
-                           current_file=filename)
+        content=html_content,
+        toc=toc,
+        directory_tree=directory_tree,
+        current_file=filename)  # 传递当前访问的文章相对路径
 
 
 if __name__ == '__main__':

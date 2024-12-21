@@ -31,12 +31,16 @@
             align-items: flex-start;
         }
 
-        /* 左侧侧边栏 */
+        /* 左侧侧边栏：增加固定效果（sticky），让其不随内容滚动 */
         .sidebar {
             width: 260px;
             background-color: #f8f9fa;
             padding: 15px;
             border-right: 1px solid #ddd;
+            /* 关键：使用 sticky + top = 0，且给足高度，让其固定在左侧 */
+            position: sticky;
+            top: 0;
+            height: 100vh;
             overflow-y: auto;
         }
 
@@ -80,6 +84,13 @@
         }
 
         .sidebar a:hover {
+            text-decoration: underline;
+        }
+
+        /* 高亮当前文件 */
+        .active-file {
+            font-weight: bold;
+            color: #0056b3; /* 使当前文件颜色更深一点 */
             text-decoration: underline;
         }
 
@@ -163,6 +174,12 @@
         /* 自定义选中行颜色 */
         .CodeMirror-selected {
             background: #3399ff !important; /* 更改为你想要的颜色 */
+        }
+        .main-article img {
+            max-width: 100%;
+            height: auto;
+            display: block; /* 根据需要可加，可防止行内元素空隙问题 */
+            margin: 10px auto; /* 如果想要让图片居中，可以加这行 */
         }
 
         /* 大纲容器 */
@@ -348,9 +365,10 @@
         {% macro render_tree(tree, parent_path='') %}
             {# 当前目录下的文件 #}
             {% for file_info in tree.files %}
+                {% set file_full_path = (parent_path ~ '/' ~ file_info.filename).lstrip('/') %}
                 <li>
-                    <a class="article-link"
-                       href="/article/{{ (parent_path ~ '/' ~ file_info.filename).lstrip('/') }}">
+                    <a class="article-link {% if file_full_path == current_file %}active-file{% endif %}"
+                       href="/article/{{ file_full_path }}">
                         {{ file_info.title }}
                     </a>
                 </li>
@@ -358,12 +376,14 @@
 
             {# 子目录 #}
             {% for dirname, subdir_tree in tree.subdirs.items() %}
+                {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
                 <li>
                     <div class="folder-name" onclick="toggleFolder(this)">
                         {{ dirname }}
                     </div>
-                    <ul class="nested">
-                        {{ render_tree(subdir_tree, parent_path ~ '/' ~ dirname) }}
+                    {# 如果当前文章在该子目录下，则让子目录默认展开 show #}
+                    <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
+                        {{ render_tree(subdir_tree, subdir_path) }}
                     </ul>
                 </li>
             {% endfor %}
@@ -441,6 +461,9 @@
 
                     // 重新初始化代码高亮编辑器等（如果有的话）
                     reinitializeCodeBlocks();
+
+                    // 处理左侧目录选中状态
+                    updateActiveLink(url);
                 })
                 .catch(err => {
                     console.error('Error fetching article:', err);
@@ -454,6 +477,16 @@
         // 当用户点击浏览器后退时，我们要重新加载对应的文章
         location.reload();
     });
+
+    function updateActiveLink(currentUrl) {
+        // 将所有的链接 active-file 类移除，然后对当前链接加上
+        const links = document.querySelectorAll('.article-link');
+        links.forEach(link => link.classList.remove('active-file'));
+        const currentLink = [...links].find(l => l.getAttribute('href') === currentUrl);
+        if (currentLink) {
+            currentLink.classList.add('active-file');
+        }
+    }
 
     /**
      * 代码块处理 & 大纲滚动高亮
