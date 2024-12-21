@@ -297,7 +297,7 @@
             padding-left: 6px;
         }
 
-        /* 代码块相关样式 */
+        /* 代码块相关样式（重复写是为了覆盖） */
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
@@ -490,7 +490,7 @@
 
     /**
      * 代码块处理 & 大纲滚动高亮
-     * 这部分与原本类似，只是提取成函数，方便在无刷新加载后再次调用
+     * 在无刷新加载后，需要再次调用此方法
      */
     function reinitializeCodeBlocks() {
         // 初始化 CodeMirror
@@ -540,14 +540,32 @@
             }, 100);
         });
 
-        // 大纲滚动高亮功能
+        // -------- 大纲滚动高亮功能 --------
         const tocLinks = document.querySelectorAll('.toc a');
         const headings = document.querySelectorAll('.main-article h1, .main-article h2, .main-article h3, .main-article h4, .main-article h5, .main-article h6');
 
         let isScrolling = false; // 用于检测是否在进行滚动操作
 
+        // 1) 点击大纲链接时，平滑滚动至对应标题
+        tocLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                isScrolling = true; // 标记正在滚动，避免冲突
+                const id = link.getAttribute('href').substring(1);
+                const heading = document.getElementById(id);
+                if (heading) {
+                    heading.scrollIntoView({ behavior: 'smooth' });
+                }
+                // 滚动结束后恢复
+                setTimeout(() => {
+                    isScrolling = false;
+                }, 400);
+            });
+        });
+
+        // 2) 监听滚动，自动高亮对应大纲条目
         window.addEventListener('scroll', () => {
-            if (isScrolling) return; // 如果正在滚动，则退出
+            if (isScrolling) return; // 如果正在滚动，则不执行高亮检测
 
             let currentId = '';
             let offset = 100; // 可调整的偏移量，用于增加容错范围
