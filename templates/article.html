@@ -31,14 +31,70 @@
             align-items: flex-start;
         }
 
+        /* 左侧侧边栏 */
+        .sidebar {
+            width: 260px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 1.2rem;
+            margin-top: 0;
+        }
+
+        .folder-name {
+            font-weight: bold;
+            cursor: pointer;
+            margin: 6px 0;
+        }
+
+        .nested {
+            margin-left: 15px;
+            display: none; /* 初始折叠 */
+        }
+
+        .nested.show {
+            display: block; /* 展开 */
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .sidebar li {
+            margin: 4px 0;
+        }
+
+        .sidebar a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Merriweather', serif;
             color: #444;
         }
 
+        .sidebar a:hover {
+            text-decoration: underline;
+        }
+
         .content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+
+        .main-article {
+            width: 70%;
             max-width: 800px;
-            margin: 20px;
+            margin-right: 40px;
             background: #f9f9f9;
             padding: 20px;
             border-radius: 10px;
@@ -109,8 +165,9 @@
             background: #3399ff !important; /* 更改为你想要的颜色 */
         }
 
-        /* 原始大纲样式（基础） */
+        /* 大纲容器 */
         .toc-container {
+            width: 250px;
             background: #fdfdfd;
             border: 1px solid #ddd;
             font-size: 14px;
@@ -171,46 +228,12 @@
             color: #000;
         }
 
-        .toc .toc-h1 {
-            counter-reset: h2counter;
-            padding-left: 0px;
-            margin-bottom: 8px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h2 {
-            counter-reset: h3counter;
-            padding-left: 20px;
-            margin-bottom: 6px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h3 {
-            counter-reset: h4counter;
-            padding-left: 40px;
-            margin-bottom: 4px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h4 {
-            counter-reset: h5counter;
-            padding-left: 60px;
-            margin-bottom: 3px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h5 {
-            counter-reset: h6counter;
-            padding-left: 80px;
-            margin-bottom: 2px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h6 {
-            padding-left: 100px;
-            margin-bottom: 2px;
-            font-weight: normal;
-        }
+        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0px; margin-bottom: 8px; font-weight: normal; }
+        .toc .toc-h2 { counter-reset: h3counter; padding-left: 20px; margin-bottom: 6px; font-weight: normal; }
+        .toc .toc-h3 { counter-reset: h4counter; padding-left: 40px; margin-bottom: 4px; font-weight: normal; }
+        .toc .toc-h4 { counter-reset: h5counter; padding-left: 60px; margin-bottom: 3px; font-weight: normal; }
+        .toc .toc-h5 { counter-reset: h6counter; padding-left: 80px; margin-bottom: 2px; font-weight: normal; }
+        .toc .toc-h6 { padding-left: 100px; margin-bottom: 2px; font-weight: normal; }
 
         .toc .toc-h1 > a::before {
             counter-increment: h1counter;
@@ -257,16 +280,58 @@
             padding-left: 6px;
         }
 
-        /* 可根据需要添加媒体查询，进一步适配移动端
-        @media (max-width: 768px) {
-            .toc-container {
-                max-height: 50vh;
-                padding: 10px;
-            }
+        /* 代码块相关样式 */
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+            position: relative;
+            overflow: auto; /* 确保代码框可以水平滚动 */
         }
-        */
-        /* 限制图片宽度不超过外层容器并保持原始宽高比 */
-        .content img {
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .CodeMirror {
+            height: auto;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+        button.run-button,
+        button.reset-button {
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        button.run-button:hover,
+        button.reset-button:hover {
+            background-color: #5292e2;
+        }
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre;
+            min-height: 25px;
+            display: none;
+            overflow-x: auto;
+        }
+
+        .main-article img {
             max-width: 100%;
             height: auto;
             display: block; /* 根据需要可加，可防止行内元素空隙问题 */
@@ -275,98 +340,127 @@
     </style>
 </head>
 <body>
-<div class="content">
-    <div id="content">
-        {{ content|safe }}
-    </div>
-</div>
-<div class="toc-container">
-    <h2>大纲</h2>
-    <ul class="toc">
-        {{ toc|safe }}
+
+<!-- 左侧目录：VuePress风格 sidebar -->
+<div class="sidebar">
+    <h3>All Articles</h3>
+    <ul>
+        {% macro render_tree(tree, parent_path='') %}
+            {# 当前目录下的文件 #}
+            {% for file_info in tree.files %}
+                <li>
+                    <a class="article-link"
+                       href="/article/{{ (parent_path ~ '/' ~ file_info.filename).lstrip('/') }}">
+                        {{ file_info.title }}
+                    </a>
+                </li>
+            {% endfor %}
+
+            {# 子目录 #}
+            {% for dirname, subdir_tree in tree.subdirs.items() %}
+                <li>
+                    <div class="folder-name" onclick="toggleFolder(this)">
+                        {{ dirname }}
+                    </div>
+                    <ul class="nested">
+                        {{ render_tree(subdir_tree, parent_path ~ '/' ~ dirname) }}
+                    </ul>
+                </li>
+            {% endfor %}
+        {% endmacro %}
+
+        {{ render_tree(directory_tree, '') }}
     </ul>
 </div>
+
+<div class="content">
+    <!-- 文章主体内容 -->
+    <div class="main-article" id="article-content">
+        <div id="content">
+            {{ content|safe }}
+        </div>
+    </div>
+
+    <!-- 大纲（TOC） -->
+    <div class="toc-container">
+        <h2>大纲</h2>
+        <ul class="toc" id="article-toc">
+            {{ toc|safe }}
+        </ul>
+    </div>
+</div>
 <script>
-    async function loadPyodideAndPackages() {
-        self.pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
-        });
-        await self.pyodide.loadPackage(['micropip', 'numpy']);
+    /**
+     * 折叠/展开子目录
+     */
+    function toggleFolder(folderNameDiv) {
+        // 找到同级的下一个元素（ul）
+        const nestedUl = folderNameDiv.nextElementSibling;
+        if (!nestedUl) return;
+        nestedUl.classList.toggle('show');
     }
 
-    loadPyodideAndPackages();
+    /**
+     * 无刷新切换文章
+     * 1. 拦截 .article-link 的点击事件
+     * 2. 使用 fetch 获取新文章内容
+     * 3. 替换当前页面的 #content 和 #article-toc
+     * 4. 更新浏览器地址（不会刷新页面）
+     */
+    document.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.classList.contains('article-link')) {
+            e.preventDefault();
+            const url = target.getAttribute('href');
 
-    function createRunButton(editor, outputElement) {
-        const button = document.createElement('button');
-        button.className = 'run-button';
-        button.textContent = '运行代码';
-        button.onclick = runCode;
+            // 使用 fetch 获取文章
+            fetch(url)
+                .then(response => {
+                    // 我们要获取完整的 HTML，然后从中提取 #content 和 #article-toc
+                    return response.text();
+                })
+                .then(html => {
+                    // 构造一个虚拟的 DOM 来解析返回的 HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
 
-        async function runCode() {
-            outputElement.textContent = ''; // 清空现有的输出内容
-            outputElement.style.display = 'block'; // 显示输出框
-            try {
-                self.pyodide.runPython(`
-                    import sys, io
-                    sys.stdout = io.StringIO()
-                    sys.stderr = io.StringIO()
-                `);
-                await self.pyodide.runPythonAsync(editor.getValue());
-                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
-                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
-                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
-            } catch (error) {
-                outputElement.textContent = `Error:\n${error}`;
-            }
+                    // 获取新文章内容
+                    const newContent = doc.querySelector('#content');
+                    const newToc = doc.querySelector('#article-toc');
+
+                    // 替换当前页面的内容
+                    if (newContent) {
+                        document.getElementById('content').innerHTML = newContent.innerHTML;
+                    }
+                    if (newToc) {
+                        document.getElementById('article-toc').innerHTML = newToc.innerHTML;
+                    }
+
+                    // 更新地址栏
+                    window.history.pushState({}, '', url);
+
+                    // 重新初始化代码高亮编辑器等（如果有的话）
+                    reinitializeCodeBlocks();
+                })
+                .catch(err => {
+                    console.error('Error fetching article:', err);
+                    window.location.href = url; // 若出错则直接跳转
+                });
         }
+    });
 
-        // 监听 Ctrl+Enter 或 Command+Enter
-        editor.on('keydown', function (cm, event) {
-            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-                runCode();
-            }
-        });
+    // 监听浏览器的前进后退事件
+    window.addEventListener('popstate', function(e) {
+        // 当用户点击浏览器后退时，我们要重新加载对应的文章
+        location.reload();
+    });
 
-        // 确保代码框高度自动适配内容
-        editor.on('changes', function () {
-            adjustEditorHeight(editor);
-        });
-
-        return button;
-    }
-
-    function createResetButton(editor, initialCode, outputElement) {
-        const button = document.createElement('button');
-        button.className = 'reset-button';
-        button.textContent = '重置代码';
-        button.onclick = function () {
-            editor.setValue(initialCode);
-            outputElement.textContent = '';
-            outputElement.style.display = 'none'; // 隐藏输出框
-            adjustEditorHeight(editor, true); // 重置高度
-        };
-        return button;
-    }
-
-    function adjustEditorHeight(editor, isReset = false) {
-        const lineCount = editor.lineCount();
-        const wrapperElement = editor.getWrapperElement();
-        const previousHeight = wrapperElement.style.height;
-
-        if (lineCount > 30) {
-            wrapperElement.style.height = '480px'; // 固定高度，启用滚动条
-        } else {
-            wrapperElement.style.height = 'auto'; // 根据内容调整高度
-            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
-        }
-
-        // 仅在不是重置操作且高度增加时滚动
-        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
-            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
-        }
-    }
-
-    window.onload = function () {
+    /**
+     * 代码块处理 & 大纲滚动高亮
+     * 这部分与原本类似，只是提取成函数，方便在无刷新加载后再次调用
+     */
+    function reinitializeCodeBlocks() {
+        // 初始化 CodeMirror
         const codeBlocks = document.querySelectorAll('pre > code');
         codeBlocks.forEach(codeBlock => {
             const initialCode = codeBlock.textContent.trim();
@@ -415,7 +509,7 @@
 
         // 大纲滚动高亮功能
         const tocLinks = document.querySelectorAll('.toc a');
-        const headings = document.querySelectorAll('.content h1, .content h2, .content h3, .content h4, .content h5, .content h6');
+        const headings = document.querySelectorAll('.main-article h1, .main-article h2, .main-article h3, .main-article h4, .main-article h5, .main-article h6');
 
         let isScrolling = false; // 用于检测是否在进行滚动操作
 
@@ -463,6 +557,85 @@
 
             setTimeout(() => isScrolling = false, 100); // 滚动完成后，解除滚动状态
         }
+    }
+
+    // CodeMirror 相关函数
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip', 'numpy']);
+    }
+
+    loadPyodideAndPackages();
+
+    function createRunButton(editor, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = '运行代码';
+        button.onclick = runCode;
+        async function runCode() {
+            outputElement.textContent = '';
+            outputElement.style.display = 'block';
+            try {
+                self.pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
+                await self.pyodide.runPythonAsync(editor.getValue());
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        }
+
+        editor.on('keydown', function (cm, event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                runCode();
+            }
+        });
+        editor.on('changes', function () {
+            adjustEditorHeight(editor);
+        });
+        return button;
+    }
+
+    function createResetButton(editor, initialCode, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'reset-button';
+        button.textContent = '重置代码';
+        button.onclick = function () {
+            editor.setValue(initialCode);
+            outputElement.textContent = '';
+            outputElement.style.display = 'none';
+            adjustEditorHeight(editor, true);
+        };
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false) {
+        const lineCount = editor.lineCount();
+        const wrapperElement = editor.getWrapperElement();
+        const previousHeight = wrapperElement.style.height;
+
+        if (lineCount > 30) {
+            wrapperElement.style.height = '480px';
+        } else {
+            wrapperElement.style.height = 'auto';
+            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
+        }
+
+        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
+            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+    }
+
+    // 页面加载后先初始化一次
+    window.onload = function() {
+        reinitializeCodeBlocks();
     };
 </script>
 </body>
