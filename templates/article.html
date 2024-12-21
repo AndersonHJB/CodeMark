@@ -9,7 +9,8 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -264,6 +265,13 @@
             }
         }
         */
+        /* 限制图片宽度不超过外层容器并保持原始宽高比 */
+        .content img {
+            max-width: 100%;
+            height: auto;
+            display: block; /* 根据需要可加，可防止行内元素空隙问题 */
+            margin: 10px auto; /* 如果想要让图片居中，可以加这行 */
+        }
     </style>
 </head>
 <body>
