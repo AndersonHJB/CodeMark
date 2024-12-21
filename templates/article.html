@@ -9,8 +9,7 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -119,7 +118,12 @@
             box-shadow: none;
             position: sticky;
             top: 20px;
-            height: calc(100vh - 40px); /* 视口高度减去上下margin */
+            /* 移除固定高度 */
+            /* height: calc(100vh - 40px); */
+
+            /* 使用最大高度，让大纲在超出时可滚动 */
+            max-height: 80vh;
+
             overflow-y: auto;
             scroll-behavior: smooth; /* 平滑滚动 */
             flex-shrink: 0;
@@ -251,6 +255,15 @@
             font-weight: bold;
             padding-left: 6px;
         }
+
+        /* 可根据需要添加媒体查询，进一步适配移动端
+        @media (max-width: 768px) {
+            .toc-container {
+                max-height: 50vh;
+                padding: 10px;
+            }
+        }
+        */
     </style>
 </head>
 <body>
