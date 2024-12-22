@@ -99,13 +99,6 @@ def index():
     return render_template('index.html', directory_tree=directory_tree)
 
 
-# @app.route('/article/<name>')
-# def article(name):
-#     # 读取并渲染markdown文章
-#     with open(f'articles/{name}.md', 'r') as f:
-#         content = f.read()
-#         html_content = markdown.markdown(content, extensions=['fenced_code', 'codehilite'])
-#     return render_template('article.html', content=html_content)
 @app.route('/article/<path:filename>')
 def article(filename):
     """
@@ -135,7 +128,6 @@ def article(filename):
             'sane_lists',  # 更智能地处理列表
             'smarty',  # 智能引号、破折号等排版优化
             'toc',  # 生成目录
-            'mdx_math',
         ])
         html_content = md.convert(content)
         toc = md.toc
