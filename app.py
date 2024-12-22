@@ -120,7 +120,23 @@ def article(filename):
 
     with open(full_path, 'r', encoding='utf-8') as f:
         content = f.read()
-        md = markdown.Markdown(extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
+        md = markdown.Markdown(extensions=[
+            'extra',  # 包含tables、fenced_code、footnotes、def_list等一揽子常用扩展
+            'admonition',  # 支持 !!! note / warning 等提示块
+            'attr_list',  # 允许添加HTML属性，如 {#id .class} 写在 markdown 段落或标题后
+            'codehilite',  # 代码高亮
+            'def_list',  # 定义列表 (extra也有，留这里兼容一些场景)
+            'fenced_code',  # 代码块 (extra也有，留这里兼容一些场景)
+            'footnotes',  # 脚注
+            'tables',  # 表格 (extra也有，留这里兼容一些场景)
+            'abbr',  # 缩略词
+            'meta',  # 允许在文档开头书写元信息
+            'nl2br',  # 自动将单独的换行符转为 <br>
+            'sane_lists',  # 更智能地处理列表
+            'smarty',  # 智能引号、破折号等排版优化
+            'toc',  # 生成目录
+            'mdx_math',
+        ])
         html_content = md.convert(content)
         toc = md.toc
 
