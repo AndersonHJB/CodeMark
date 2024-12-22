@@ -7,15 +7,8 @@ app.py:
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-
-"""
-注释的是原本的主页，没有注释的是新版自动生成“目录”的主页代码和详情页链接。
-本示例增加了对目录树的递归获取及排序逻辑，并在 article.html 中实现左侧 VuePress 风格的目录（sidebar）。
-"""
-
-from flask import Flask, render_template, request
+from flask import Flask, render_template
 import markdown
-from markdown.extensions.toc import TocExtension
 import os, re, random
 
 app = Flask(__name__)
@@ -96,11 +89,6 @@ def build_directory_tree(root_dir):
     return tree
 
 
-# @app.route('/')
-# def index():
-#     # 渲染首页，可以显示博客文章列表
-#     articles = os.listdir('articles')
-#     return render_template('index.html', articles=articles)
 @app.route('/')
 def index():
     """
@@ -112,13 +100,6 @@ def index():
     return render_template('index.html', directory_tree=directory_tree)
 
 
-# @app.route('/article/<name>')
-# def article(name):
-#     # 读取并渲染markdown文章
-#     with open(f'articles/{name}.md', 'r') as f:
-#         content = f.read()
-#         html_content = markdown.markdown(content, extensions=['fenced_code', 'codehilite'])
-#     return render_template('article.html', content=html_content)
 @app.route('/article/<path:filename>')
 def article(filename):
     """
@@ -133,7 +114,22 @@ def article(filename):
 
     with open(full_path, 'r', encoding='utf-8') as f:
         content = f.read()
-        md = markdown.Markdown(extensions=['extra', 'codehilite', 'toc', 'tables', 'fenced_code'])
+        md = markdown.Markdown(extensions=[
+            'extra',  # 包含tables、fenced_code、footnotes、def_list等一揽子常用扩展
+            'admonition',  # 支持 !!! note / warning 等提示块
+            'attr_list',  # 允许添加HTML属性，如 {#id .class} 写在 markdown 段落或标题后
+            'codehilite',  # 代码高亮
+            'def_list',  # 定义列表 (extra也有，留这里兼容一些场景)
+            'fenced_code',  # 代码块 (extra也有，留这里兼容一些场景)
+            'footnotes',  # 脚注
+            'tables',  # 表格 (extra也有，留这里兼容一些场景)
+            'abbr',  # 缩略词
+            'meta',  # 允许在文档开头书写元信息
+            'nl2br',  # 自动将单独的换行符转为 <br>
+            'sane_lists',  # 更智能地处理列表
+            'smarty',  # 智能引号、破折号等排版优化
+            'toc',  # 生成目录
+        ])
         html_content = md.convert(content)
         toc = md.toc
 
@@ -141,10 +137,10 @@ def article(filename):
     directory_tree = build_directory_tree('articles')
 
     return render_template('article.html',
-        content=html_content,
-        toc=toc,
-        directory_tree=directory_tree,
-        current_file=filename)  # 传递当前访问的文章相对路径
+                           content=html_content,
+                           toc=toc,
+                           directory_tree=directory_tree,
+                           current_file=filename)  # 传递当前访问的文章相对路径
 
 
 if __name__ == '__main__':
