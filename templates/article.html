@@ -110,14 +110,15 @@
         }
 
         .main-article {
-            width: 70%;
-            max-width: 800px;
+            width: 800px !important;
+            max-width: 800px !important;
+            min-width: 800px !important;
             margin-right: 40px;
             background: #f9f9f9;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            flex-grow: 1;
+            flex: 0 0 auto !important;
         }
 
         button.run-button, button.reset-button {
@@ -132,7 +133,7 @@
         button.run-button:hover, button.reset-button:hover {
             background-color: #5292e2;
         }
-        
+
 
         .CodeMirror-scroll {
             overflow: auto; /* 确保滚动条正常显示 */
