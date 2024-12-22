@@ -130,6 +130,7 @@
             padding: 8px 16px;
             cursor: pointer;
         }
+
         button.run-button:hover, button.reset-button:hover {
             background-color: #5292e2;
         }
@@ -465,6 +466,11 @@
                     // 重新初始化代码高亮编辑器等（如果有的话）
                     reinitializeCodeBlocks();
 
+                    // 重新渲染数学公式（新增）
+                    if (window.MathJax) {
+                        window.MathJax.typesetPromise();
+                    }
+
                     // 处理左侧目录选中状态
                     updateActiveLink(url);
                 })
@@ -693,5 +699,24 @@
         reinitializeCodeBlocks();
     };
 </script>
+
+<!-- =================  新增：MathJax 配置及脚本  ================= -->
+<script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        options: {
+            // 跳过某些标签，避免与代码块等冲突
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+    };
+</script>
+{#下面这行注释必须保留，方便恢复#}
+{#<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script>#}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full-speech.min.js" async></script>
+<!-- =========================================================== -->
+
 </body>
 </html>
