@@ -26,14 +26,21 @@
             background-color: #fff;
             color: #333;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
         }
 
-        /* 左侧侧边栏：增加固定效果（sticky），让其不随内容滚动 */
+        /* 外层容器，用来居中并控制三列布局 */
+        .page-container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            max-width: 1200px;  /* 根据需要可自定义 */
+            margin: 0 auto;     /* 居中 */
+        }
+
+        /* 左侧侧边栏：增加 flex-shrink:0，避免它被挤压 */
         .sidebar {
             width: 260px;
+            flex-shrink: 0; /* 关键：不允许被挤压 */
             background-color: #f8f9fa;
             padding: 15px;
             border-right: 1px solid #ddd;
@@ -358,55 +365,55 @@
 </head>
 <body>
 
-<!-- 左侧目录：VuePress风格 sidebar -->
-<div class="sidebar">
-    <h3>All Articles</h3>
-    <ul>
-        {% macro render_tree(tree, parent_path='') %}
-            {# 当前目录下的文件 #}
-            {% for file_info in tree.files %}
-                {% set file_full_path = (parent_path ~ '/' ~ file_info.filename).lstrip('/') %}
-                <li>
-                    <a class="article-link {% if file_full_path == current_file %}active-file{% endif %}"
-                       href="/article/{{ file_full_path }}">
-                        {{ file_info.title }}
-                    </a>
-                </li>
-            {% endfor %}
+<div class="page-container">
+    <!-- 左侧目录：VuePress风格 sidebar -->
+    <div class="sidebar">
+        <h3>All Articles</h3>
+        <ul>
+            {% macro render_tree(tree, parent_path='') %}
+                {# 当前目录下的文件 #}
+                {% for file_info in tree.files %}
+                    {% set file_full_path = (parent_path ~ '/' ~ file_info.filename).lstrip('/') %}
+                    <li>
+                        <a class="article-link {% if file_full_path == current_file %}active-file{% endif %}"
+                           href="/article/{{ file_full_path }}">
+                            {{ file_info.title }}
+                        </a>
+                    </li>
+                {% endfor %}
 
-            {# 子目录 #}
-            {% for dirname, subdir_tree in tree.subdirs.items() %}
-                {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
-                <li>
-                    <div class="folder-name" onclick="toggleFolder(this)">
-                        {{ dirname }}
-                    </div>
+                {# 子目录 #}
+                {% for dirname, subdir_tree in tree.subdirs.items() %}
+                    {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
+                    <li>
+                        <div class="folder-name" onclick="toggleFolder(this)">{{ dirname }}</div>
                     {# 如果当前文章在该子目录下，则让子目录默认展开 show #}
-                    <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
-                        {{ render_tree(subdir_tree, subdir_path) }}
-                    </ul>
-                </li>
-            {% endfor %}
-        {% endmacro %}
+                        <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
+                            {{ render_tree(subdir_tree, subdir_path) }}
+                        </ul>
+                    </li>
+                {% endfor %}
+            {% endmacro %}
 
-        {{ render_tree(directory_tree, '') }}
-    </ul>
-</div>
-
-<div class="content">
-    <!-- 文章主体内容 -->
-    <div class="main-article" id="article-content">
-        <div id="content">
-            {{ content|safe }}
-        </div>
+            {{ render_tree(directory_tree, '') }}
+        </ul>
     </div>
 
-    <!-- 大纲（TOC） -->
-    <div class="toc-container">
-        <h2>大纲</h2>
-        <ul class="toc" id="article-toc">
-            {{ toc|safe }}
-        </ul>
+    <div class="content">
+        <!-- 文章主体内容 -->
+        <div class="main-article" id="article-content">
+            <div id="content">
+                {{ content|safe }}
+            </div>
+        </div>
+
+        <!-- 大纲（TOC） -->
+        <div class="toc-container">
+            <h2>大纲</h2>
+            <ul class="toc" id="article-toc">
+                {{ toc|safe }}
+            </ul>
+        </div>
     </div>
 </div>
 <script>
