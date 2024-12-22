@@ -85,11 +85,6 @@
             text-decoration: none;
         }
 
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Merriweather', serif;
-            color: #444;
-        }
-
         .sidebar a:hover {
             text-decoration: underline;
         }
@@ -99,6 +94,11 @@
             font-weight: bold;
             color: #0056b3; /* 使当前文件颜色更深一点 */
             text-decoration: underline;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Merriweather', serif;
+            color: #444;
         }
 
         .content {
@@ -121,6 +121,7 @@
             flex: 0 0 auto !important;
         }
 
+        /* 按钮样式（仅保留一处） */
         button.run-button, button.reset-button {
             background-color: #61afef;
             color: white;
@@ -129,11 +130,9 @@
             padding: 8px 16px;
             cursor: pointer;
         }
-
         button.run-button:hover, button.reset-button:hover {
             background-color: #5292e2;
         }
-
 
         .CodeMirror-scroll {
             overflow: auto; /* 确保滚动条正常显示 */
@@ -147,8 +146,8 @@
         .main-article img {
             max-width: 100%;
             height: auto;
-            display: block; /* 根据需要可加，可防止行内元素空隙问题 */
-            margin: 10px auto; /* 如果想要让图片居中，可以加这行 */
+            display: block; /* 防止行内元素空隙问题 */
+            margin: 10px auto; /* 若想要让图片居中，可保留 */
         }
 
         /* 大纲容器 */
@@ -162,12 +161,7 @@
             box-shadow: none;
             position: sticky;
             top: 20px;
-            /* 移除固定高度 */
-            /* height: calc(100vh - 40px); */
-
-            /* 使用最大高度，让大纲在超出时可滚动 */
-            max-height: 80vh;
-
+            max-height: 80vh; /* 使用最大高度，让大纲在超出时可滚动 */
             overflow-y: auto;
             scroll-behavior: smooth; /* 平滑滚动 */
             flex-shrink: 0;
@@ -184,16 +178,16 @@
             padding-bottom: 5px;
         }
 
-        .toc ul {
-            list-style-type: none;
-            margin-left: 0; /* 移除默认的margin-left */
-            padding-left: 10px; /* 设置适当的左侧填充 */
-        }
-
         .toc {
             list-style-type: none;
             padding-left: 0;
             counter-reset: h1counter;
+        }
+
+        .toc ul {
+            list-style-type: none;
+            margin-left: 0; /* 移除默认的margin-left */
+            padding-left: 10px; /* 设置适当的左侧填充 */
         }
 
         .toc li {
@@ -300,7 +294,7 @@
             padding-left: 6px;
         }
 
-        /* 代码块相关样式（重复写是为了覆盖） */
+        /* 代码块相关样式 */
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
