@@ -454,6 +454,42 @@
     <div class="content">
         <!-- 文章主体内容 -->
         <div class="main-article" id="article-content">
+
+            <!-- === 新增：元信息展示区域 === -->
+            <div class="meta-info" style="margin-bottom: 20px;">
+                {% if meta.title %}
+                  <h1>{{ meta.title[0] }}</h1>
+                {% else %}
+                  <h1>No Title</h1>  {# 或者自定义默认标题 #}
+                {% endif %}
+
+                {% if meta.author %}
+                  <p>作者：{{ meta.author[0] }}</p>
+                {% endif %}
+
+                {% if meta.date %}
+                  <p>日期：{{ meta.date[0] }}</p>
+                {% endif %}
+
+                {% if meta.category %}
+                  <p>分类：
+                    {% for cat in meta.category %}
+                      <span>{{ cat }}</span>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                  </p>
+                {% endif %}
+
+                {% if meta.tag %}
+                  <p>标签：
+                    {% for t in meta.tag %}
+                      <span>{{ t }}</span>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                  </p>
+                {% endif %}
+            </div>
+            <!-- === 元信息展示结束 === -->
+
+            <!-- 原先就有的文章内容 -->
             <div id="content">
                 {{ content|safe }}
             </div>

@@ -131,6 +131,8 @@ def article(filename):
         ])
         html_content = md.convert(content)
         toc = md.toc
+        # 获取元信息（meta），每个字段都是列表，如 meta['title'] = ['xxx']
+        meta = md.Meta if hasattr(md, 'Meta') else {}
 
     # 构建整个 articles 文件夹的目录树（用于左侧侧边栏）
     directory_tree = build_directory_tree('articles')
@@ -139,7 +141,9 @@ def article(filename):
                            content=html_content,
                            toc=toc,
                            directory_tree=directory_tree,
-                           current_file=filename)  # 传递当前访问的文章相对路径
+                           current_file=filename,
+                           meta=meta)  # 传给模板
+    # 注意：元信息在前端可通过 meta 来获取，比如 meta.title, meta.author 等。
 
 
 if __name__ == '__main__':
