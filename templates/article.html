@@ -18,6 +18,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+    <!-- Font Awesome（可选，用于添加图标） -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: 'Open Sans', sans-serif;
@@ -139,15 +141,19 @@
             flex: 0 0 auto !important;
         }
 
-        /* 元信息区域的新增样式 */
+        /* 修改后的元信息区域样式 */
         .meta-info {
+            display: flex;
+            flex-wrap: wrap; /* 允许换行 */
+            align-items: center; /* 垂直居中对齐 */
             margin-bottom: 20px;
             padding: 16px;
             border-radius: 8px;
             background-color: #f0f8ff; /* 淡蓝色背景 */
-            border: 1px solid #dbeafe; /* 再加点淡蓝边框 */
+            border: 1px solid #dbeafe; /* 淡蓝边框 */
         }
         .meta-info h1 {
+            flex-basis: 100%; /* 标题占据一整行 */
             margin-top: 0;
             margin-bottom: 0.3em;
             font-size: 1.8rem;
@@ -156,19 +162,26 @@
         .meta-item {
             display: flex;
             align-items: center;
-            margin-bottom: 6px;
+            margin-right: 20px; /* 每个元数据项之间的间距 */
+            margin-bottom: 8px; /* 小屏幕下换行时的间距 */
             font-size: 0.95rem;
             color: #555;
         }
         .meta-item:last-child {
-            margin-bottom: 0;
+            margin-right: 0; /* 移除最后一个元数据项的右边距 */
         }
         .meta-label {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             font-weight: bold;
             margin-right: 0.4em;
             color: #333;
         }
+
+        .meta-label i {
+            margin-right: 4px; /* 图标与文本的间距 */
+        }
+
         .meta-value {
             display: inline-block;
             color: #444;
@@ -209,7 +222,7 @@
             max-width: 100%;
             height: auto;
             display: block; /* 防止行内元素空隙问题 */
-            margin: 10px auto; /* 若想要让图片居中，可保留 */
+            margin: 10px auto; /* 图片居中 */
         }
 
         /* === TOC（目录） === */
@@ -222,13 +235,13 @@
             padding: 20px;
             position: sticky;
             top: 20px;
-            max-height: 80vh; /* 使用最大高度，让大纲在超出时可滚动 */
+            max-height: 80vh; /* 最大高度，超出时可滚动 */
             overflow-y: auto;
             scroll-behavior: smooth; /* 平滑滚动 */
             flex-shrink: 0;
             text-align: left;
-            border-radius: 8px; /* 让大纲区域也带一点圆角 */
-            margin-top: 0; /* 保持与主内容同顶 */
+            border-radius: 8px; /* 圆角 */
+            margin-top: 0; /* 与主内容同顶 */
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             margin-left: 0 !important;
         }
@@ -251,7 +264,7 @@
         .toc ul {
             list-style-type: none;
             margin-left: 0; /* 移除默认的margin-left */
-            padding-left: 10px; /* 设置适当的左侧填充 */
+            padding-left: 10px; /* 左侧填充 */
         }
         .toc li {
             margin-bottom: 5px;
@@ -357,7 +370,7 @@
             position: relative;
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 1.5em; /* 代码块与下方内容拉开些距离 */
+            margin-bottom: 1.5em; /* 代码块与下方内容拉开距离 */
         }
         .CodeMirror {
             height: auto;
@@ -390,7 +403,7 @@
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 4px;
-            margin: 10px 0 0 0; /* 与按钮区拉开一些距离 */
+            margin: 10px 0 0 0; /* 与按钮区拉开距离 */
             white-space: pre; /* 保持空白符号，启用水平滚动 */
             min-height: 25px;
             display: none; /* 初始隐藏输出框 */
@@ -401,13 +414,35 @@
             background-color: #fafafa !important;
         }
 
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .page-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            .content {
+                flex-direction: column;
+            }
+            .main-article, .toc-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 100% !important;
+            }
+            .toc-container {
+                margin-top: 20px;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="page-container">
     <!-- 左侧目录：VuePress风格 sidebar -->
     <div class="sidebar">
-        <h3>All Articles</h3>
+        <h3>所有文章</h3>
         <ul>
             {% macro render_tree(tree, parent_path='') %}
                 {# 当前目录下的文件 #}
@@ -446,26 +481,26 @@
                 {% if meta.title %}
                   <h1>{{ meta.title[0] }}</h1>
                 {% else %}
-                  <h1>No Title</h1>
+                  <h1>无标题</h1>
                 {% endif %}
 
                 {% if meta.author %}
                   <div class="meta-item">
-                    <span class="meta-label">作者:</span>
+                    <span class="meta-label"><i class="fas fa-user"></i> 作者:</span>
                     <span class="meta-value">{{ meta.author[0] }}</span>
                   </div>
                 {% endif %}
 
                 {% if meta.date %}
                   <div class="meta-item">
-                    <span class="meta-label">日期:</span>
+                    <span class="meta-label"><i class="fas fa-calendar-alt"></i> 日期:</span>
                     <span class="meta-value">{{ meta.date[0] }}</span>
                   </div>
                 {% endif %}
 
                 {% if meta.category %}
                   <div class="meta-item meta-categories">
-                    <span class="meta-label">分类:</span>
+                    <span class="meta-label"><i class="fas fa-folder"></i> 分类:</span>
                     <span class="meta-value">
                       {% for cat in meta.category %}
                         <span>{{ cat }}</span>
@@ -476,7 +511,7 @@
 
                 {% if meta.tag %}
                   <div class="meta-item meta-tags">
-                    <span class="meta-label">标签:</span>
+                    <span class="meta-label"><i class="fas fa-tags"></i> 标签:</span>
                     <span class="meta-value">
                       {% for t in meta.tag %}
                         <span>{{ t }}</span>
@@ -517,7 +552,6 @@
             const url = target.getAttribute('href');
             fetch(url)
                 .then(response => {
-                    // 我们要获取完整的 HTML，然后从中提取 #content 和 #article-toc
                     return response.text();
                 })
                 .then(html => {
@@ -752,8 +786,8 @@
         }
     };
 </script>
-{#下面这行注释必须保留，方便恢复#}
-{#<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script>#}
+<!-- 保留注释以方便恢复 -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full-speech.min.js" async></script>
 </body>
 </html>
