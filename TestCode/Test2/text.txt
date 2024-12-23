@@ -170,11 +170,32 @@ article.html:
     <style>
         body {
             font-family: 'Open Sans', sans-serif;
-            line-height: 1.6;
+            line-height: 1.6; /* 行距微增，使文字更舒适 */
             font-size: 18px;
-            background-color: #fff;
+            background-color: #f7f7f7; /* 改为更柔和的浅灰背景 */
             color: #333;
             margin: 0;
+            padding: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+            margin-top: 1.2em; /* 增大标题与上方内容的间距 */
+            margin-bottom: 0.6em; /* 增大标题与下方内容的间距 */
+        }
+
+        p {
+            margin: 0.9em 0; /* 适当段落间距 */
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
 
         /* 外层容器，用来居中并控制三列布局 */
@@ -190,8 +211,8 @@ article.html:
         .sidebar {
             width: 260px;
             flex-shrink: 0; /* 关键：不允许被挤压 */
-            background-color: #f8f9fa;
-            padding: 15px;
+            background-color: #fafafa; /* 更浅的背景 */
+            padding: 10px !important;
             border-right: 1px solid #ddd;
             /* 关键：使用 sticky + top = 0，且给足高度，让其固定在左侧 */
             position: sticky;
@@ -223,6 +244,7 @@ article.html:
         .sidebar ul {
             list-style-type: none;
             padding-left: 0;
+            margin: 0; /* 移除默认 margin */
         }
 
         .sidebar li {
@@ -245,14 +267,12 @@ article.html:
             text-decoration: underline;
         }
 
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Merriweather', serif;
-            color: #444;
-        }
-
+        /* === 主要内容区 === */
         .content {
             flex: 1;
-            padding: 20px;
+            padding: 0; /* 去掉 content 本身的 padding */
+            margin: 0; /* 去掉 content 本身的 margin */
+            gap: 0; /* 关键：移除网格/弹性布局的列间距 */
             display: flex;
             justify-content: flex-start;
             align-items: flex-start;
@@ -262,11 +282,11 @@ article.html:
             width: 800px !important;
             max-width: 800px !important;
             min-width: 800px !important;
-            margin-right: 40px;
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-right: 0 !important;
+            background: #ffffff; /* 文章背景为白色，与整体灰背景区分 */
+            padding: 24px; /* 内边距增加，减轻阅读压迫感 */
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             flex: 0 0 auto !important;
         }
 
@@ -300,15 +320,14 @@ article.html:
             margin: 10px auto; /* 若想要让图片居中，可保留 */
         }
 
-        /* 大纲容器 */
+        /* === TOC（目录） === */
         .toc-container {
             width: 250px;
-            background: #fdfdfd;
+            background: #fafafa;
             border: 1px solid #ddd;
             font-size: 14px;
             line-height: 1.5;
             padding: 20px;
-            box-shadow: none;
             position: sticky;
             top: 20px;
             max-height: 80vh; /* 使用最大高度，让大纲在超出时可滚动 */
@@ -316,6 +335,10 @@ article.html:
             scroll-behavior: smooth; /* 平滑滚动 */
             flex-shrink: 0;
             text-align: left;
+            border-radius: 8px; /* 让大纲区域也带一点圆角 */
+            margin-top: 0; /* 保持与主内容同顶 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            margin-left: 0 !important;
         }
 
         .toc-container h2 {
@@ -358,6 +381,7 @@ article.html:
             color: #000;
         }
 
+        /* 大纲标题层级缩进 + 自动编号 */
         .toc .toc-h1 {
             counter-reset: h2counter;
             padding-left: 0px;
@@ -444,7 +468,35 @@ article.html:
             padding-left: 6px;
         }
 
-        /* 代码块相关样式 */
+        /* === 表格样式 === */
+        table {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-collapse: collapse;
+            margin: 1.5em 0; /* 与上下文拉开距离 */
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.75em 1em;
+            text-align: left;
+        }
+
+        thead {
+            background: #f3f3f3;
+        }
+
+        /* === 行内代码 === */
+        code, kbd, .highlight-inline {
+            background-color: #f2f2f2;
+            color: #c7254e;
+            font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+            font-size: 90%;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        /* === 代码块相关样式 === */
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
@@ -452,7 +504,7 @@ article.html:
             padding: 0;
             margin-top: 20px;
             position: relative;
-            overflow: auto; /* 确保代码框可以水平滚动 */
+            overflow: auto;
         }
 
         .code-block-container {
@@ -461,16 +513,21 @@ article.html:
             position: relative;
             border-radius: 8px;
             overflow: hidden;
+            margin-bottom: 1.5em; /* 代码块与下方内容拉开些距离 */
         }
 
         .CodeMirror {
             height: auto;
         }
 
+        .CodeMirror-scroll {
+            overflow: auto;
+        }
+
         .button-container {
             display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
+            justify-content: flex-end;
+            padding: 10px 10px 0 0; /* 右上方放按钮 */
         }
 
         button.run-button,
@@ -481,6 +538,7 @@ article.html:
             border-radius: 4px;
             padding: 8px 16px;
             cursor: pointer;
+            margin-left: 8px;
         }
 
         button.run-button:hover,
@@ -494,19 +552,16 @@ article.html:
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 4px;
-            margin-top: 10px;
+            margin: 10px 0 0 0; /* 与按钮区拉开一些距离 */
             white-space: pre; /* 保持空白符号，启用水平滚动 */
             min-height: 25px;
             display: none; /* 初始隐藏输出框 */
             overflow-x: auto; /* 启用水平滚动 */
         }
-
-        .main-article img {
-            max-width: 100%;
-            height: auto;
-            display: block; /* 根据需要可加，可防止行内元素空隙问题 */
-            margin: 10px auto; /* 如果想要让图片居中，可以加这行 */
+        .sidebar, .main-article, .toc-container {
+            background-color: #fafafa !important;
         }
+
     </style>
 </head>
 <body>
@@ -698,7 +753,7 @@ article.html:
             }, 100);
         });
 
-        // -------- 大纲滚动高亮功能 --------
+        // 大纲滚动高亮
         const tocLinks = document.querySelectorAll('.toc a');
         const headings = document.querySelectorAll('.main-article h1, .main-article h2, .main-article h3, .main-article h4, .main-article h5, .main-article h6');
 
@@ -758,9 +813,7 @@ article.html:
             // 如果链接在可视区域上方，则向上滚动至可见
             if (linkRect.top < tocRect.top) {
                 tocContainer.scrollTop = currentScroll - (tocRect.top - linkRect.top) - 20;
-            }
-            // 如果链接在可视区域下方，则向下滚动至可见
-            else if (linkRect.bottom > tocRect.bottom) {
+            } else if (linkRect.bottom > tocRect.bottom) {
                 tocContainer.scrollTop = currentScroll + (linkRect.bottom - tocRect.bottom) + 20;
             }
 
@@ -849,7 +902,7 @@ article.html:
     };
 </script>
 
-<!-- =================  新增：MathJax 配置及脚本  ================= -->
+<!-- MathJax -->
 <script>
     window.MathJax = {
         tex: {
@@ -865,7 +918,6 @@ article.html:
 {#下面这行注释必须保留，方便恢复#}
 {#<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script>#}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full-speech.min.js" async></script>
-<!-- =========================================================== -->
 
 </body>
 </html>
