@@ -65,7 +65,6 @@
             background-color: #fafafa; /* 更浅的背景 */
             padding: 10px !important;
             border-right: 1px solid #ddd;
-            /* 关键：使用 sticky + top = 0，且给足高度，让其固定在左侧 */
             position: sticky;
             top: 0;
             height: 100vh;
@@ -118,12 +117,11 @@
             text-decoration: underline;
         }
 
-        /* === 主要内容区 === */
         .content {
             flex: 1;
-            padding: 0; /* 去掉 content 本身的 padding */
-            margin: 0; /* 去掉 content 本身的 margin */
-            gap: 0; /* 关键：移除网格/弹性布局的列间距 */
+            padding: 0;
+            margin: 0;
+            gap: 0;
             display: flex;
             justify-content: flex-start;
             align-items: flex-start;
@@ -141,7 +139,51 @@
             flex: 0 0 auto !important;
         }
 
-        /* 按钮样式（仅保留一处） */
+        /* 元信息区域的新增样式 */
+        .meta-info {
+            margin-bottom: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            background-color: #f0f8ff; /* 淡蓝色背景 */
+            border: 1px solid #dbeafe; /* 再加点淡蓝边框 */
+        }
+        .meta-info h1 {
+            margin-top: 0;
+            margin-bottom: 0.3em;
+            font-size: 1.8rem;
+            font-family: 'Merriweather', serif;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+            color: #555;
+        }
+        .meta-item:last-child {
+            margin-bottom: 0;
+        }
+        .meta-label {
+            display: inline-block;
+            font-weight: bold;
+            margin-right: 0.4em;
+            color: #333;
+        }
+        .meta-value {
+            display: inline-block;
+            color: #444;
+        }
+        .meta-tags span,
+        .meta-categories span {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin-right: 4px;
+            font-size: 0.85rem;
+        }
+
         button.run-button, button.reset-button {
             background-color: #61afef;
             color: white;
@@ -150,13 +192,12 @@
             padding: 8px 16px;
             cursor: pointer;
         }
-
         button.run-button:hover, button.reset-button:hover {
             background-color: #5292e2;
         }
 
         .CodeMirror-scroll {
-            overflow: auto; /* 确保滚动条正常显示 */
+            overflow: auto;
         }
 
         /* 自定义选中行颜色 */
@@ -207,17 +248,14 @@
             padding-left: 0;
             counter-reset: h1counter;
         }
-
         .toc ul {
             list-style-type: none;
             margin-left: 0; /* 移除默认的margin-left */
             padding-left: 10px; /* 设置适当的左侧填充 */
         }
-
         .toc li {
             margin-bottom: 5px;
         }
-
         .toc a {
             text-decoration: none;
             color: #333;
@@ -226,67 +264,28 @@
             padding: 2px 0;
             word-wrap: break-word;
         }
-
         .toc a:hover {
             text-decoration: underline;
             color: #000;
         }
-
-        /* 大纲标题层级缩进 + 自动编号 */
-        .toc .toc-h1 {
-            counter-reset: h2counter;
-            padding-left: 0px;
-            margin-bottom: 8px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h2 {
-            counter-reset: h3counter;
-            padding-left: 20px;
-            margin-bottom: 6px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h3 {
-            counter-reset: h4counter;
-            padding-left: 40px;
-            margin-bottom: 4px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h4 {
-            counter-reset: h5counter;
-            padding-left: 60px;
-            margin-bottom: 3px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h5 {
-            counter-reset: h6counter;
-            padding-left: 80px;
-            margin-bottom: 2px;
-            font-weight: normal;
-        }
-
-        .toc .toc-h6 {
-            padding-left: 100px;
-            margin-bottom: 2px;
-            font-weight: normal;
-        }
+        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0px; margin-bottom: 8px; }
+        .toc .toc-h2 { counter-reset: h3counter; padding-left: 20px; margin-bottom: 6px; }
+        .toc .toc-h3 { counter-reset: h4counter; padding-left: 40px; margin-bottom: 4px; }
+        .toc .toc-h4 { counter-reset: h5counter; padding-left: 60px; margin-bottom: 3px; }
+        .toc .toc-h5 { counter-reset: h6counter; padding-left: 80px; margin-bottom: 2px; }
+        .toc .toc-h6 { padding-left: 100px; margin-bottom: 2px; }
 
         .toc .toc-h1 > a::before {
             counter-increment: h1counter;
             content: counter(h1counter) ". ";
             font-weight: bold;
         }
-
         .toc .toc-h2 > a::before {
             counter-increment: h2counter;
             content: counter(h1counter) "." counter(h2counter) " ";
             font-weight: normal;
             color: #555;
         }
-
         .toc .toc-h3 > a::before {
             counter-increment: h3counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
@@ -319,25 +318,21 @@
             padding-left: 6px;
         }
 
-        /* === 表格样式 === */
         table {
             width: 100%;
             border: 1px solid #ccc;
             border-collapse: collapse;
             margin: 1.5em 0; /* 与上下文拉开距离 */
         }
-
         th, td {
             border: 1px solid #ccc;
             padding: 0.75em 1em;
             text-align: left;
         }
-
         thead {
             background: #f3f3f3;
         }
 
-        /* === 行内代码 === */
         code, kbd, .highlight-inline {
             background-color: #f2f2f2;
             color: #c7254e;
@@ -347,7 +342,6 @@
             border-radius: 3px;
         }
 
-        /* === 代码块相关样式 === */
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
@@ -357,7 +351,6 @@
             position: relative;
             overflow: auto;
         }
-
         .code-block-container {
             display: flex;
             flex-direction: column;
@@ -366,21 +359,17 @@
             overflow: hidden;
             margin-bottom: 1.5em; /* 代码块与下方内容拉开些距离 */
         }
-
         .CodeMirror {
             height: auto;
         }
-
         .CodeMirror-scroll {
             overflow: auto;
         }
-
         .button-container {
             display: flex;
             justify-content: flex-end;
-            padding: 10px 10px 0 0; /* 右上方放按钮 */
+            padding: 10px 10px 0 0;
         }
-
         button.run-button,
         button.reset-button {
             background-color: #61afef;
@@ -391,12 +380,10 @@
             cursor: pointer;
             margin-left: 8px;
         }
-
         button.run-button:hover,
         button.reset-button:hover {
             background-color: #5292e2;
         }
-
         .output {
             background-color: #fff;
             color: #333;
@@ -409,6 +396,7 @@
             display: none; /* 初始隐藏输出框 */
             overflow-x: auto; /* 启用水平滚动 */
         }
+
         .sidebar, .main-article, .toc-container {
             background-color: #fafafa !important;
         }
@@ -416,7 +404,6 @@
     </style>
 </head>
 <body>
-
 <div class="page-container">
     <!-- 左侧目录：VuePress风格 sidebar -->
     <div class="sidebar">
@@ -439,7 +426,6 @@
                     {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
                     <li>
                         <div class="folder-name" onclick="toggleFolder(this)">{{ dirname }}</div>
-                        {# 如果当前文章在该子目录下，则让子目录默认展开 show #}
                         <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
                             {{ render_tree(subdir_tree, subdir_path) }}
                         </ul>
@@ -455,36 +441,48 @@
         <!-- 文章主体内容 -->
         <div class="main-article" id="article-content">
 
-            <!-- === 新增：元信息展示区域 === -->
-            <div class="meta-info" style="margin-bottom: 20px;">
+            <!-- === 元信息展示区域（样式改进） === -->
+            <div class="meta-info">
                 {% if meta.title %}
                   <h1>{{ meta.title[0] }}</h1>
                 {% else %}
-                  <h1>No Title</h1>  {# 或者自定义默认标题 #}
+                  <h1>No Title</h1>
                 {% endif %}
 
                 {% if meta.author %}
-                  <p>作者：{{ meta.author[0] }}</p>
+                  <div class="meta-item">
+                    <span class="meta-label">作者:</span>
+                    <span class="meta-value">{{ meta.author[0] }}</span>
+                  </div>
                 {% endif %}
 
                 {% if meta.date %}
-                  <p>日期：{{ meta.date[0] }}</p>
+                  <div class="meta-item">
+                    <span class="meta-label">日期:</span>
+                    <span class="meta-value">{{ meta.date[0] }}</span>
+                  </div>
                 {% endif %}
 
                 {% if meta.category %}
-                  <p>分类：
-                    {% for cat in meta.category %}
-                      <span>{{ cat }}</span>{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                  </p>
+                  <div class="meta-item meta-categories">
+                    <span class="meta-label">分类:</span>
+                    <span class="meta-value">
+                      {% for cat in meta.category %}
+                        <span>{{ cat }}</span>
+                      {% endfor %}
+                    </span>
+                  </div>
                 {% endif %}
 
                 {% if meta.tag %}
-                  <p>标签：
-                    {% for t in meta.tag %}
-                      <span>{{ t }}</span>{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                  </p>
+                  <div class="meta-item meta-tags">
+                    <span class="meta-label">标签:</span>
+                    <span class="meta-value">
+                      {% for t in meta.tag %}
+                        <span>{{ t }}</span>
+                      {% endfor %}
+                    </span>
+                  </div>
                 {% endif %}
             </div>
             <!-- === 元信息展示结束 === -->
@@ -504,82 +502,55 @@
         </div>
     </div>
 </div>
+
 <script>
-    /**
-     * 折叠/展开子目录
-     */
     function toggleFolder(folderNameDiv) {
-        // 找到同级的下一个元素（ul）
         const nestedUl = folderNameDiv.nextElementSibling;
         if (!nestedUl) return;
         nestedUl.classList.toggle('show');
     }
 
-    /**
-     * 无刷新切换文章
-     * 1. 拦截 .article-link 的点击事件
-     * 2. 使用 fetch 获取新文章内容
-     * 3. 替换当前页面的 #content 和 #article-toc
-     * 4. 更新浏览器地址（不会刷新页面）
-     */
     document.addEventListener('click', function (e) {
         const target = e.target;
         if (target.classList.contains('article-link')) {
             e.preventDefault();
             const url = target.getAttribute('href');
-
-            // 使用 fetch 获取文章
             fetch(url)
                 .then(response => {
                     // 我们要获取完整的 HTML，然后从中提取 #content 和 #article-toc
                     return response.text();
                 })
                 .then(html => {
-                    // 构造一个虚拟的 DOM 来解析返回的 HTML
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-
-                    // 获取新文章内容
                     const newContent = doc.querySelector('#content');
                     const newToc = doc.querySelector('#article-toc');
 
-                    // 替换当前页面的内容
                     if (newContent) {
                         document.getElementById('content').innerHTML = newContent.innerHTML;
                     }
                     if (newToc) {
                         document.getElementById('article-toc').innerHTML = newToc.innerHTML;
                     }
-
-                    // 更新地址栏
                     window.history.pushState({}, '', url);
-
-                    // 重新初始化代码高亮编辑器等（如果有的话）
                     reinitializeCodeBlocks();
-
-                    // 重新渲染数学公式（新增）
                     if (window.MathJax) {
                         window.MathJax.typesetPromise();
                     }
-
-                    // 处理左侧目录选中状态
                     updateActiveLink(url);
                 })
                 .catch(err => {
                     console.error('Error fetching article:', err);
-                    window.location.href = url; // 若出错则直接跳转
+                    window.location.href = url;
                 });
         }
     });
 
-    // 监听浏览器的前进后退事件
     window.addEventListener('popstate', function (e) {
-        // 当用户点击浏览器后退时，我们要重新加载对应的文章
         location.reload();
     });
 
     function updateActiveLink(currentUrl) {
-        // 将所有的链接 active-file 类移除，然后对当前链接加上
         const links = document.querySelectorAll('.article-link');
         links.forEach(link => link.classList.remove('active-file'));
         const currentLink = [...links].find(l => l.getAttribute('href') === currentUrl);
@@ -588,12 +559,7 @@
         }
     }
 
-    /**
-     * 代码块处理 & 大纲滚动高亮
-     * 在无刷新加载后，需要再次调用此方法
-     */
     function reinitializeCodeBlocks() {
-        // 初始化 CodeMirror
         const codeBlocks = document.querySelectorAll('pre > code');
         codeBlocks.forEach(codeBlock => {
             const initialCode = codeBlock.textContent.trim();
@@ -606,8 +572,8 @@
                 mode: language,
                 theme: "material-darker",
                 lineNumbers: true,
-                viewportMargin: Infinity, // 确保代码在初始化时显示
-                lineWrapping: false // 禁用行包裹，确保水平滚动
+                viewportMargin: Infinity,
+                lineWrapping: false
             });
 
             const codeBlockContainer = document.createElement('div');
@@ -631,50 +597,41 @@
             codeBlockContainer.appendChild(outputContainer);
 
             codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
-            codeBlock.style.display = 'none'; // 隐藏原始代码块
+            codeBlock.style.display = 'none';
 
-            // 确保代码在初始化时显示
             setTimeout(() => {
                 editor.refresh();
                 adjustEditorHeight(editor);
             }, 100);
         });
 
-        // 大纲滚动高亮
         const tocLinks = document.querySelectorAll('.toc a');
         const headings = document.querySelectorAll('.main-article h1, .main-article h2, .main-article h3, .main-article h4, .main-article h5, .main-article h6');
+        let isScrolling = false;
 
-        let isScrolling = false; // 用于检测是否在进行滚动操作
-
-        // 1) 点击大纲链接时，平滑滚动至对应标题
         tocLinks.forEach(link => {
             link.addEventListener('click', e => {
                 e.preventDefault();
-                isScrolling = true; // 标记正在滚动，避免冲突
+                isScrolling = true;
                 const id = link.getAttribute('href').substring(1);
                 const heading = document.getElementById(id);
                 if (heading) {
                     heading.scrollIntoView({behavior: 'smooth'});
                 }
-                // 滚动结束后恢复
                 setTimeout(() => {
                     isScrolling = false;
                 }, 400);
             });
         });
 
-        // 2) 监听滚动，自动高亮对应大纲条目
         window.addEventListener('scroll', () => {
-            if (isScrolling) return; // 如果正在滚动，则不执行高亮检测
-
+            if (isScrolling) return;
             let currentId = '';
-            let offset = 100; // 可调整的偏移量，用于增加容错范围
+            let offset = 100;
 
             headings.forEach((heading, index) => {
                 const rect = heading.getBoundingClientRect();
                 const nextRect = (headings[index + 1]) ? headings[index + 1].getBoundingClientRect() : {top: Infinity};
-
-                // 检查当前标题的底部在可视区域内或者下一个标题的顶部在可视区域内
                 if (rect.top <= offset && nextRect.top > offset) {
                     currentId = heading.id;
                 }
@@ -696,26 +653,21 @@
             let currentScroll = tocContainer.scrollTop;
 
             isScrolling = true;
-
-            // 如果链接在可视区域上方，则向上滚动至可见
             if (linkRect.top < tocRect.top) {
                 tocContainer.scrollTop = currentScroll - (tocRect.top - linkRect.top) - 20;
             } else if (linkRect.bottom > tocRect.bottom) {
                 tocContainer.scrollTop = currentScroll + (linkRect.bottom - tocRect.bottom) + 20;
             }
-
-            setTimeout(() => isScrolling = false, 100); // 滚动完成后，解除滚动状态
+            setTimeout(() => isScrolling = false, 100);
         }
     }
 
-    // CodeMirror 相关函数
     async function loadPyodideAndPackages() {
         self.pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
         });
         await self.pyodide.loadPackage(['micropip', 'numpy']);
     }
-
     loadPyodideAndPackages();
 
     function createRunButton(editor, outputElement) {
@@ -783,7 +735,6 @@
         }
     }
 
-    // 页面加载后先初始化一次
     window.onload = function () {
         reinitializeCodeBlocks();
     };
@@ -797,7 +748,6 @@
             displayMath: [['$$', '$$'], ['\\[', '\\]']]
         },
         options: {
-            // 跳过某些标签，避免与代码块等冲突
             skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
         }
     };
@@ -805,6 +755,5 @@
 {#下面这行注释必须保留，方便恢复#}
 {#<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script>#}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full-speech.min.js" async></script>
-
 </body>
 </html>
