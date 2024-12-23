@@ -1,26 +1,11 @@
 ---
 title: 04-str NoteBook
-icon: yongyan
 date: 2023-12-08 13:18:16
 author: AI悦创
-isOriginal: true
 category: 
     - Python notebook
 tag:
     - Python 1v1
-sticky: false
-star: false
-article: true
-timeline: true
-navbar: true
-sidebarIcon: true
-headerDepth: 5
-comment: true
-lastUpdated: true
-editLink: true
-backToTop: true
-toc: true
-watermark: true
 ---
 
 这里有一个行内公式：$E = mc^2$
