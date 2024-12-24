@@ -473,11 +473,12 @@
             }
         }
 
-        /* ======== 底部 Footer ======== */
+        /* ======== 底部 Footer（改进为更紧凑） ======== */
         footer {
             background-color: #ffffff;
             text-align: center;
-            padding: 15px 0;
+            /* 原先 margin-top: 20px; 可以去掉或缩小 */
+            padding: 0.5rem 0; /* 减小内边距，让高度更紧凑 */
             margin-top: 20px;
             border-top: 1px solid #e0e0e0;
             position: fixed;
@@ -485,11 +486,12 @@
             bottom: 0;
             left: 0;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+            min-height: 50px; /* (可选)设一个最小高度，类似 navbar */
         }
         footer p {
             margin: 0;
             color: #777777;
-            font-size: 0.95rem;
+            font-size: 0.9rem; /* 调小字号 */
         }
     </style>
 </head>
