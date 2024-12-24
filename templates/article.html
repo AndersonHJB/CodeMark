@@ -29,7 +29,7 @@
             font-family: 'Open Sans', sans-serif;
             line-height: 1.4;
             font-size: 18px;
-            background-color: #f0f2f5; /* 更柔和的背景色 */
+            background-color: #f0f2f5; /* 保留原浅灰背景(可改为 #fff 如需全白) */
             color: #333;
             margin: 0;
             padding: 0;
@@ -89,8 +89,7 @@
             align-items: flex-start;
             max-width: 1200px;
             margin: 0 auto;
-            /* 原先是 70px，可以适度减少 */
-            padding-top: 60px;
+            padding-top: 60px; /* 让三块顶部与 navbar 对齐 */
             padding-bottom: 60px;
         }
 
@@ -98,13 +97,14 @@
         .sidebar {
             width: 260px;
             flex-shrink: 0;
-            background-color: #ffffff; /* 白色背景 */
-            padding: 20px;
-            border-right: 1px solid #e0e0e0;
+            background-color: transparent;
+            border: none;
             position: sticky;
-            top: 80px;
-            height: calc(100vh - 80px);
+            top: 60px; /* 与 .page-container 的 padding-top 相呼应 */
+            height: calc(100vh - 60px);
             overflow-y: auto;
+            margin: 0; /* 确保与顶部齐平 */
+            padding: 20px; /* 保留内部内容的间距 */
         }
 
         .sidebar h3 {
@@ -168,11 +168,14 @@
         }
 
         .main-article {
+            /* 去掉独立的背景和阴影，让三块看起来一个整体 */
+            background-color: transparent;
+            box-shadow: none;
+            border-radius: 0;
             width: 800px !important;
             max-width: 800px !important;
             min-width: 800px !important;
             margin-right: 0 !important;
-            background: #ffffff;
             padding: 24px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -187,8 +190,8 @@
             margin-bottom: 20px;
             padding: 16px;
             border-radius: 8px;
-            background-color: #f9fafb; /* 更柔和的浅灰色 */
-            border: 1px solid #e5e7eb; /* 边框颜色 */
+            background-color: #f9fafb; /* 可以保留文章元信息的小背景 */
+            border: 1px solid #e5e7eb;
         }
 
         .meta-info h1 {
@@ -272,22 +275,21 @@
         /* ======== TOC（大纲） ======== */
         .toc-container {
             width: 250px;
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
             font-size: 14px;
             line-height: 1.5;
             padding: 20px;
             position: sticky;
-            top: 80px;
-            max-height: calc(100vh - 100px);
+            top: 60px; /* 与 sidebar 相同，保证顶部对齐 */
+            max-height: calc(100vh - 60px);
             overflow-y: auto;
             scroll-behavior: smooth;
             flex-shrink: 0;
             text-align: left;
-            border-radius: 8px;
-            margin-top: 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            margin-left: 0 !important;
+            border-radius: 0;
+            margin-top: 0 !important;
         }
 
         .toc-container h2 {
@@ -452,9 +454,8 @@
                 width: 100%;
                 height: auto;
                 position: relative;
-                border-right: none;
-                border-bottom: 1px solid #e0e0e0;
-                padding: 15px;
+                top: 0;
+                margin-bottom: 20px;
             }
             .content {
                 flex-direction: column;
@@ -473,11 +474,7 @@
             }
         }
 
-        /*
-         ======== 底部 Footer ========
-         初始隐藏（ transform: translateY(100%) ），
-         只有当用户滚动到底部时再加 show-footer 类，让它滑上来
-        */
+        /* ======== 底部 Footer ======== */
         footer {
             background-color: #ffffff;
             text-align: center;
@@ -489,7 +486,7 @@
             left: 0;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
             min-height: 50px;
-            /* 关键：初始移出视图 */
+            /* 初始隐藏在视窗下方 */
             transform: translateY(100%);
             transition: transform 0.3s ease-in-out;
         }
@@ -498,7 +495,6 @@
             color: #777777;
             font-size: 0.9rem;
         }
-        /* 当添加此类时，footer 滑动上来 */
         footer.show-footer {
             transform: translateY(0);
         }
@@ -863,9 +859,8 @@
         }
 
         if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
-            // 带偏移量的滚动，避免导航栏遮盖
             const editorTop = wrapperElement.getBoundingClientRect().top + window.scrollY;
-            const offset = 70; // 导航栏的大约高度，按需微调
+            const offset = 70;
             window.scrollTo({
                 top: editorTop - offset,
                 behavior: 'smooth'
@@ -873,15 +868,11 @@
         }
     }
 
-    // 关键：监听滚动，判断是否接近底部，控制 footer 的显隐
+    // 监听滚动，判断是否接近底部，控制 footer 的显隐
     window.addEventListener('scroll', function() {
         const footer = document.querySelector('footer');
-        // 已滚动的高度（含窗口可见区域）
         const scrolledHeight = window.scrollY + window.innerHeight;
-        // 文档总高度
         const pageHeight = document.documentElement.scrollHeight;
-
-        // 若已滚动到底部（或距离底部 < 10px）
         if (scrolledHeight >= pageHeight - 10) {
             footer.classList.add('show-footer');
         } else {
