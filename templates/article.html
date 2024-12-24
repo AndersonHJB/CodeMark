@@ -59,16 +59,22 @@
         .navbar {
             background-color: #ffffff; /* 白色背景 */
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+            /* 以下是新修改的地方：减小内边距，降低高度 */
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            min-height: 50px; /* 可根据需要做微调 */
         }
 
         .navbar-brand {
             font-weight: bold;
             color: #1d72b8;
+            font-size: 1.1rem; /* 适度调小字号 */
         }
 
         .navbar-nav .nav-link {
             color: #555555;
             margin-right: 15px;
+            font-size: 0.95rem; /* 适度调小字号 */
         }
 
         .navbar-nav .nav-link.active,
@@ -83,8 +89,9 @@
             align-items: flex-start;
             max-width: 1200px;
             margin: 0 auto;
-            padding-top: 70px; /* 预留给导航条的高度 */
-            padding-bottom: 60px; /* 预留给底部的高度 */
+            /* 原先是 70px，可以适度减少 */
+            padding-top: 60px;
+            padding-bottom: 60px;
         }
 
         /* ======== 左侧侧边栏 ======== */
@@ -832,6 +839,7 @@
         return button;
     }
 
+    // 在此处调整自动滚动，以防止被导航栏遮挡
     function adjustEditorHeight(editor, isReset = false) {
         const lineCount = editor.lineCount();
         const wrapperElement = editor.getWrapperElement();
@@ -845,7 +853,13 @@
         }
 
         if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
-            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+            // 带偏移量的滚动，避免导航栏遮盖
+            const editorTop = wrapperElement.getBoundingClientRect().top + window.scrollY;
+            const offset = 70; // 导航栏的大约高度，按需微调
+            window.scrollTo({
+                top: editorTop - offset,
+                behavior: 'smooth'
+            });
         }
     }
 
