@@ -473,25 +473,34 @@
             }
         }
 
-        /* ======== 底部 Footer（改进为更紧凑） ======== */
+        /*
+         ======== 底部 Footer ========
+         初始隐藏（ transform: translateY(100%) ），
+         只有当用户滚动到底部时再加 show-footer 类，让它滑上来
+        */
         footer {
             background-color: #ffffff;
             text-align: center;
-            /* 原先 margin-top: 20px; 可以去掉或缩小 */
-            padding: 0.5rem 0; /* 减小内边距，让高度更紧凑 */
-            margin-top: 20px;
+            padding: 0.5rem 0;
             border-top: 1px solid #e0e0e0;
             position: fixed;
             width: 100%;
             bottom: 0;
             left: 0;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
-            min-height: 50px; /* (可选)设一个最小高度，类似 navbar */
+            min-height: 50px;
+            /* 关键：初始移出视图 */
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
         }
         footer p {
             margin: 0;
             color: #777777;
-            font-size: 0.9rem; /* 调小字号 */
+            font-size: 0.9rem;
+        }
+        /* 当添加此类时，footer 滑动上来 */
+        footer.show-footer {
+            transform: translateY(0);
         }
     </style>
 </head>
@@ -618,7 +627,7 @@
     </div>
 </div>
 
-<!-- ======== 底部 Footer ======== -->
+<!-- ======== 底部 Footer：只有在内容滚动到底时显示 ======== -->
 <footer>
     <p>© 2024 My Blog. Powered by Flask & Markdown.</p>
 </footer>
@@ -841,7 +850,6 @@
         return button;
     }
 
-    // 在此处调整自动滚动，以防止被导航栏遮挡
     function adjustEditorHeight(editor, isReset = false) {
         const lineCount = editor.lineCount();
         const wrapperElement = editor.getWrapperElement();
@@ -864,6 +872,22 @@
             });
         }
     }
+
+    // 关键：监听滚动，判断是否接近底部，控制 footer 的显隐
+    window.addEventListener('scroll', function() {
+        const footer = document.querySelector('footer');
+        // 已滚动的高度（含窗口可见区域）
+        const scrolledHeight = window.scrollY + window.innerHeight;
+        // 文档总高度
+        const pageHeight = document.documentElement.scrollHeight;
+
+        // 若已滚动到底部（或距离底部 < 10px）
+        if (scrolledHeight >= pageHeight - 10) {
+            footer.classList.add('show-footer');
+        } else {
+            footer.classList.remove('show-footer');
+        }
+    });
 
     window.onload = function () {
         reinitializeCodeBlocks();
