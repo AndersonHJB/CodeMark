@@ -29,7 +29,7 @@
             font-family: 'Open Sans', sans-serif;
             line-height: 1.4;
             font-size: 18px;
-            background-color: #f0f2f5; /* 保留原浅灰背景(可改为 #fff 如需全白) */
+            background-color: #f0f2f5;
             color: #333;
             margin: 0;
             padding: 0;
@@ -57,24 +57,23 @@
 
         /* ======== 顶部导航条 ======== */
         .navbar {
-            background-color: #ffffff; /* 白色背景 */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
-            /* 以下是新修改的地方：减小内边距，降低高度 */
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
-            min-height: 50px; /* 可根据需要做微调 */
+            min-height: 50px;
         }
 
         .navbar-brand {
             font-weight: bold;
             color: #1d72b8;
-            font-size: 1.1rem; /* 适度调小字号 */
+            font-size: 1.1rem;
         }
 
         .navbar-nav .nav-link {
             color: #555555;
             margin-right: 15px;
-            font-size: 0.95rem; /* 适度调小字号 */
+            font-size: 0.95rem;
         }
 
         .navbar-nav .nav-link.active,
@@ -89,7 +88,7 @@
             align-items: flex-start;
             max-width: 1200px;
             margin: 0 auto;
-            padding-top: 60px; /* 让三块顶部与 navbar 对齐 */
+            padding-top: 60px;
             padding-bottom: 60px;
         }
 
@@ -100,11 +99,11 @@
             background-color: transparent;
             border: none;
             position: sticky;
-            top: 60px; /* 与 .page-container 的 padding-top 相呼应 */
+            top: 60px;
             height: calc(100vh - 60px);
             overflow-y: auto;
-            margin: 0; /* 确保与顶部齐平 */
-            padding: 20px; /* 保留内部内容的间距 */
+            margin: 0;
+            padding: 20px;
         }
 
         .sidebar h3 {
@@ -170,15 +169,13 @@
         .main-article {
             /* 去掉独立的背景和阴影，让三块看起来一个整体 */
             background-color: transparent;
-            box-shadow: none;
-            border-radius: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
             width: 800px !important;
             max-width: 800px !important;
             min-width: 800px !important;
             margin-right: 0 !important;
             padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             flex: 0 0 auto !important;
         }
 
@@ -280,7 +277,6 @@
             box-shadow: none;
             font-size: 14px;
             line-height: 1.5;
-            padding: 20px;
             position: sticky;
             top: 60px; /* 与 sidebar 相同，保证顶部对齐 */
             max-height: calc(100vh - 60px);
@@ -290,32 +286,56 @@
             text-align: left;
             border-radius: 0;
             margin-top: 0 !important;
+            /*
+               分两部分：
+               1) .toc-title 固定在顶部
+               2) .toc-list 内滚动
+            */
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 60px);
         }
-
-        .toc-container h2 {
+        /* 大纲标题，始终固定不滚动 */
+        .toc-title {
+            position: sticky;
+            top: 0;
+            background: transparent;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            z-index: 10;
+        }
+        .toc-title h2 {
             font-family: 'Merriweather', serif;
             color: #1d72b8;
             font-size: 1.2rem;
-            margin-top: 0;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 5px;
+            margin: 0; /* 让它更紧凑 */
+            padding: 0 10px; /* 内边距，可自行调 */
         }
 
-        .toc {
+        /* 大纲列表，单独可滚动 */
+        .toc-list {
+            overflow-y: auto;
+            /* 预留给标题的高度 (约40~60px)，可再减去一些边距 */
+            flex: 1;
+            padding: 0 10px; /* 左右内边距 */
+        }
+        .toc-list .toc {
             list-style-type: none;
             padding-left: 0;
             counter-reset: h1counter;
+            margin-top: 10px; /* 与标题分隔 */
         }
-        .toc ul {
+
+        /* 保留原 .toc 样式 */
+        .toc-list .toc ul {
             list-style-type: none;
             margin-left: 0;
             padding-left: 10px;
         }
-        .toc li {
+        .toc-list .toc li {
             margin-bottom: 5px;
         }
-        .toc a {
+        .toc-list .toc a {
             text-decoration: none;
             color: #333333;
             display: inline-block;
@@ -323,7 +343,7 @@
             padding: 2px 0;
             word-wrap: break-word;
         }
-        .toc a:hover {
+        .toc-list .toc a:hover {
             text-decoration: underline;
             color: #1d72b8;
         }
@@ -340,34 +360,33 @@
             font-weight: bold;
             color: #1d72b8;
         }
-        .toc .toc-h2 > a::before {
+        .toc-list .toc .toc-h2 > a::before {
             counter-increment: h2counter;
             content: counter(h1counter) "." counter(h2counter) " ";
             font-weight: normal;
             color: #555555;
         }
-        .toc .toc-h3 > a::before {
+        .toc-list .toc .toc-h3 > a::before {
             counter-increment: h3counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
             color: #666666;
         }
-        .toc .toc-h4 > a::before {
+        .toc-list .toc .toc-h4 > a::before {
             counter-increment: h4counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
             color: #777777;
         }
-        .toc .toc-h5 > a::before {
+        .toc-list .toc .toc-h5 > a::before {
             counter-increment: h5counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) " ";
             color: #888888;
         }
-        .toc .toc-h6 > a::before {
+        .toc-list .toc .toc-h6 > a::before {
             counter-increment: h6counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) "." counter(h6counter) " ";
             color: #999999;
         }
-
-        .toc .active {
+        .toc-list .toc .active {
             background-color: #e0f2fe;
             border-left: 4px solid #1d72b8;
             color: #1d72b8;
@@ -410,7 +429,6 @@
             overflow: hidden;
             margin-bottom: 1.5em;
         }
-
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
@@ -420,17 +438,14 @@
             position: relative;
             overflow: auto;
         }
-
         .CodeMirror {
             height: auto;
         }
-
         .button-container {
             display: flex;
             justify-content: flex-end;
             padding: 10px 10px 0 0;
         }
-
         .output {
             background-color: #ffffff;
             color: #333333;
@@ -470,7 +485,7 @@
                 position: relative;
                 top: 0;
                 height: auto;
-                max-height: none;
+                display: block; /* 还原 layout */
             }
         }
 
@@ -518,7 +533,6 @@
         <li class="nav-item">
           <a class="nav-link" href="https://bornforthis.cn/" target="_blank">我的博客</a>
         </li>
-        <!-- 可根据需要添加更多导航项 -->
       </ul>
     </div>
   </div>
@@ -526,12 +540,11 @@
 <!-- ======== /顶部导航条结束 ======== -->
 
 <div class="page-container">
-    <!-- 左侧目录：VuePress风格 sidebar -->
+    <!-- 左侧目录 -->
     <div class="sidebar">
         <h3>所有文章</h3>
         <ul>
             {% macro render_tree(tree, parent_path='') %}
-                {# 当前目录下的文件 #}
                 {% for file_info in tree.files %}
                     {% set file_full_path = (parent_path ~ '/' ~ file_info.filename).lstrip('/') %}
                     <li>
@@ -541,8 +554,6 @@
                         </a>
                     </li>
                 {% endfor %}
-
-                {# 子目录 #}
                 {% for dirname, subdir_tree in tree.subdirs.items() %}
                     {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
                     <li>
@@ -553,15 +564,14 @@
                     </li>
                 {% endfor %}
             {% endmacro %}
-
             {{ render_tree(directory_tree, '') }}
         </ul>
     </div>
 
+    <!-- 中间内容 + TOC -->
     <div class="content">
         <!-- 文章主体内容 -->
         <div class="main-article" id="article-content">
-
             <!-- === 元信息展示区域 === -->
             <div class="meta-info">
                 {% if meta.title %}
@@ -613,12 +623,18 @@
             </div>
         </div>
 
-        <!-- TOC 大纲 -->
+        <!-- TOC 大纲（分为标题与可滚动列表） -->
         <div class="toc-container">
-            <h2>大纲</h2>
-            <ul class="toc" id="article-toc">
-                {{ toc|safe }}
-            </ul>
+            <!-- 固定标题，不随滚动 -->
+            <div class="toc-title">
+                <h2>大纲</h2>
+            </div>
+            <!-- 可滚动的大纲列表 -->
+            <div class="toc-list">
+                <ul class="toc" id="article-toc">
+                    {{ toc|safe }}
+                </ul>
+            </div>
         </div>
     </div>
 </div>
@@ -629,7 +645,7 @@
 </footer>
 <!-- ======== /底部 Footer ======== -->
 
-<!-- Bootstrap JS（与 navbar 配合） -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -775,7 +791,7 @@
         });
 
         function ensureLinkVisible(link) {
-            const tocContainer = document.querySelector('.toc-container');
+            const tocContainer = document.querySelector('.toc-list');
             const linkRect = link.getBoundingClientRect();
             const tocRect = tocContainer.getBoundingClientRect();
             let currentScroll = tocContainer.scrollTop;
