@@ -1,0 +1,405 @@
+```python
+string = "我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 \
+\
+浅者见浅，深者见深——黄家宝\
+\
+起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。\
+\
+先实现功能，再去优化，否则一切会很乱。——AI悦创\
+\
+凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"  # 外面使用双引号进行包裹即可
+print(string)
+```
+
+```python
+string = """我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 
+
+浅者见浅，深者见深——黄家宝
+
+起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。
+
+先实现功能，再去优化，否则一切会很乱。——AI悦创
+
+凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"""  # 外面使用双引号进行包裹即可
+print(string)
+```
+---
+```python
+string = "我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 \
+\
+浅者见浅，深者见深——黄家宝\
+\
+起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。\
+\
+先实现功能，再去优化，否则一切会很乱。——AI悦创\
+\
+凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"  # 外面使用双引号进行包裹即可
+print(string)
+
+string = """我们有时候不仅仅要看选择项以内的答案，也要去思考选择项以外的答案。——AI悦创 
+
+浅者见浅，深者见深——黄家宝
+
+起的最早的是理想主义者，跑的最快的是骗子，而胆子最大的是那些冒险家，害怕错过一切，疯狂往里冲的是韭菜，而真正的成功者，可能还没有入场。
+
+先实现功能，再去优化，否则一切会很乱。——AI悦创
+
+凡是你不能清晰写下来的东西，都是你还没有真正理解的东西"""  # 外面使用双引号进行包裹即可
+print(string)
+```
+```python
+string = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            font-size: 18px;
+            background-color: #fff;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+            color: #444;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: auto;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .outline {
+            width: 300px;
+            padding: 20px;
+            margin-left: 20px;
+            background: #f1f1f1;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+            position: relative;
+            overflow: auto; /* 确保代码框可以水平滚动 */
+        }
+
+        .output {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre; /* 保持空白符号，启用水平滚动 */
+            min-height: 25px;
+            display: none; /* 初始隐藏输出框 */
+            overflow-x: auto; /* 启用水平滚动 */
+        }
+
+        button.run-button, button.reset-button {
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        button.run-button:hover, button.reset-button:hover {
+            background-color: #5292e2;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: auto;
+        }
+
+        .CodeMirror-scroll {
+            overflow: auto; /* 确保滚动条正常显示 */
+        }
+
+        /* 自定义选中行颜色 */
+        .CodeMirror-selected {
+            background: #3399ff !important; /* 更改为你想要的颜色 */
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+    <div id="content">
+        {{ content|safe }}
+    </div>
+</div>
+<div class="outline">
+    <h3>大纲</h3>
+    <div id="outline-content"></div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const outlineContent = document.getElementById('outline-content');
+        const content = document.getElementById('content');
+        
+        const headers = content.querySelectorAll('h1, h2, h3');
+        headers.forEach(header => {
+            const link = document.createElement('a');
+            link.textContent = header.textContent;
+            link.href = `#${header.id}`;
+            link.style.display = 'block';
+            link.style.marginLeft = `${(parseInt(header.tagName.charAt(1)) - 1) * 20}px`;
+            outlineContent.appendChild(link);
+        });
+    });
+
+    async function loadPyodideAndPackages() {
+        self.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.0/full/"
+        });
+        await self.pyodide.loadPackage(['micropip']);
+    }
+
+    loadPyodideAndPackages();
+
+    function createRunButton(editor, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'run-button';
+        button.textContent = '运行代码';
+        button.onclick = runCode;
+
+        async function runCode() {
+            outputElement.textContent = ''; // 清空现有的输出内容
+            outputElement.style.display = 'block'; // 显示输出框
+            try {
+                self.pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.StringIO()
+                    sys.stderr = io.StringIO()
+                `);
+                await self.pyodide.runPythonAsync(editor.getValue());
+                const stdout = self.pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = self.pyodide.runPython('sys.stderr.getvalue()');
+                outputElement.textContent = (stdout + stderr).trim() || 'No output.';
+            } catch (error) {
+                outputElement.textContent = `Error:\n${error}`;
+            }
+        }
+
+        // 监听 Ctrl+Enter 或 Command+Enter
+        editor.on('keydown', function (cm, event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                runCode();
+            }
+        });
+
+        // 确保代码框高度自动适配内容
+        editor.on('changes', function () {
+            adjustEditorHeight(editor);
+        });
+
+        return button;
+    }
+
+    function createResetButton(editor, initialCode, outputElement) {
+        const button = document.createElement('button');
+        button.className = 'reset-button';
+        button.textContent = '重置代码';
+        button.onclick = function () {
+            editor.setValue(initialCode);
+            outputElement.textContent = '';
+            outputElement.style.display = 'none'; // 隐藏输出框
+            adjustEditorHeight(editor, true); // 重置高度
+        };
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false) {
+        const lineCount = editor.lineCount();
+        const wrapperElement = editor.getWrapperElement();
+        const previousHeight = wrapperElement.style.height;
+
+        if (lineCount > 30) {
+            wrapperElement.style.height = '480px'; // 固定高度，启用滚动条
+        } else {
+            wrapperElement.style.height = 'auto'; // 根据内容调整高度
+            wrapperElement.style.height = editor.getScrollerElement().scrollHeight + 'px';
+        }
+
+        // 仅在不是重置操作且高度增加时滚动
+        if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
+            wrapperElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    window.onload = function () {
+        const codeBlocks = document.querySelectorAll('pre > code');
+        codeBlocks.forEach(codeBlock => {
+            const initialCode = codeBlock.textContent.trim();
+            const language = codeBlock.className.replace('language-', '');
+            const container = document.createElement('div');
+            container.className = 'code-block';
+
+            const editor = CodeMirror(container, {
+                value: initialCode,
+                mode: language,
+                theme: "material-darker",
+                lineNumbers: true,
+                viewportMargin: Infinity, // 确保代码在初始化时显示
+                lineWrapping: false // 禁用行包裹，确保水平滚动
+            });
+
+            const codeBlockContainer = document.createElement('div');
+            codeBlockContainer.className = 'code-block-container';
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+
+            const outputContainer = document.createElement('div');
+            outputContainer.className = 'output';
+
+            buttonContainer.appendChild(createResetButton(editor, initialCode, outputContainer));
+
+            // 仅在语言为Python时添加运行按钮
+            if (language === 'python') {
+                buttonContainer.appendChild(createRunButton(editor, outputContainer));
+            }
+
+            codeBlockContainer.appendChild(container);
+            codeBlockContainer.appendChild(buttonContainer);
+            codeBlockContainer.appendChild(outputContainer);
+
+            codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
+            codeBlock.style.display = 'none'; // 隐藏原始代码块
+
+            // 确保代码在初始化时显示
+            setTimeout(() => {
+                editor.refresh();
+                adjustEditorHeight(editor);
+            }, 100);
+        });
+    }
+</script>
+</body>
+</html>"""
+# print(f"string:>>>\n{string}")
+n = string.split('\n')[:10]
+print(f"string:>>>\n{n}")
+```
+
+```python
+
+# import random
+#
+# number_to_guess = random.randint(1, 100)
+# guess_count = 0
+# max_tries = 10
+# print("猜数字游戏开始！尝试猜测一个在 1 到 100 之间的数字。你有 10 次机会。")
+#
+# while guess_count < max_tries:
+#     guess_str = input("请输入你猜测的数字：")
+#     guess_count += 1
+#     if not guess_str.isdigit():
+#         print("请输入一个有效数字")
+#     elif int(guess_str) > number_to_guess:
+#         print("太高了！再试一次。")
+#     elif int(guess_str) < number_to_guess:
+#         print("太低了！再试一次。")
+#     else:
+#         print(f"恭喜！你猜对了数字 {number_to_guess}！你总共猜了 {guess_count} 次。")
+#         guess_count = 10
+
+# import random
+#
+# number_to_guess = random.randint(1, 100)
+# guess_count = 0
+# max_tries = 10
+# print("猜数字游戏开始！尝试猜测一个在 1 到 100 之间的数字。你有 10 次机会。")
+#
+# while guess_count < max_tries:
+#     guess_str = input("请输入你猜测的数字：")
+#     guess_count += 1
+#     if not guess_str.isdigit():
+#         print("请输入一个有效数字")
+#         continue  # 循环按正常情况，是需要循环内的代码全部执行完成后，才会进入到下一次的循环。
+#         # 但是 continue 遇到不想要的情况，这次循环的剩余部分，可以跳过。直接进入下一次循环
+#     guess = int(guess_str)
+#     if guess > number_to_guess:  # 需要重启一组 if，上面的被 guess = int(guess_str) 截断了，不算一整组
+#         print("太高了！再试一次。")
+#     elif guess < number_to_guess:
+#         print("太低了！再试一次。")
+#     else:
+#         print(f"恭喜！你猜对了数字 {number_to_guess}！你总共猜了 {guess_count} 次。")
+#         guess_count = 10
+
+import random
+
+number_to_guess = random.randint(1, 100)
+guess_count = 0
+max_tries = 10
+print("猜数字游戏开始！尝试猜测一个在 1 到 100 之间的数字。你有 10 次机会。")
+
+while guess_count < max_tries:
+    guess_str = input("请输入你猜测的数字：")
+    guess_count += 1
+    if not guess_str.isdigit():
+        print("请输入一个有效数字")
+        continue  # 循环按正常情况，是需要循环内的代码全部执行完成后，才会进入到下一次的循环。
+        # 但是 continue 遇到不想要的情况，可以跳过当前循环剩余部分，直接进入下一次循环。
+    guess = int(guess_str)
+    if guess > number_to_guess:  # 需要重启一组 if，上面的被 guess = int(guess_str) 截断了，不算一整组
+        print("太高了！再试一次。")
+    elif guess < number_to_guess:
+        print("太低了！再试一次。")
+    else:
+        print(f"恭喜！你猜对了数字 {number_to_guess}！你总共猜了 {guess_count} 次。")
+        break  # 用来结束当前循环，当前循环一遇到就结束。「也就是不进入下一个循环」
+if guess != number_to_guess:
+    print(f"很遗憾，你的机会已用完。正确的数字是 {number_to_guess}。")
+
+```
+
