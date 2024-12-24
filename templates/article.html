@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <title>Article</title>
-    <!-- Bootstrap CSS（可自行选择版本） -->
+    <!-- Bootstrap CSS（使用最新版本） -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
@@ -21,15 +21,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
-    <!-- Font Awesome（可选，用于添加图标） -->
+    <!-- Font Awesome（用于图标） -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* ======== 全局基础样式 ======== */
         body {
             font-family: 'Open Sans', sans-serif;
-            line-height: 1.6;
+            line-height: 1.4;
             font-size: 18px;
-            background-color: #f7f7f7;
+            background-color: #f0f2f5; /* 更柔和的背景色 */
             color: #333;
             margin: 0;
             padding: 0;
@@ -47,7 +47,7 @@
         }
 
         a {
-            color: #007bff;
+            color: #1d72b8; /* 统一链接颜色 */
             text-decoration: none;
         }
 
@@ -56,8 +56,24 @@
         }
 
         /* ======== 顶部导航条 ======== */
+        .navbar {
+            background-color: #ffffff; /* 白色背景 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+        }
+
         .navbar-brand {
             font-weight: bold;
+            color: #1d72b8;
+        }
+
+        .navbar-nav .nav-link {
+            color: #555555;
+            margin-right: 15px;
+        }
+
+        .navbar-nav .nav-link.active,
+        .navbar-nav .nav-link:hover {
+            color: #1d72b8;
         }
 
         /* ======== 页面主体容器（含侧边栏 + 文章 + TOC） ======== */
@@ -68,15 +84,16 @@
             max-width: 1200px;
             margin: 0 auto;
             padding-top: 70px; /* 预留给导航条的高度 */
+            padding-bottom: 60px; /* 预留给底部的高度 */
         }
 
         /* ======== 左侧侧边栏 ======== */
         .sidebar {
             width: 260px;
             flex-shrink: 0;
-            background-color: #fafafa;
-            padding: 10px !important;
-            border-right: 1px solid #ddd;
+            background-color: #ffffff; /* 白色背景 */
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
             position: sticky;
             top: 80px;
             height: calc(100vh - 80px);
@@ -84,14 +101,16 @@
         }
 
         .sidebar h3 {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             margin-top: 0;
+            color: #1d72b8;
         }
 
         .folder-name {
             font-weight: bold;
             cursor: pointer;
-            margin: 6px 0;
+            margin: 10px 0;
+            color: #1d72b8;
         }
 
         .nested {
@@ -110,22 +129,23 @@
         }
 
         .sidebar li {
-            margin: 4px 0;
+            margin: 6px 0;
         }
 
         .sidebar a {
-            color: #007bff;
+            color: #555555;
             text-decoration: none;
         }
 
         .sidebar a:hover {
             text-decoration: underline;
+            color: #1d72b8;
         }
 
         /* 高亮当前文件 */
         .active-file {
             font-weight: bold;
-            color: #0056b3;
+            color: #1d72b8;
             text-decoration: underline;
         }
 
@@ -136,7 +156,7 @@
             margin: 0;
             gap: 0;
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: flex-start;
         }
 
@@ -152,7 +172,7 @@
             flex: 0 0 auto !important;
         }
 
-        /* ======== 元信息区域（改为柔和的背景 & 边框） ======== */
+        /* ======== 元信息区域 ======== */
         .meta-info {
             display: flex;
             flex-wrap: wrap;
@@ -160,16 +180,16 @@
             margin-bottom: 20px;
             padding: 16px;
             border-radius: 8px;
-            background-color: #fafafa; /* 统一用浅灰 */
-            border: 1px solid #ddd;    /* 边框也改为浅灰 */
+            background-color: #f9fafb; /* 更柔和的浅灰色 */
+            border: 1px solid #e5e7eb; /* 边框颜色 */
         }
 
         .meta-info h1 {
             flex-basis: 100%;
             margin-top: 0;
             margin-bottom: 0.3em;
-            font-size: 1.8rem;
-            font-family: 'Merriweather', serif;
+            font-size: 2rem;
+            color: #1d72b8;
         }
 
         .meta-item {
@@ -178,7 +198,7 @@
             margin-right: 20px;
             margin-bottom: 8px;
             font-size: 0.95rem;
-            color: #555;
+            color: #555555;
         }
 
         .meta-item:last-child {
@@ -190,7 +210,7 @@
             align-items: center;
             font-weight: bold;
             margin-right: 0.4em;
-            color: #333;
+            color: #333333;
         }
 
         .meta-label i {
@@ -199,7 +219,7 @@
 
         .meta-value {
             display: inline-block;
-            color: #444;
+            color: #555555;
         }
 
         .meta-tags span,
@@ -215,15 +235,16 @@
 
         /* ======== 文章内容中的代码块样式等 ======== */
         button.run-button, button.reset-button {
-            background-color: #61afef;
+            background-color: #1d72b8;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 8px 16px;
             cursor: pointer;
+            margin-left: 10px;
         }
         button.run-button:hover, button.reset-button:hover {
-            background-color: #5292e2;
+            background-color: #155a8a;
         }
 
         .CodeMirror-scroll {
@@ -244,8 +265,8 @@
         /* ======== TOC（大纲） ======== */
         .toc-container {
             width: 250px;
-            background: #fafafa;
-            border: 1px solid #ddd;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             font-size: 14px;
             line-height: 1.5;
             padding: 20px;
@@ -264,11 +285,11 @@
 
         .toc-container h2 {
             font-family: 'Merriweather', serif;
-            color: #333;
-            font-size: 16px;
+            color: #1d72b8;
+            font-size: 1.2rem;
             margin-top: 0;
             margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e0e0e0;
             padding-bottom: 5px;
         }
 
@@ -287,7 +308,7 @@
         }
         .toc a {
             text-decoration: none;
-            color: #333;
+            color: #333333;
             display: inline-block;
             position: relative;
             padding: 2px 0;
@@ -295,7 +316,7 @@
         }
         .toc a:hover {
             text-decoration: underline;
-            color: #000;
+            color: #1d72b8;
         }
         .toc .toc-h1 { counter-reset: h2counter; padding-left: 0; margin-bottom: 8px; }
         .toc .toc-h2 { counter-reset: h3counter; padding-left: 20px; margin-bottom: 6px; }
@@ -308,38 +329,39 @@
             counter-increment: h1counter;
             content: counter(h1counter) ". ";
             font-weight: bold;
+            color: #1d72b8;
         }
         .toc .toc-h2 > a::before {
             counter-increment: h2counter;
             content: counter(h1counter) "." counter(h2counter) " ";
             font-weight: normal;
-            color: #555;
+            color: #555555;
         }
         .toc .toc-h3 > a::before {
             counter-increment: h3counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
-            color: #666;
+            color: #666666;
         }
         .toc .toc-h4 > a::before {
             counter-increment: h4counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
-            color: #777;
+            color: #777777;
         }
         .toc .toc-h5 > a::before {
             counter-increment: h5counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) " ";
-            color: #888;
+            color: #888888;
         }
         .toc .toc-h6 > a::before {
             counter-increment: h6counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) "." counter(h6counter) " ";
-            color: #999;
+            color: #999999;
         }
 
         .toc .active {
-            background-color: #eee;
-            border-left: 4px solid #61afef;
-            color: #000;
+            background-color: #e0f2fe;
+            border-left: 4px solid #1d72b8;
+            color: #1d72b8;
             font-weight: bold;
             padding-left: 6px;
         }
@@ -401,8 +423,8 @@
         }
 
         .output {
-            background-color: #fff;
-            color: #333;
+            background-color: #ffffff;
+            color: #333333;
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 4px;
@@ -424,7 +446,8 @@
                 height: auto;
                 position: relative;
                 border-right: none;
-                border-bottom: 1px solid #ddd;
+                border-bottom: 1px solid #e0e0e0;
+                padding: 15px;
             }
             .content {
                 flex-direction: column;
@@ -445,36 +468,43 @@
 
         /* ======== 底部 Footer ======== */
         footer {
-            background-color: #f7f7f7;
+            background-color: #ffffff;
             text-align: center;
             padding: 15px 0;
             margin-top: 20px;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #e0e0e0;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+            left: 0;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
         }
         footer p {
             margin: 0;
-            color: #666;
+            color: #777777;
+            font-size: 0.95rem;
         }
     </style>
 </head>
 <body>
-<!-- ======== 顶部导航条示例 ======== -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+<!-- ======== 顶部导航条 ======== -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/">My Blog</a>
+    <a class="navbar-brand" href="/">我的博客</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="切换导航">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <!-- 这里可放置更多菜单链接 -->
+      <!-- 导航链接 -->
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">首页</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="https://bornforthis.cn/" target="_blank">我的博客</a>
         </li>
+        <!-- 可根据需要添加更多导航项 -->
       </ul>
     </div>
   </div>
