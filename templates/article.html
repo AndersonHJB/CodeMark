@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Article</title>
+    <!-- Bootstrap CSS（可自行选择版本） -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
           rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
@@ -21,11 +24,12 @@
     <!-- Font Awesome（可选，用于添加图标） -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* ======== 全局基础样式 ======== */
         body {
             font-family: 'Open Sans', sans-serif;
-            line-height: 1.6; /* 行距微增，使文字更舒适 */
+            line-height: 1.6;
             font-size: 18px;
-            background-color: #f7f7f7; /* 改为更柔和的浅灰背景 */
+            background-color: #f7f7f7;
             color: #333;
             margin: 0;
             padding: 0;
@@ -34,12 +38,12 @@
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Merriweather', serif;
             color: #444;
-            margin-top: 1.2em; /* 增大标题与上方内容的间距 */
-            margin-bottom: 0.6em; /* 增大标题与下方内容的间距 */
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
         }
 
         p {
-            margin: 0.9em 0; /* 适当段落间距 */
+            margin: 0.9em 0;
         }
 
         a {
@@ -51,25 +55,31 @@
             text-decoration: underline;
         }
 
-        /* 外层容器，用来居中并控制三列布局 */
+        /* ======== 顶部导航条 ======== */
+        .navbar-brand {
+            font-weight: bold;
+        }
+
+        /* ======== 页面主体容器（含侧边栏 + 文章 + TOC） ======== */
         .page-container {
             display: flex;
             justify-content: flex-start;
             align-items: flex-start;
-            max-width: 1200px; /* 根据需要可自定义 */
-            margin: 0 auto; /* 居中 */
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 70px; /* 预留给导航条的高度 */
         }
 
-        /* 左侧侧边栏：增加 flex-shrink:0，避免它被挤压 */
+        /* ======== 左侧侧边栏 ======== */
         .sidebar {
             width: 260px;
-            flex-shrink: 0; /* 关键：不允许被挤压 */
-            background-color: #fafafa; /* 更浅的背景 */
+            flex-shrink: 0;
+            background-color: #fafafa;
             padding: 10px !important;
             border-right: 1px solid #ddd;
             position: sticky;
-            top: 0;
-            height: 100vh;
+            top: 80px;
+            height: calc(100vh - 80px);
             overflow-y: auto;
         }
 
@@ -96,7 +106,7 @@
         .sidebar ul {
             list-style-type: none;
             padding-left: 0;
-            margin: 0; /* 移除默认 margin */
+            margin: 0;
         }
 
         .sidebar li {
@@ -115,10 +125,11 @@
         /* 高亮当前文件 */
         .active-file {
             font-weight: bold;
-            color: #0056b3; /* 使当前文件颜色更深一点 */
+            color: #0056b3;
             text-decoration: underline;
         }
 
+        /* ======== 中间内容区（文章 + TOC） ======== */
         .content {
             flex: 1;
             padding: 0;
@@ -134,42 +145,46 @@
             max-width: 800px !important;
             min-width: 800px !important;
             margin-right: 0 !important;
-            background: #ffffff; /* 文章背景为白色，与整体灰背景区分 */
-            padding: 24px; /* 内边距增加，减轻阅读压迫感 */
+            background: #ffffff;
+            padding: 24px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             flex: 0 0 auto !important;
         }
 
-        /* 修改后的元信息区域样式 */
+        /* ======== 元信息区域（改为柔和的背景 & 边框） ======== */
         .meta-info {
             display: flex;
-            flex-wrap: wrap; /* 允许换行 */
-            align-items: center; /* 垂直居中对齐 */
+            flex-wrap: wrap;
+            align-items: center;
             margin-bottom: 20px;
             padding: 16px;
             border-radius: 8px;
-            background-color: #f0f8ff; /* 淡蓝色背景 */
-            border: 1px solid #dbeafe; /* 淡蓝边框 */
+            background-color: #fafafa; /* 统一用浅灰 */
+            border: 1px solid #ddd;    /* 边框也改为浅灰 */
         }
+
         .meta-info h1 {
-            flex-basis: 100%; /* 标题占据一整行 */
+            flex-basis: 100%;
             margin-top: 0;
             margin-bottom: 0.3em;
             font-size: 1.8rem;
             font-family: 'Merriweather', serif;
         }
+
         .meta-item {
             display: flex;
             align-items: center;
-            margin-right: 20px; /* 每个元数据项之间的间距 */
-            margin-bottom: 8px; /* 小屏幕下换行时的间距 */
+            margin-right: 20px;
+            margin-bottom: 8px;
             font-size: 0.95rem;
             color: #555;
         }
+
         .meta-item:last-child {
-            margin-right: 0; /* 移除最后一个元数据项的右边距 */
+            margin-right: 0;
         }
+
         .meta-label {
             display: inline-flex;
             align-items: center;
@@ -179,13 +194,14 @@
         }
 
         .meta-label i {
-            margin-right: 4px; /* 图标与文本的间距 */
+            margin-right: 4px;
         }
 
         .meta-value {
             display: inline-block;
             color: #444;
         }
+
         .meta-tags span,
         .meta-categories span {
             display: inline-block;
@@ -197,6 +213,7 @@
             font-size: 0.85rem;
         }
 
+        /* ======== 文章内容中的代码块样式等 ======== */
         button.run-button, button.reset-button {
             background-color: #61afef;
             color: white;
@@ -213,19 +230,18 @@
             overflow: auto;
         }
 
-        /* 自定义选中行颜色 */
         .CodeMirror-selected {
-            background: #3399ff !important; /* 更改为你想要的颜色 */
+            background: #3399ff !important;
         }
 
         .main-article img {
             max-width: 100%;
             height: auto;
-            display: block; /* 防止行内元素空隙问题 */
-            margin: 10px auto; /* 图片居中 */
+            display: block;
+            margin: 10px auto;
         }
 
-        /* === TOC（目录） === */
+        /* ======== TOC（大纲） ======== */
         .toc-container {
             width: 250px;
             background: #fafafa;
@@ -234,14 +250,14 @@
             line-height: 1.5;
             padding: 20px;
             position: sticky;
-            top: 20px;
-            max-height: 80vh; /* 最大高度，超出时可滚动 */
+            top: 80px;
+            max-height: calc(100vh - 100px);
             overflow-y: auto;
-            scroll-behavior: smooth; /* 平滑滚动 */
+            scroll-behavior: smooth;
             flex-shrink: 0;
             text-align: left;
-            border-radius: 8px; /* 圆角 */
-            margin-top: 0; /* 与主内容同顶 */
+            border-radius: 8px;
+            margin-top: 0;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             margin-left: 0 !important;
         }
@@ -263,8 +279,8 @@
         }
         .toc ul {
             list-style-type: none;
-            margin-left: 0; /* 移除默认的margin-left */
-            padding-left: 10px; /* 左侧填充 */
+            margin-left: 0;
+            padding-left: 10px;
         }
         .toc li {
             margin-bottom: 5px;
@@ -281,7 +297,7 @@
             text-decoration: underline;
             color: #000;
         }
-        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0px; margin-bottom: 8px; }
+        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0; margin-bottom: 8px; }
         .toc .toc-h2 { counter-reset: h3counter; padding-left: 20px; margin-bottom: 6px; }
         .toc .toc-h3 { counter-reset: h4counter; padding-left: 40px; margin-bottom: 4px; }
         .toc .toc-h4 { counter-reset: h5counter; padding-left: 60px; margin-bottom: 3px; }
@@ -304,19 +320,16 @@
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
             color: #666;
         }
-
         .toc .toc-h4 > a::before {
             counter-increment: h4counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
             color: #777;
         }
-
         .toc .toc-h5 > a::before {
             counter-increment: h5counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) " ";
             color: #888;
         }
-
         .toc .toc-h6 > a::before {
             counter-increment: h6counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) "." counter(h6counter) " ";
@@ -331,11 +344,12 @@
             padding-left: 6px;
         }
 
+        /* 表格样式 */
         table {
             width: 100%;
             border: 1px solid #ccc;
             border-collapse: collapse;
-            margin: 1.5em 0; /* 与上下文拉开距离 */
+            margin: 1.5em 0;
         }
         th, td {
             border: 1px solid #ccc;
@@ -346,6 +360,7 @@
             background: #f3f3f3;
         }
 
+        /* 行内代码块 */
         code, kbd, .highlight-inline {
             background-color: #f2f2f2;
             color: #c7254e;
@@ -353,6 +368,16 @@
             font-size: 90%;
             padding: 0.2em 0.4em;
             border-radius: 3px;
+        }
+
+        /* 代码块外层容器 */
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5em;
         }
 
         .code-block {
@@ -364,65 +389,42 @@
             position: relative;
             overflow: auto;
         }
-        .code-block-container {
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 1.5em; /* 代码块与下方内容拉开距离 */
-        }
+
         .CodeMirror {
             height: auto;
         }
-        .CodeMirror-scroll {
-            overflow: auto;
-        }
+
         .button-container {
             display: flex;
             justify-content: flex-end;
             padding: 10px 10px 0 0;
         }
-        button.run-button,
-        button.reset-button {
-            background-color: #61afef;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            cursor: pointer;
-            margin-left: 8px;
-        }
-        button.run-button:hover,
-        button.reset-button:hover {
-            background-color: #5292e2;
-        }
+
         .output {
             background-color: #fff;
             color: #333;
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 4px;
-            margin: 10px 0 0 0; /* 与按钮区拉开距离 */
-            white-space: pre; /* 保持空白符号，启用水平滚动 */
+            margin: 10px 0 0 0;
+            white-space: pre;
             min-height: 25px;
-            display: none; /* 初始隐藏输出框 */
-            overflow-x: auto; /* 启用水平滚动 */
+            display: none;
+            overflow-x: auto;
         }
 
-        .sidebar, .main-article, .toc-container {
-            background-color: #fafafa !important;
-        }
-
-        /* 响应式设计 */
+        /* ======== 响应式设计 ======== */
         @media (max-width: 1024px) {
             .page-container {
                 flex-direction: column;
+                padding-top: 60px;
             }
             .sidebar {
                 width: 100%;
                 height: auto;
                 position: relative;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
             }
             .content {
                 flex-direction: column;
@@ -434,11 +436,51 @@
             }
             .toc-container {
                 margin-top: 20px;
+                position: relative;
+                top: 0;
+                height: auto;
+                max-height: none;
             }
+        }
+
+        /* ======== 底部 Footer ======== */
+        footer {
+            background-color: #f7f7f7;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        footer p {
+            margin: 0;
+            color: #666;
         }
     </style>
 </head>
 <body>
+<!-- ======== 顶部导航条示例 ======== -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">My Blog</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <!-- 这里可放置更多菜单链接 -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="/">首页</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://bornforthis.cn/" target="_blank">我的博客</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<!-- ======== /顶部导航条结束 ======== -->
+
 <div class="page-container">
     <!-- 左侧目录：VuePress风格 sidebar -->
     <div class="sidebar">
@@ -476,7 +518,7 @@
         <!-- 文章主体内容 -->
         <div class="main-article" id="article-content">
 
-            <!-- === 元信息展示区域（样式改进） === -->
+            <!-- === 元信息展示区域 === -->
             <div class="meta-info">
                 {% if meta.title %}
                   <h1>{{ meta.title[0] }}</h1>
@@ -520,15 +562,14 @@
                   </div>
                 {% endif %}
             </div>
-            <!-- === 元信息展示结束 === -->
+            <!-- === /元信息展示区域结束 === -->
 
-            <!-- 原先就有的文章内容 -->
             <div id="content">
                 {{ content|safe }}
             </div>
         </div>
 
-        <!-- 大纲（TOC） -->
+        <!-- TOC 大纲 -->
         <div class="toc-container">
             <h2>大纲</h2>
             <ul class="toc" id="article-toc">
@@ -537,6 +578,15 @@
         </div>
     </div>
 </div>
+
+<!-- ======== 底部 Footer ======== -->
+<footer>
+    <p>© 2024 My Blog. Powered by Flask & Markdown.</p>
+</footer>
+<!-- ======== /底部 Footer ======== -->
+
+<!-- Bootstrap JS（与 navbar 配合） -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
     function toggleFolder(folderNameDiv) {
@@ -786,7 +836,6 @@
         }
     };
 </script>
-<!-- 保留注释以方便恢复 -->
 <!-- <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full-speech.min.js" async></script>
 </body>
