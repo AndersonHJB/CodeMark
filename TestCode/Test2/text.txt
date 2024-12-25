@@ -152,33 +152,36 @@ if __name__ == '__main__':
 
 article.html:
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <title>Article</title>
+    <!-- Bootstrap CSS（使用最新版本） -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
           rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
-    <!-- CodeMirror JavaScript -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <!-- CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
-    <!-- Font Awesome（可选，用于添加图标） -->
+    <!-- Font Awesome（用于图标） -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* ======== 全局基础样式 ======== */
         body {
             font-family: 'Open Sans', sans-serif;
-            line-height: 1.6; /* 行距微增，使文字更舒适 */
+            line-height: 1.4;
             font-size: 18px;
-            background-color: #f7f7f7; /* 改为更柔和的浅灰背景 */
+            background-color: #f0f2f5;
             color: #333;
             margin: 0;
             padding: 0;
@@ -187,16 +190,16 @@ article.html:
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Merriweather', serif;
             color: #444;
-            margin-top: 1.2em; /* 增大标题与上方内容的间距 */
-            margin-bottom: 0.6em; /* 增大标题与下方内容的间距 */
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
         }
 
         p {
-            margin: 0.9em 0; /* 适当段落间距 */
+            margin: 0.9em 0;
         }
 
         a {
-            color: #007bff;
+            color: #1d72b8; /* 统一链接颜色 */
             text-decoration: none;
         }
 
@@ -204,141 +207,212 @@ article.html:
             text-decoration: underline;
         }
 
-        /* 外层容器，用来居中并控制三列布局 */
+        /* ======== 顶部导航条 ======== */
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            min-height: 50px;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: #1d72b8;
+            font-size: 1.1rem;
+        }
+
+        .navbar-nav .nav-link {
+            color: #555555;
+            margin-right: 15px;
+            font-size: 0.95rem;
+        }
+
+        .navbar-nav .nav-link.active,
+        .navbar-nav .nav-link:hover {
+            color: #1d72b8;
+        }
+
+        /* ======== 页面主体容器（含侧边栏 + 文章 + TOC） ======== */
         .page-container {
             display: flex;
             justify-content: flex-start;
             align-items: flex-start;
-            max-width: 1200px; /* 根据需要可自定义 */
-            margin: 0 auto; /* 居中 */
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 60px;
+            padding-bottom: 60px;
         }
 
-        /* 左侧侧边栏：增加 flex-shrink:0，避免它被挤压 */
+        /* ======== 左侧侧边栏 ======== */
         .sidebar {
             width: 260px;
-            flex-shrink: 0; /* 关键：不允许被挤压 */
-            background-color: #fafafa; /* 更浅的背景 */
-            padding: 10px !important;
-            border-right: 1px solid #ddd;
+            flex-shrink: 0;
+            background-color: transparent;
+            border: none;
             position: sticky;
-            top: 0;
-            height: 100vh;
+            top: 60px;
+            height: calc(100vh - 60px);
             overflow-y: auto;
+            margin: 0;
+            padding: 20px;
         }
 
         .sidebar h3 {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             margin-top: 0;
+            color: #1d72b8;
         }
 
         .folder-name {
-            font-weight: bold;
+            display: flex;
+            align-items: center;
             cursor: pointer;
-            margin: 6px 0;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #1d72b8;
+            user-select: none; /* 避免双击选中文字 */
+        }
+        .folder-icon {
+            margin-right: 6px;
+            font-size: 18px;
+            color: #666;  /* 可自行修改颜色 */
+        }
+        /* 箭头在最右侧 */
+        .arrow-icon {
+            margin-left: auto;
+            font-size: 18px;
+            color: #999;
         }
 
         .nested {
-            margin-left: 15px;
-            display: none; /* 初始折叠 */
+            display: none; /* 默认折叠 */
+            margin-left: 20px;   /* 缩进，让分组内文章更有层次 */
+            border-left: 1px dashed #ccc; /* 可选：左侧虚线以示层级 */
+            padding-left: 10px;  /* 让文字不紧贴虚线 */
+            margin-top: 5px;     /* 与分组标题略做间距 */
         }
 
         .nested.show {
             display: block; /* 展开 */
         }
 
+        /* 新增：更深层级的子目录也重复使用类似的样式，以增强分层效果 */
+        .nested .nested {
+            margin-left: 20px;
+            border-left: 1px dashed #ccc;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+        /* 如果还有更深层级，依次类推 */
+        .nested .nested .nested {
+            margin-left: 20px;
+            border-left: 1px dashed #ccc;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+
         .sidebar ul {
             list-style-type: none;
             padding-left: 0;
-            margin: 0; /* 移除默认 margin */
+            margin: 0;
         }
 
         .sidebar li {
-            margin: 4px 0;
+            margin: 6px 0;
         }
 
         .sidebar a {
-            color: #007bff;
+            color: #555555;
             text-decoration: none;
         }
 
         .sidebar a:hover {
             text-decoration: underline;
+            color: #1d72b8;
         }
 
         /* 高亮当前文件 */
         .active-file {
             font-weight: bold;
-            color: #0056b3; /* 使当前文件颜色更深一点 */
+            color: #1d72b8;
             text-decoration: underline;
         }
 
+        /* ======== 中间内容区（文章 + TOC） ======== */
         .content {
             flex: 1;
             padding: 0;
             margin: 0;
             gap: 0;
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: flex-start;
         }
 
         .main-article {
+            background-color: transparent;
+            /* 去掉独立的背景和阴影，让三块看起来一个整体 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
             width: 800px !important;
             max-width: 800px !important;
             min-width: 800px !important;
             margin-right: 0 !important;
-            background: #ffffff; /* 文章背景为白色，与整体灰背景区分 */
-            padding: 24px; /* 内边距增加，减轻阅读压迫感 */
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 24px;
             flex: 0 0 auto !important;
         }
 
-        /* 修改后的元信息区域样式 */
+        /* ======== 元信息区域 ======== */
         .meta-info {
             display: flex;
-            flex-wrap: wrap; /* 允许换行 */
-            align-items: center; /* 垂直居中对齐 */
+            flex-wrap: wrap;
+            align-items: center;
             margin-bottom: 20px;
             padding: 16px;
             border-radius: 8px;
-            background-color: #f0f8ff; /* 淡蓝色背景 */
-            border: 1px solid #dbeafe; /* 淡蓝边框 */
+            background-color: transparent;
+            border: none;
         }
+
         .meta-info h1 {
-            flex-basis: 100%; /* 标题占据一整行 */
+            flex-basis: 100%;
             margin-top: 0;
             margin-bottom: 0.3em;
-            font-size: 1.8rem;
-            font-family: 'Merriweather', serif;
+            font-size: 2rem;
+            color: #000;
         }
+
         .meta-item {
             display: flex;
             align-items: center;
-            margin-right: 20px; /* 每个元数据项之间的间距 */
-            margin-bottom: 8px; /* 小屏幕下换行时的间距 */
+            margin-right: 20px;
+            margin-bottom: 8px;
             font-size: 0.95rem;
-            color: #555;
+            color: #555555;
         }
+
         .meta-item:last-child {
-            margin-right: 0; /* 移除最后一个元数据项的右边距 */
+            margin-right: 0;
         }
+
         .meta-label {
             display: inline-flex;
             align-items: center;
             font-weight: bold;
             margin-right: 0.4em;
-            color: #333;
+            color: #333333;
         }
 
         .meta-label i {
-            margin-right: 4px; /* 图标与文本的间距 */
+            margin-right: 4px;
         }
 
         .meta-value {
             display: inline-block;
-            color: #444;
+            color: #555555;
         }
+
         .meta-tags span,
         .meta-categories span {
             display: inline-block;
@@ -350,91 +424,123 @@ article.html:
             font-size: 0.85rem;
         }
 
+        /* ======== 文章内容中的代码块样式等 ======== */
         button.run-button, button.reset-button {
-            background-color: #61afef;
+            background-color: #1d72b8;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 8px 16px;
             cursor: pointer;
+            margin-left: 10px;
         }
         button.run-button:hover, button.reset-button:hover {
-            background-color: #5292e2;
+            background-color: #155a8a;
         }
 
         .CodeMirror-scroll {
             overflow: auto;
         }
 
-        /* 自定义选中行颜色 */
         .CodeMirror-selected {
-            background: #3399ff !important; /* 更改为你想要的颜色 */
+            background: #3399ff !important;
         }
 
         .main-article img {
             max-width: 100%;
             height: auto;
-            display: block; /* 防止行内元素空隙问题 */
-            margin: 10px auto; /* 图片居中 */
+            display: block;
+            margin: 10px auto;
+            cursor: pointer; /* 图片可点击 */
         }
 
-        /* === TOC（目录） === */
+        /* 新增：图片 ALT 样式（若有文字则在图片下方灰色小字显示） */
+        .alt-caption {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-top: 4px;
+            margin-bottom: 1em;
+        }
+
+        /* ======== TOC（大纲） ======== */
         .toc-container {
             width: 250px;
-            background: #fafafa;
-            border: 1px solid #ddd;
+            background: transparent;
+            border: none;
+            box-shadow: none;
             font-size: 14px;
             line-height: 1.5;
-            padding: 20px;
             position: sticky;
-            top: 20px;
-            max-height: 80vh; /* 最大高度，超出时可滚动 */
+            top: 160px; /* 顶部导航条高度 + 元信息区域高度 */
+            max-height: calc(100vh - 260px);
             overflow-y: auto;
-            scroll-behavior: smooth; /* 平滑滚动 */
+            scroll-behavior: smooth;
             flex-shrink: 0;
             text-align: left;
-            border-radius: 8px; /* 圆角 */
-            margin-top: 0; /* 与主内容同顶 */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            margin-left: 0 !important;
+            border-radius: 0;
+            margin-top: 0 !important;
+            /*
+               分两部分：
+               1) .toc-title 固定在顶部
+               2) .toc-list 内滚动
+            */
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 260px);
         }
-
-        .toc-container h2 {
+        /* 大纲标题，始终固定不滚动 */
+        .toc-title {
+            position: sticky;
+            top: 0;
+            background: transparent;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            z-index: 10;
+        }
+        .toc-title h2 {
             font-family: 'Merriweather', serif;
-            color: #333;
-            font-size: 16px;
-            margin-top: 0;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
+            color: #1d72b8;
+            font-size: 1.2rem;
+            margin: 0; /* 让它更紧凑 */
+            padding: 0 10px; /* 内边距，可自行调 */
         }
 
-        .toc {
+        /* 大纲列表，单独可滚动 */
+        .toc-list {
+            overflow-y: auto;
+            /* 预留给标题的高度 (约40~60px)，可再减去一些边距 */
+            flex: 1;
+            padding: 0 10px; /* 左右内边距 */
+        }
+        .toc-list .toc {
             list-style-type: none;
             padding-left: 0;
             counter-reset: h1counter;
+            margin-top: 10px; /* 与标题分隔 */
         }
-        .toc ul {
+
+        .toc-list .toc ul {
             list-style-type: none;
-            margin-left: 0; /* 移除默认的margin-left */
-            padding-left: 10px; /* 左侧填充 */
+            margin-left: 0;
+            padding-left: 10px;
         }
-        .toc li {
+        .toc-list .toc li {
             margin-bottom: 5px;
         }
-        .toc a {
+        .toc-list .toc a {
             text-decoration: none;
-            color: #333;
+            color: #333333;
             display: inline-block;
             position: relative;
             padding: 2px 0;
             word-wrap: break-word;
         }
-        .toc a:hover {
+        .toc-list .toc a:hover {
             text-decoration: underline;
-            color: #000;
+            color: #1d72b8;
         }
-        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0px; margin-bottom: 8px; }
+        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0; margin-bottom: 8px; }
         .toc .toc-h2 { counter-reset: h3counter; padding-left: 20px; margin-bottom: 6px; }
         .toc .toc-h3 { counter-reset: h4counter; padding-left: 40px; margin-bottom: 4px; }
         .toc .toc-h4 { counter-reset: h5counter; padding-left: 60px; margin-bottom: 3px; }
@@ -445,50 +551,48 @@ article.html:
             counter-increment: h1counter;
             content: counter(h1counter) ". ";
             font-weight: bold;
+            color: #1d72b8;
         }
-        .toc .toc-h2 > a::before {
+        .toc-list .toc .toc-h2 > a::before {
             counter-increment: h2counter;
             content: counter(h1counter) "." counter(h2counter) " ";
             font-weight: normal;
-            color: #555;
+            color: #555555;
         }
-        .toc .toc-h3 > a::before {
+        .toc-list .toc .toc-h3 > a::before {
             counter-increment: h3counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
-            color: #666;
+            color: #666666;
         }
-
-        .toc .toc-h4 > a::before {
+        .toc-list .toc .toc-h4 > a::before {
             counter-increment: h4counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
-            color: #777;
+            color: #777777;
         }
-
-        .toc .toc-h5 > a::before {
+        .toc-list .toc .toc-h5 > a::before {
             counter-increment: h5counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) " ";
-            color: #888;
+            color: #888888;
         }
-
-        .toc .toc-h6 > a::before {
+        .toc-list .toc .toc-h6 > a::before {
             counter-increment: h6counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) "." counter(h6counter) " ";
-            color: #999;
+            color: #999999;
         }
-
-        .toc .active {
-            background-color: #eee;
-            border-left: 4px solid #61afef;
-            color: #000;
+        .toc-list .toc .active {
+            background-color: #e0f2fe;
+            border-left: 4px solid #1d72b8;
+            color: #1d72b8;
             font-weight: bold;
             padding-left: 6px;
         }
 
+        /* 表格样式 */
         table {
             width: 100%;
             border: 1px solid #ccc;
             border-collapse: collapse;
-            margin: 1.5em 0; /* 与上下文拉开距离 */
+            margin: 1.5em 0;
         }
         th, td {
             border: 1px solid #ccc;
@@ -499,6 +603,7 @@ article.html:
             background: #f3f3f3;
         }
 
+        /* 行内代码块 */
         code, kbd, .highlight-inline {
             background-color: #f2f2f2;
             color: #c7254e;
@@ -508,6 +613,15 @@ article.html:
             border-radius: 3px;
         }
 
+        /* 代码块外层容器 */
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5em;
+        }
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
@@ -517,65 +631,39 @@ article.html:
             position: relative;
             overflow: auto;
         }
-        .code-block-container {
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 1.5em; /* 代码块与下方内容拉开距离 */
-        }
         .CodeMirror {
             height: auto;
-        }
-        .CodeMirror-scroll {
-            overflow: auto;
         }
         .button-container {
             display: flex;
             justify-content: flex-end;
             padding: 10px 10px 0 0;
         }
-        button.run-button,
-        button.reset-button {
-            background-color: #61afef;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            cursor: pointer;
-            margin-left: 8px;
-        }
-        button.run-button:hover,
-        button.reset-button:hover {
-            background-color: #5292e2;
-        }
         .output {
-            background-color: #fff;
-            color: #333;
+            background-color: #ffffff;
+            color: #333333;
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 4px;
-            margin: 10px 0 0 0; /* 与按钮区拉开距离 */
-            white-space: pre; /* 保持空白符号，启用水平滚动 */
+            margin: 10px 0 0 0;
+            white-space: pre;
             min-height: 25px;
-            display: none; /* 初始隐藏输出框 */
-            overflow-x: auto; /* 启用水平滚动 */
+            display: none;
+            overflow-x: auto;
         }
 
-        .sidebar, .main-article, .toc-container {
-            background-color: #fafafa !important;
-        }
-
-        /* 响应式设计 */
+        /* ======== 响应式设计 ======== */
         @media (max-width: 1024px) {
             .page-container {
                 flex-direction: column;
+                padding-top: 60px;
             }
             .sidebar {
                 width: 100%;
                 height: auto;
                 position: relative;
+                top: 0;
+                margin-bottom: 20px;
             }
             .content {
                 flex-direction: column;
@@ -587,49 +675,172 @@ article.html:
             }
             .toc-container {
                 margin-top: 20px;
+                position: relative;
+                top: 0;
+                height: auto;
+                display: block; /* 还原 layout */
             }
+        }
+
+        /* ======== 底部 Footer ======== */
+        footer {
+            background-color: #ffffff;
+            text-align: center;
+            padding: 0.5rem 0;
+            border-top: 1px solid #e0e0e0;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+            left: 0;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+            min-height: 50px;
+            /* 初始隐藏在视窗下方 */
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        footer p {
+            margin: 0;
+            color: #777777;
+            font-size: 0.9rem;
+        }
+        footer.show-footer {
+            transform: translateY(0);
+        }
+        /* ======== 图片灯箱样式 ======== */
+        .lightbox {
+            display: none;           /* 默认隐藏 */
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .lightbox-figure {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox-content {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+        }
+        .lightbox-caption {
+            text-align: center;
+            color: #ccc;
+            padding: 10px;
+            max-width: 90%;
+            margin: 0 auto;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 30px;
+            right: 60px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .lightbox-arrow {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            width: auto;
+            margin-top: -30px;
+            padding: 16px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 30px;
+            user-select: none;
+        }
+        .lightbox-arrow-left {
+            left: 20px;
+        }
+        .lightbox-arrow-right {
+            right: 20px;
+        }
+        /* 放大状态下的样式 */
+        .zoomed {
+            transform: scale(2);
+            transform-origin: center center;
+            cursor: zoom-out;
         }
     </style>
 </head>
 <body>
+<!-- ======== 顶部导航条 ======== -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">我的博客</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="切换导航">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <!-- 导航链接 -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">首页</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://bornforthis.cn/" target="_blank">我的博客</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<!-- ======== /顶部导航条结束 ======== -->
+
 <div class="page-container">
-    <!-- 左侧目录：VuePress风格 sidebar -->
+    <!-- 左侧目录 -->
     <div class="sidebar">
         <h3>所有文章</h3>
         <ul>
             {% macro render_tree(tree, parent_path='') %}
-                {# 当前目录下的文件 #}
                 {% for file_info in tree.files %}
                     {% set file_full_path = (parent_path ~ '/' ~ file_info.filename).lstrip('/') %}
                     <li>
                         <a class="article-link {% if file_full_path == current_file %}active-file{% endif %}"
                            href="/article/{{ file_full_path }}">
-                            {{ file_info.title }}
+                           <i class="fab fa-python"></i> {{ file_info.title }}
                         </a>
                     </li>
                 {% endfor %}
-
-                {# 子目录 #}
                 {% for dirname, subdir_tree in tree.subdirs.items() %}
                     {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
                     <li>
-                        <div class="folder-name" onclick="toggleFolder(this)">{{ dirname }}</div>
+                        <div class="folder-name" onclick="toggleFolder(this)">
+                            <i class="fas fa-folder folder-icon"></i>  <!-- 左侧文件夹图标 -->
+                            {{ dirname }}
+                            <i class="fas fa-angle-right arrow-icon"></i>
+                        </div>
                         <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
                             {{ render_tree(subdir_tree, subdir_path) }}
                         </ul>
                     </li>
                 {% endfor %}
             {% endmacro %}
-
             {{ render_tree(directory_tree, '') }}
         </ul>
     </div>
 
+    <!-- 中间内容 + TOC -->
     <div class="content">
         <!-- 文章主体内容 -->
-        <div class="main-article" id="article-content">
-
-            <!-- === 元信息展示区域（样式改进） === -->
+        <div class="main-article">
+            <!-- === 元信息展示区域 === -->
             <div class="meta-info">
                 {% if meta.title %}
                   <h1>{{ meta.title[0] }}</h1>
@@ -673,36 +884,75 @@ article.html:
                   </div>
                 {% endif %}
             </div>
-            <!-- === 元信息展示结束 === -->
+            <hr>
+            <!-- === /元信息展示区域结束 === -->
 
-            <!-- 原先就有的文章内容 -->
             <div id="content">
                 {{ content|safe }}
             </div>
         </div>
 
-        <!-- 大纲（TOC） -->
+        <!-- TOC 大纲（分为标题与可滚动列表） -->
         <div class="toc-container">
-            <h2>大纲</h2>
-            <ul class="toc" id="article-toc">
-                {{ toc|safe }}
-            </ul>
+            <!-- 固定标题，不随滚动 -->
+            <div class="toc-title">
+                <h2>大纲</h2>
+            </div>
+            <!-- 可滚动的大纲列表 -->
+            <div class="toc-list">
+                <ul class="toc" id="article-toc">
+                    {{ toc|safe }}
+                </ul>
+            </div>
         </div>
     </div>
 </div>
+<!-- ========== 灯箱 Lightbox HTML ========== -->
+<div id="lightbox" class="lightbox">
+    <span class="lightbox-close" id="lightbox-close">&times;</span>
+    <div class="lightbox-figure" id="lightbox-figure">
+        <img class="lightbox-content" id="lightbox-img">
+        <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
+    <div class="lightbox-arrow lightbox-arrow-left" id="lightbox-prev">&#10094;</div>
+    <div class="lightbox-arrow lightbox-arrow-right" id="lightbox-next">&#10095;</div>
+</div>
+<!-- ========== /灯箱 Lightbox HTML ========== -->
+
+<!-- ======== 底部 Footer：只有在内容滚动到底时显示 ======== -->
+<footer>
+    <p>Copyright © 2024 Bornforthis</p>
+</footer>
+<!-- ======== /底部 Footer ======== -->
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
     function toggleFolder(folderNameDiv) {
         const nestedUl = folderNameDiv.nextElementSibling;
         if (!nestedUl) return;
         nestedUl.classList.toggle('show');
+
+        // 获取右侧箭头图标
+        const arrowIcon = folderNameDiv.querySelector('.arrow-icon');
+        if (nestedUl.classList.contains('show')) {
+            // 如果已展开，则将右箭头切换成下箭头
+            arrowIcon.classList.remove('fa-angle-right');
+            arrowIcon.classList.add('fa-angle-down');
+        } else {
+            // 否则切换回右箭头
+            arrowIcon.classList.remove('fa-angle-down');
+            arrowIcon.classList.add('fa-angle-right');
+        }
     }
 
     document.addEventListener('click', function (e) {
         const target = e.target;
-        if (target.classList.contains('article-link')) {
+        if (target.classList.contains('article-link') || target.closest('.article-link')) {
             e.preventDefault();
-            const url = target.getAttribute('href');
+            const linkEl = target.closest('.article-link');
+            const url = linkEl.getAttribute('href');
             fetch(url)
                 .then(response => {
                     return response.text();
@@ -710,12 +960,22 @@ article.html:
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const newContent = doc.querySelector('#content');
-                    const newToc = doc.querySelector('#article-toc');
 
+                    // 1) 更新文章元信息区域（包括 h1 标题、作者、日期等）
+                    const newMetaInfo = doc.querySelector('.meta-info');
+                    if (newMetaInfo) {
+                        const currentMetaInfo = document.querySelector('.meta-info');
+                        currentMetaInfo.innerHTML = newMetaInfo.innerHTML;
+                    }
+
+                    // 2) 更新文章主体内容
+                    const newContent = doc.querySelector('#content');
                     if (newContent) {
                         document.getElementById('content').innerHTML = newContent.innerHTML;
                     }
+
+                    // 3) 更新 TOC
+                    const newToc = doc.querySelector('#article-toc');
                     if (newToc) {
                         document.getElementById('article-toc').innerHTML = newToc.innerHTML;
                     }
@@ -803,7 +1063,14 @@ article.html:
                 const id = link.getAttribute('href').substring(1);
                 const heading = document.getElementById(id);
                 if (heading) {
-                    heading.scrollIntoView({behavior: 'smooth'});
+                    // 计算 heading 实际位置，并额外向上偏移 70 像素，避免被导航栏遮挡
+                    const offset = 70;
+                    const headingPosition = heading.getBoundingClientRect().top + window.scrollY;
+                    const offsetPosition = headingPosition - offset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
                 }
                 setTimeout(() => {
                     isScrolling = false;
@@ -814,7 +1081,7 @@ article.html:
         window.addEventListener('scroll', () => {
             if (isScrolling) return;
             let currentId = '';
-            let offset = 100;
+            let offset = 100;  // 用于判断当前标题时，给一些上方空余
 
             headings.forEach((heading, index) => {
                 const rect = heading.getBoundingClientRect();
@@ -834,7 +1101,7 @@ article.html:
         });
 
         function ensureLinkVisible(link) {
-            const tocContainer = document.querySelector('.toc-container');
+            const tocContainer = document.querySelector('.toc-list');
             const linkRect = link.getBoundingClientRect();
             const tocRect = tocContainer.getBoundingClientRect();
             let currentScroll = tocContainer.scrollTop;
@@ -847,6 +1114,30 @@ article.html:
             }
             setTimeout(() => isScrolling = false, 100);
         }
+
+        // ============ 重新初始化图片灯箱 ============
+        initializeLightbox();
+
+        // ============ 为每张图片添加 ALT 文本（若有） ============
+        addAltCaptions();
+    }
+
+    // 新增：给图片添加 alt 文本显示
+    function addAltCaptions() {
+        const images = document.querySelectorAll('.main-article img');
+        images.forEach((img) => {
+            // 如果已经插入过 caption，先删除旧的，避免重复
+            if (img.nextElementSibling && img.nextElementSibling.classList.contains('alt-caption')) {
+                img.nextElementSibling.remove();
+            }
+            // 如果 alt 非空，则插入一个新 div 显示 alt
+            if (img.alt && img.alt.trim() !== '') {
+                const caption = document.createElement('div');
+                caption.className = 'alt-caption';
+                caption.innerText = img.alt;
+                img.insertAdjacentElement('afterend', caption);
+            }
+        });
     }
 
     async function loadPyodideAndPackages() {
@@ -918,10 +1209,131 @@ article.html:
         }
 
         if (!isReset && parseInt(wrapperElement.style.height) > parseInt(previousHeight)) {
-            wrapperElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+            const editorTop = wrapperElement.getBoundingClientRect().top + window.scrollY;
+            const offset = 70;
+            window.scrollTo({
+                top: editorTop - offset,
+                behavior: 'smooth'
+            });
         }
     }
 
+    // 监听滚动，判断是否接近底部，控制 footer 的显隐
+    window.addEventListener('scroll', function() {
+        const footer = document.querySelector('footer');
+        const scrolledHeight = window.scrollY + window.innerHeight;
+        const pageHeight = document.documentElement.scrollHeight;
+        if (scrolledHeight >= pageHeight - 10) {
+            footer.classList.add('show-footer');
+        } else {
+            footer.classList.remove('show-footer');
+        }
+    });
+
+    // =========== 灯箱逻辑：点击图片全屏查看、关闭、左右切换 ===========
+    function initializeLightbox() {
+        const lightbox = document.getElementById("lightbox");
+        const lightboxImg = document.getElementById("lightbox-img");
+        const lightboxCaption = document.getElementById("lightbox-caption");
+        const lightboxClose = document.getElementById("lightbox-close");
+        const lightboxPrev = document.getElementById("lightbox-prev");
+        const lightboxNext = document.getElementById("lightbox-next");
+
+        // 收集 main-article 中所有 <img>
+        const images = document.querySelectorAll('.main-article img');
+        let currentIndex = 0;
+        let allImages = Array.from(images);
+        let isZoomed = false;  // 记录图片是否处于放大状态
+
+        // 打开灯箱
+        function openLightbox(index) {
+            currentIndex = index;
+            lightbox.style.display = "block";
+            updateLightbox();
+        }
+
+        // 更新灯箱中显示的图片和说明
+        function updateLightbox() {
+            const currentImg = allImages[currentIndex];
+            lightboxImg.src = currentImg.src;
+            lightboxCaption.textContent = currentImg.alt || "";
+            // 如果之前是放大状态，重置
+            lightboxImg.classList.remove('zoomed');
+            isZoomed = false;
+            lightboxImg.style.cursor = 'zoom-in';
+        }
+
+        // 关闭灯箱
+        function closeLightbox() {
+            lightbox.style.display = "none";
+        }
+
+        // 上一张图片
+        function showPrev() {
+            currentIndex = (currentIndex - 1 + allImages.length) % allImages.length;
+            updateLightbox();
+        }
+
+        // 下一张图片
+        function showNext() {
+            currentIndex = (currentIndex + 1) % allImages.length;
+            updateLightbox();
+        }
+
+        // 切换放大 / 缩小
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            if (isZoomed) {
+                lightboxImg.classList.add('zoomed');
+            } else {
+                lightboxImg.classList.remove('zoomed');
+            }
+        }
+
+        // 图片点击时放大 / 缩小
+        lightboxImg.addEventListener('click', function() {
+            toggleZoom();
+            if (isZoomed) {
+                lightboxImg.style.cursor = 'zoom-out';
+            } else {
+                lightboxImg.style.cursor = 'zoom-in';
+            }
+        });
+
+        // 键盘事件：← / → / Esc
+        document.addEventListener('keydown', function(e) {
+            // 只有当灯箱显示时才处理
+            if (lightbox.style.display === 'block') {
+                if (e.key === 'ArrowLeft') {
+                    showPrev();
+                } else if (e.key === 'ArrowRight') {
+                    showNext();
+                } else if (e.key === 'Escape') {
+                    closeLightbox();
+                }
+            }
+        });
+
+        // 为 main-article 中所有图片绑定点击事件
+        allImages.forEach((img, index) => {
+            img.addEventListener('click', () => openLightbox(index));
+        });
+
+        // 给灯箱按钮绑定事件
+        lightboxClose.onclick = closeLightbox;
+        lightboxPrev.onclick = showPrev;
+        lightboxNext.onclick = showNext;
+        lightbox.addEventListener('click', function(e) {
+            // 若点击目标不是图片本身、也不是左右箭头、也不是关闭按钮，就关闭灯箱
+            if (
+                !e.target.classList.contains('lightbox-content') &&
+                !e.target.classList.contains('lightbox-arrow') &&
+                e.target.id !== 'lightbox-close'
+            ) {
+                closeLightbox();
+            }
+        });
+    }
     window.onload = function () {
         reinitializeCodeBlocks();
     };
@@ -939,12 +1351,10 @@ article.html:
         }
     };
 </script>
-<!-- 保留注释以方便恢复 -->
 <!-- <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full-speech.min.js" async></script>
 </body>
 </html>
-
 index.html:
 <!DOCTYPE html>
 <html lang="en">
