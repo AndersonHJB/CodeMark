@@ -167,8 +167,8 @@
         }
 
         .main-article {
-            /* 去掉独立的背景和阴影，让三块看起来一个整体 */
             background-color: transparent;
+            /* 去掉独立的背景和阴影，让三块看起来一个整体 */
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 800px !important;
@@ -187,8 +187,8 @@
             margin-bottom: 20px;
             padding: 16px;
             border-radius: 8px;
-            background-color: #f9fafb; /* 可以保留文章元信息的小背景 */
-            border: 1px solid #e5e7eb;
+            background-color: transparent;
+            border: none;
         }
 
         .meta-info h1 {
@@ -196,7 +196,7 @@
             margin-top: 0;
             margin-bottom: 0.3em;
             font-size: 2rem;
-            color: #1d72b8;
+            color: #000;
         }
 
         .meta-item {
@@ -326,7 +326,6 @@
             margin-top: 10px; /* 与标题分隔 */
         }
 
-        /* 保留原 .toc 样式 */
         .toc-list .toc ul {
             list-style-type: none;
             margin-left: 0;
@@ -616,6 +615,7 @@
                   </div>
                 {% endif %}
             </div>
+            <hr>
             <!-- === /元信息展示区域结束 === -->
 
             <div id="content">
