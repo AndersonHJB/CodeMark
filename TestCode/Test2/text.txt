@@ -165,7 +165,8 @@ article.html:
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
     <!-- CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
@@ -273,11 +274,13 @@ article.html:
             color: #1d72b8;
             user-select: none; /* 避免双击选中文字 */
         }
+
         .folder-icon {
             margin-right: 6px;
             font-size: 18px;
-            color: #666;  /* 可自行修改颜色 */
+            color: #666; /* 可自行修改颜色 */
         }
+
         /* 箭头在最右侧 */
         .arrow-icon {
             margin-left: auto;
@@ -287,10 +290,10 @@ article.html:
 
         .nested {
             display: none; /* 默认折叠 */
-            margin-left: 20px;   /* 缩进，让分组内文章更有层次 */
+            margin-left: 20px; /* 缩进，让分组内文章更有层次 */
             border-left: 1px dashed #ccc; /* 可选：左侧虚线以示层级 */
-            padding-left: 10px;  /* 让文字不紧贴虚线 */
-            margin-top: 5px;     /* 与分组标题略做间距 */
+            padding-left: 10px; /* 让文字不紧贴虚线 */
+            margin-top: 5px; /* 与分组标题略做间距 */
         }
 
         .nested.show {
@@ -304,6 +307,7 @@ article.html:
             padding-left: 10px;
             margin-top: 5px;
         }
+
         /* 如果还有更深层级，依次类推 */
         .nested .nested .nested {
             margin-left: 20px;
@@ -434,6 +438,7 @@ article.html:
             cursor: pointer;
             margin-left: 10px;
         }
+
         button.run-button:hover, button.reset-button:hover {
             background-color: #155a8a;
         }
@@ -489,6 +494,7 @@ article.html:
             flex-direction: column;
             height: calc(100vh - 260px);
         }
+
         /* 大纲标题，始终固定不滚动 */
         .toc-title {
             position: sticky;
@@ -498,6 +504,7 @@ article.html:
             border-bottom: 1px solid #e0e0e0;
             z-index: 10;
         }
+
         .toc-title h2 {
             font-family: 'Merriweather', serif;
             color: #1d72b8;
@@ -513,6 +520,7 @@ article.html:
             flex: 1;
             padding: 0 10px; /* 左右内边距 */
         }
+
         .toc-list .toc {
             list-style-type: none;
             padding-left: 0;
@@ -525,9 +533,11 @@ article.html:
             margin-left: 0;
             padding-left: 10px;
         }
+
         .toc-list .toc li {
             margin-bottom: 5px;
         }
+
         .toc-list .toc a {
             text-decoration: none;
             color: #333333;
@@ -536,16 +546,46 @@ article.html:
             padding: 2px 0;
             word-wrap: break-word;
         }
+
         .toc-list .toc a:hover {
             text-decoration: underline;
             color: #1d72b8;
         }
-        .toc .toc-h1 { counter-reset: h2counter; padding-left: 0; margin-bottom: 8px; }
-        .toc .toc-h2 { counter-reset: h3counter; padding-left: 20px; margin-bottom: 6px; }
-        .toc .toc-h3 { counter-reset: h4counter; padding-left: 40px; margin-bottom: 4px; }
-        .toc .toc-h4 { counter-reset: h5counter; padding-left: 60px; margin-bottom: 3px; }
-        .toc .toc-h5 { counter-reset: h6counter; padding-left: 80px; margin-bottom: 2px; }
-        .toc .toc-h6 { padding-left: 100px; margin-bottom: 2px; }
+
+        .toc .toc-h1 {
+            counter-reset: h2counter;
+            padding-left: 0;
+            margin-bottom: 8px;
+        }
+
+        .toc .toc-h2 {
+            counter-reset: h3counter;
+            padding-left: 20px;
+            margin-bottom: 6px;
+        }
+
+        .toc .toc-h3 {
+            counter-reset: h4counter;
+            padding-left: 40px;
+            margin-bottom: 4px;
+        }
+
+        .toc .toc-h4 {
+            counter-reset: h5counter;
+            padding-left: 60px;
+            margin-bottom: 3px;
+        }
+
+        .toc .toc-h5 {
+            counter-reset: h6counter;
+            padding-left: 80px;
+            margin-bottom: 2px;
+        }
+
+        .toc .toc-h6 {
+            padding-left: 100px;
+            margin-bottom: 2px;
+        }
 
         .toc .toc-h1 > a::before {
             counter-increment: h1counter;
@@ -553,32 +593,38 @@ article.html:
             font-weight: bold;
             color: #1d72b8;
         }
+
         .toc-list .toc .toc-h2 > a::before {
             counter-increment: h2counter;
             content: counter(h1counter) "." counter(h2counter) " ";
             font-weight: normal;
             color: #555555;
         }
+
         .toc-list .toc .toc-h3 > a::before {
             counter-increment: h3counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) " ";
             color: #666666;
         }
+
         .toc-list .toc .toc-h4 > a::before {
             counter-increment: h4counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
             color: #777777;
         }
+
         .toc-list .toc .toc-h5 > a::before {
             counter-increment: h5counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) " ";
             color: #888888;
         }
+
         .toc-list .toc .toc-h6 > a::before {
             counter-increment: h6counter;
             content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) "." counter(h5counter) "." counter(h6counter) " ";
             color: #999999;
         }
+
         .toc-list .toc .active {
             background-color: #e0f2fe;
             border-left: 4px solid #1d72b8;
@@ -594,11 +640,13 @@ article.html:
             border-collapse: collapse;
             margin: 1.5em 0;
         }
+
         th, td {
             border: 1px solid #ccc;
             padding: 0.75em 1em;
             text-align: left;
         }
+
         thead {
             background: #f3f3f3;
         }
@@ -622,6 +670,7 @@ article.html:
             overflow: hidden;
             margin-bottom: 1.5em;
         }
+
         .code-block {
             background-color: #282c34;
             color: #abb2bf;
@@ -631,14 +680,17 @@ article.html:
             position: relative;
             overflow: auto;
         }
+
         .CodeMirror {
             height: auto;
         }
+
         .button-container {
             display: flex;
             justify-content: flex-end;
             padding: 10px 10px 0 0;
         }
+
         .output {
             background-color: #ffffff;
             color: #333333;
@@ -658,6 +710,7 @@ article.html:
                 flex-direction: column;
                 padding-top: 60px;
             }
+
             .sidebar {
                 width: 100%;
                 height: auto;
@@ -665,14 +718,17 @@ article.html:
                 top: 0;
                 margin-bottom: 20px;
             }
+
             .content {
                 flex-direction: column;
             }
+
             .main-article, .toc-container {
                 width: 100% !important;
                 max-width: 100% !important;
                 min-width: 100% !important;
             }
+
             .toc-container {
                 margin-top: 20px;
                 position: relative;
@@ -698,17 +754,20 @@ article.html:
             transform: translateY(100%);
             transition: transform 0.3s ease-in-out;
         }
+
         footer p {
             margin: 0;
             color: #777777;
             font-size: 0.9rem;
         }
+
         footer.show-footer {
             transform: translateY(0);
         }
+
         /* ======== 图片灯箱样式 ======== */
         .lightbox {
-            display: none;           /* 默认隐藏 */
+            display: none; /* 默认隐藏 */
             position: fixed;
             z-index: 9999;
             left: 0;
@@ -718,6 +777,7 @@ article.html:
             overflow: auto;
             background-color: rgba(0, 0, 0, 0.8);
         }
+
         .lightbox-figure {
             position: absolute;
             top: 50%;
@@ -730,6 +790,7 @@ article.html:
             align-items: center;
             justify-content: center;
         }
+
         .lightbox-content {
             max-width: 100%;
             max-height: 100%;
@@ -737,6 +798,7 @@ article.html:
             transition: transform 0.3s ease;
             cursor: zoom-in;
         }
+
         .lightbox-caption {
             text-align: center;
             color: #ccc;
@@ -744,6 +806,7 @@ article.html:
             max-width: 90%;
             margin: 0 auto;
         }
+
         .lightbox-close {
             position: absolute;
             top: 30px;
@@ -753,6 +816,7 @@ article.html:
             font-weight: bold;
             cursor: pointer;
         }
+
         .lightbox-arrow {
             cursor: pointer;
             position: absolute;
@@ -765,12 +829,15 @@ article.html:
             font-size: 30px;
             user-select: none;
         }
+
         .lightbox-arrow-left {
             left: 20px;
         }
+
         .lightbox-arrow-right {
             right: 20px;
         }
+
         /* 放大状态下的样式 */
         .zoomed {
             transform: scale(2);
@@ -778,28 +845,160 @@ article.html:
             cursor: zoom-out;
         }
     </style>
+    <style>
+        .admonition {
+            margin: 1em 0;
+            border-radius: 6px;
+            padding: 1.2em 1.6em;
+            border-left: 4px solid transparent;
+            position: relative; /* 为了能在标题左侧放图标 */
+        }
+
+        /* 标题公共样式 */
+        .admonition-title {
+            font-weight: bold;
+            margin: 0 0 0.5em 0;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 图标与标题文字的间距 */
+        .admonition-title i {
+            margin-right: 8px;
+        }
+
+        /* ============ 重要(Important) 容器 ============ */
+        .admonition.important {
+            background-color: #f2ecfc; /* 浅紫色背景 */
+            border-left-color: #b295f5; /* 边线同一色系更深一点 */
+            color: #4c3a6a; /* 紫色系文字 */
+        }
+
+        .admonition.important .admonition-title {
+            color: #4c3a6a;
+        }
+
+        /* 给“重要”图标一个示例(紫色的铃铛图标).
+           - 你可以用 Font Awesome/Bootstrap Icons，根据需要调下 */
+        .admonition.important .admonition-title i::before {
+            content: "\f0f3"; /* Font Awesome: fa-bell */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+
+        /* ============ 信息(Info) 容器 ============ */
+        .admonition.info {
+            background-color: #e5f4fb; /* 浅蓝色背景 */
+            border-left-color: #7bd3f4;
+            color: #13567a;
+        }
+
+        .admonition.info .admonition-title {
+            color: #13567a;
+        }
+
+        /* 图标示例(信息图标) */
+        .admonition.info .admonition-title i::before {
+            content: "\f05a"; /* FA: fa-info-circle */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+
+        /* ============ 注(注释/解释) 容器 ============ */
+        .admonition.note {
+            background-color: #f6f6f7; /* 比较浅的灰色 */
+            border-left-color: #b4b4b4;
+            color: #333;
+        }
+
+        .admonition.note .admonition-title {
+            color: #333;
+        }
+
+        /* 图标示例(灰色info) */
+        .admonition.note .admonition-title i::before {
+            content: "\f129"; /* FA: fa-info */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+
+        /* ============ 提示(Tip) 容器 ============ */
+        .admonition.tip {
+            background-color: #e4f7ea; /* 浅绿色 */
+            border-left-color: #7ed09d;
+            color: #104f27;
+        }
+
+        .admonition.tip .admonition-title {
+            color: #104f27;
+        }
+
+        /* 图标示例(绿色电灯泡) */
+        .admonition.tip .admonition-title i::before {
+            content: "\f0eb"; /* FA: fa-lightbulb */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+
+        /* ============ 注意(警告/注意) 容器 ============ */
+        .admonition.warning {
+            background-color: #fff8da; /* 浅黄色 */
+            border-left-color: #ffd659;
+            color: #634f00;
+        }
+
+        .admonition.warning .admonition-title {
+            color: #634f00;
+        }
+
+        /* 图标示例(三角形感叹号) */
+        .admonition.warning .admonition-title i::before {
+            content: "\f071"; /* FA: fa-exclamation-triangle */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+
+        /* ============ 警告/危险(Danger) 容器 ============ */
+        .admonition.danger {
+            background-color: #ffe9eb; /* 浅红色 */
+            border-left-color: #ff7587;
+            color: #9f2431;
+        }
+
+        .admonition.danger .admonition-title {
+            color: #9f2431;
+        }
+
+        /* 图标示例(骷髅头或炸弹、火等) */
+        .admonition.danger .admonition-title i::before {
+            content: "\f071"; /* 这里也可用fa-exclamation-triangle/f0a9(fa-skull)/等 */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+    </style>
 </head>
 <body>
 <!-- ======== 顶部导航条 ======== -->
 <nav class="navbar navbar-expand-lg navbar-light fixed-top">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">我的博客</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="切换导航">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <!-- 导航链接 -->
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">首页</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="https://bornforthis.cn/" target="_blank">我的博客</a>
-        </li>
-      </ul>
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">我的博客</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="切换导航">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <!-- 导航链接 -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">首页</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="https://bornforthis.cn/" target="_blank">我的博客</a>
+                </li>
+            </ul>
+        </div>
     </div>
-  </div>
 </nav>
 <!-- ======== /顶部导航条结束 ======== -->
 
@@ -814,7 +1013,7 @@ article.html:
                     <li>
                         <a class="article-link {% if file_full_path == current_file %}active-file{% endif %}"
                            href="/article/{{ file_full_path }}">
-                           <i class="fab fa-python"></i> {{ file_info.title }}
+                            <i class="fab fa-python"></i> {{ file_info.title }}
                         </a>
                     </li>
                 {% endfor %}
@@ -843,45 +1042,45 @@ article.html:
             <!-- === 元信息展示区域 === -->
             <div class="meta-info">
                 {% if meta.title %}
-                  <h1>{{ meta.title[0] }}</h1>
+                    <h1>{{ meta.title[0] }}</h1>
                 {% else %}
-                  <h1>无标题</h1>
+                    <h1>无标题</h1>
                 {% endif %}
 
                 {% if meta.author %}
-                  <div class="meta-item">
-                    <span class="meta-label"><i class="fas fa-user"></i> 作者:</span>
-                    <span class="meta-value">{{ meta.author[0] }}</span>
-                  </div>
+                    <div class="meta-item">
+                        <span class="meta-label"><i class="fas fa-user"></i> 作者:</span>
+                        <span class="meta-value">{{ meta.author[0] }}</span>
+                    </div>
                 {% endif %}
 
                 {% if meta.date %}
-                  <div class="meta-item">
-                    <span class="meta-label"><i class="fas fa-calendar-alt"></i> 日期:</span>
-                    <span class="meta-value">{{ meta.date[0] }}</span>
-                  </div>
+                    <div class="meta-item">
+                        <span class="meta-label"><i class="fas fa-calendar-alt"></i> 日期:</span>
+                        <span class="meta-value">{{ meta.date[0] }}</span>
+                    </div>
                 {% endif %}
 
                 {% if meta.category %}
-                  <div class="meta-item meta-categories">
-                    <span class="meta-label"><i class="fas fa-folder"></i> 分类:</span>
-                    <span class="meta-value">
+                    <div class="meta-item meta-categories">
+                        <span class="meta-label"><i class="fas fa-folder"></i> 分类:</span>
+                        <span class="meta-value">
                       {% for cat in meta.category %}
-                        <span>{{ cat }}</span>
+                          <span>{{ cat }}</span>
                       {% endfor %}
                     </span>
-                  </div>
+                    </div>
                 {% endif %}
 
                 {% if meta.tag %}
-                  <div class="meta-item meta-tags">
-                    <span class="meta-label"><i class="fas fa-tags"></i> 标签:</span>
-                    <span class="meta-value">
+                    <div class="meta-item meta-tags">
+                        <span class="meta-label"><i class="fas fa-tags"></i> 标签:</span>
+                        <span class="meta-value">
                       {% for t in meta.tag %}
-                        <span>{{ t }}</span>
+                          <span>{{ t }}</span>
                       {% endfor %}
                     </span>
-                  </div>
+                    </div>
                 {% endif %}
             </div>
             <hr>
@@ -1146,6 +1345,7 @@ article.html:
         });
         await self.pyodide.loadPackage(['micropip', 'numpy']);
     }
+
     loadPyodideAndPackages();
 
     function createRunButton(editor, outputElement) {
@@ -1219,7 +1419,7 @@ article.html:
     }
 
     // 监听滚动，判断是否接近底部，控制 footer 的显隐
-    window.addEventListener('scroll', function() {
+    window.addEventListener('scroll', function () {
         const footer = document.querySelector('footer');
         const scrolledHeight = window.scrollY + window.innerHeight;
         const pageHeight = document.documentElement.scrollHeight;
@@ -1291,7 +1491,7 @@ article.html:
         }
 
         // 图片点击时放大 / 缩小
-        lightboxImg.addEventListener('click', function() {
+        lightboxImg.addEventListener('click', function () {
             toggleZoom();
             if (isZoomed) {
                 lightboxImg.style.cursor = 'zoom-out';
@@ -1301,7 +1501,7 @@ article.html:
         });
 
         // 键盘事件：← / → / Esc
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             // 只有当灯箱显示时才处理
             if (lightbox.style.display === 'block') {
                 if (e.key === 'ArrowLeft') {
@@ -1323,7 +1523,7 @@ article.html:
         lightboxClose.onclick = closeLightbox;
         lightboxPrev.onclick = showPrev;
         lightboxNext.onclick = showNext;
-        lightbox.addEventListener('click', function(e) {
+        lightbox.addEventListener('click', function (e) {
             // 若点击目标不是图片本身、也不是左右箭头、也不是关闭按钮，就关闭灯箱
             if (
                 !e.target.classList.contains('lightbox-content') &&
@@ -1334,6 +1534,7 @@ article.html:
             }
         });
     }
+
     window.onload = function () {
         reinitializeCodeBlocks();
     };
