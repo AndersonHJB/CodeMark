@@ -760,7 +760,14 @@
                 const id = link.getAttribute('href').substring(1);
                 const heading = document.getElementById(id);
                 if (heading) {
-                    heading.scrollIntoView({behavior: 'smooth'});
+                    // 计算 heading 实际位置，并额外向上偏移 70 像素，避免被导航栏遮挡
+                    const offset = 70;
+                    const headingPosition = heading.getBoundingClientRect().top + window.scrollY;
+                    const offsetPosition = headingPosition - offset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
                 }
                 setTimeout(() => {
                     isScrolling = false;
@@ -771,7 +778,7 @@
         window.addEventListener('scroll', () => {
             if (isScrolling) return;
             let currentId = '';
-            let offset = 100;
+            let offset = 100;  // 用于在判断当前标题时，给一些上方空余
 
             headings.forEach((heading, index) => {
                 const rect = heading.getBoundingClientRect();
