@@ -605,7 +605,7 @@
     <!-- 中间内容 + TOC -->
     <div class="content">
         <!-- 文章主体内容 -->
-        <div class="main-article" id="article-content">
+        <div class="main-article">
             <!-- === 元信息展示区域 === -->
             <div class="meta-info">
                 {% if meta.title %}
@@ -715,12 +715,22 @@
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const newContent = doc.querySelector('#content');
-                    const newToc = doc.querySelector('#article-toc');
 
+                    // 1) 更新文章元信息区域（包括 h1 标题、作者、日期等）
+                    const newMetaInfo = doc.querySelector('.meta-info');
+                    if (newMetaInfo) {
+                        const currentMetaInfo = document.querySelector('.meta-info');
+                        currentMetaInfo.innerHTML = newMetaInfo.innerHTML;
+                    }
+
+                    // 2) 更新文章主体内容
+                    const newContent = doc.querySelector('#content');
                     if (newContent) {
                         document.getElementById('content').innerHTML = newContent.innerHTML;
                     }
+
+                    // 3) 更新 TOC
+                    const newToc = doc.querySelector('#article-toc');
                     if (newToc) {
                         document.getElementById('article-toc').innerHTML = newToc.innerHTML;
                     }
@@ -826,7 +836,7 @@
         window.addEventListener('scroll', () => {
             if (isScrolling) return;
             let currentId = '';
-            let offset = 100;  // 用于在判断当前标题时，给一些上方空余
+            let offset = 100;  // 用于判断当前标题时，给一些上方空余
 
             headings.forEach((heading, index) => {
                 const rect = heading.getBoundingClientRect();
