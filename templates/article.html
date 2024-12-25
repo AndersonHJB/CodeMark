@@ -562,7 +562,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
+            overflow: auto;
             background-color: rgba(0, 0, 0, 0.8);
         }
         .lightbox-figure {
@@ -580,7 +580,9 @@
         .lightbox-content {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain;  /* 等比缩放并保持完整 */
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
         }
         .lightbox-caption {
             text-align: center;
@@ -615,6 +617,12 @@
         }
         .lightbox-arrow-right {
             right: 20px;
+        }
+        /* 放大状态下的样式 */
+        .zoomed {
+            transform: scale(2);
+            transform-origin: center center;
+            cursor: zoom-out;
         }
     </style>
 </head>
@@ -1081,18 +1089,12 @@
         // 收集 main-article 中所有 <img>
         const images = document.querySelectorAll('.main-article img');
         let currentIndex = 0;
-        let allImages = Array.from(images);  // 转成数组方便操作
+        let allImages = Array.from(images);
+        let isZoomed = false;  // 记录图片是否处于放大状态
 
-        // 给每张图片绑定点击事件，弹出灯箱
-        allImages.forEach((img, index) => {
-            img.onclick = () => {
-                currentIndex = index;
-                openLightbox();
-            };
-        });
-
-        // 打开灯箱并显示指定下标的图片
-        function openLightbox() {
+        // 打开灯箱
+        function openLightbox(index) {
+            currentIndex = index;
             lightbox.style.display = "block";
             updateLightbox();
         }
@@ -1102,6 +1104,10 @@
             const currentImg = allImages[currentIndex];
             lightboxImg.src = currentImg.src;
             lightboxCaption.textContent = currentImg.alt || "";
+            // 如果之前是放大状态，重置
+            lightboxImg.classList.remove('zoomed');
+            isZoomed = false;
+            lightboxImg.style.cursor = 'zoom-in';
         }
 
         // 关闭灯箱
@@ -1121,7 +1127,46 @@
             updateLightbox();
         }
 
-        // 给灯箱上的按钮绑定事件
+        // 切换放大 / 缩小
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            if (isZoomed) {
+                lightboxImg.classList.add('zoomed');
+            } else {
+                lightboxImg.classList.remove('zoomed');
+            }
+        }
+
+        // 图片点击时放大 / 缩小
+        lightboxImg.addEventListener('click', function() {
+            toggleZoom();
+            if (isZoomed) {
+                lightboxImg.style.cursor = 'zoom-out';
+            } else {
+                lightboxImg.style.cursor = 'zoom-in';
+            }
+        });
+
+        // 键盘事件：← / → / Esc
+        document.addEventListener('keydown', function(e) {
+            // 只有当灯箱显示时才处理
+            if (lightbox.style.display === 'block') {
+                if (e.key === 'ArrowLeft') {
+                    showPrev();
+                } else if (e.key === 'ArrowRight') {
+                    showNext();
+                } else if (e.key === 'Escape') {
+                    closeLightbox();
+                }
+            }
+        });
+
+        // 为 main-article 中所有图片绑定点击事件
+        allImages.forEach((img, index) => {
+            img.addEventListener('click', () => openLightbox(index));
+        });
+
+        // 给灯箱按钮绑定事件
         lightboxClose.onclick = closeLightbox;
         lightboxPrev.onclick = showPrev;
         lightboxNext.onclick = showNext;
