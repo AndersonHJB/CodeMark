@@ -144,6 +144,21 @@
             display: block; /* 展开 */
         }
 
+        /* 新增：更深层级的子目录也重复使用类似的样式，以增强分层效果 */
+        .nested .nested {
+            margin-left: 20px;
+            border-left: 1px dashed #ccc;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+        /* 如果还有更深层级，依次类推 */
+        .nested .nested .nested {
+            margin-left: 20px;
+            border-left: 1px dashed #ccc;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+
         .sidebar ul {
             list-style-type: none;
             padding-left: 0;
