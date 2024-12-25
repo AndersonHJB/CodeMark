@@ -298,6 +298,7 @@
             height: auto;
             display: block;
             margin: 10px auto;
+            cursor: pointer; /* 图片可点击 */
         }
 
         /* ======== TOC（大纲） ======== */
@@ -543,6 +544,60 @@
         footer.show-footer {
             transform: translateY(0);
         }
+        /* ======== 图片灯箱样式 ======== */
+        .lightbox {
+            display: none;           /* 默认隐藏 */
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .lightbox-content {
+            display: block;
+            margin: 5% auto 0 auto;
+            {#margin: auto;         /* 水平居中 */#}
+            max-width: 90%;       /* 限制宽度，不超过视窗 90% */
+            {#max-height: 80vh;     /* 限制高度，不超过视窗 80% */#}
+            object-fit: contain;  /* 等比缩放并保持完整 */
+        }
+        .lightbox-caption {
+            text-align: center;
+            color: #ccc;
+            padding: 10px;
+            max-width: 90%;
+            margin: 0 auto;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 30px;
+            right: 60px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .lightbox-arrow {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            width: auto;
+            margin-top: -30px;
+            padding: 16px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 30px;
+            user-select: none;
+        }
+        .lightbox-arrow-left {
+            left: 20px;
+        }
+        .lightbox-arrow-right {
+            right: 20px;
+        }
     </style>
 </head>
 <body>
@@ -673,10 +728,19 @@
         </div>
     </div>
 </div>
+<!-- ========== 灯箱 Lightbox HTML ========== -->
+<div id="lightbox" class="lightbox">
+    <span class="lightbox-close" id="lightbox-close">&times;</span>
+    <img class="lightbox-content" id="lightbox-img">
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+    <div class="lightbox-arrow lightbox-arrow-left" id="lightbox-prev">&#10094;</div>
+    <div class="lightbox-arrow lightbox-arrow-right" id="lightbox-next">&#10095;</div>
+</div>
+<!-- ========== /灯箱 Lightbox HTML ========== -->
 
 <!-- ======== 底部 Footer：只有在内容滚动到底时显示 ======== -->
 <footer>
-    <p>© 2024 My Blog. Powered by Flask & Markdown.</p>
+    <p>Copyright © 2024 Bornforthis</p>
 </footer>
 <!-- ======== /底部 Footer ======== -->
 
@@ -869,6 +933,8 @@
             }
             setTimeout(() => isScrolling = false, 100);
         }
+        // ============ 重新初始化图片灯箱 ============
+        initializeLightbox();
     }
 
     async function loadPyodideAndPackages() {
@@ -961,6 +1027,63 @@
         }
     });
 
+    // =========== 灯箱逻辑：点击图片全屏查看、关闭、左右切换 ===========
+    function initializeLightbox() {
+        const lightbox = document.getElementById("lightbox");
+        const lightboxImg = document.getElementById("lightbox-img");
+        const lightboxCaption = document.getElementById("lightbox-caption");
+        const lightboxClose = document.getElementById("lightbox-close");
+        const lightboxPrev = document.getElementById("lightbox-prev");
+        const lightboxNext = document.getElementById("lightbox-next");
+
+        // 收集 main-article 中所有 <img>
+        const images = document.querySelectorAll('.main-article img');
+        let currentIndex = 0;
+        let allImages = Array.from(images);  // 转成数组方便操作
+
+        // 给每张图片绑定点击事件，弹出灯箱
+        allImages.forEach((img, index) => {
+            img.onclick = () => {
+                currentIndex = index;
+                openLightbox();
+            };
+        });
+
+        // 打开灯箱并显示指定下标的图片
+        function openLightbox() {
+            lightbox.style.display = "block";
+            updateLightbox();
+        }
+
+        // 更新灯箱中显示的图片和说明
+        function updateLightbox() {
+            const currentImg = allImages[currentIndex];
+            lightboxImg.src = currentImg.src;
+            lightboxCaption.textContent = currentImg.alt || "";
+        }
+
+        // 关闭灯箱
+        function closeLightbox() {
+            lightbox.style.display = "none";
+        }
+
+        // 上一张图片
+        function showPrev() {
+            currentIndex = (currentIndex - 1 + allImages.length) % allImages.length;
+            updateLightbox();
+        }
+
+        // 下一张图片
+        function showNext() {
+            currentIndex = (currentIndex + 1) % allImages.length;
+            updateLightbox();
+        }
+
+        // 给灯箱上的按钮绑定事件
+        lightboxClose.onclick = closeLightbox;
+        lightboxPrev.onclick = showPrev;
+        lightboxNext.onclick = showNext;
+    }
     window.onload = function () {
         reinitializeCodeBlocks();
     };
