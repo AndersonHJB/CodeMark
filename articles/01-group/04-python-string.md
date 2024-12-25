@@ -26,7 +26,7 @@ $$
 
 ![有序性](https://bornforthis.cn/assets/image-20231208131933540-D4UJmsso.png)
 
-![[测试图片](https://bornforthis.cn/)](https://bornforthis.cn/img_home/079A23792.jpg)
+![测试图片1:https://bornforthis.cn/](https://bornforthis.cn/img_home/079A23792.jpg)
 
 ## 2. 创建字符串
 
