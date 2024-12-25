@@ -1170,6 +1170,16 @@
         lightboxClose.onclick = closeLightbox;
         lightboxPrev.onclick = showPrev;
         lightboxNext.onclick = showNext;
+        lightbox.addEventListener('click', function(e) {
+            // 若点击目标不是图片本身、也不是左右箭头、也不是关闭按钮，就关闭灯箱
+            if (
+                !e.target.classList.contains('lightbox-content') &&
+                !e.target.classList.contains('lightbox-arrow') &&
+                e.target.id !== 'lightbox-close'
+            ) {
+                closeLightbox();
+            }
+        });
     }
     window.onload = function () {
         reinitializeCodeBlocks();
