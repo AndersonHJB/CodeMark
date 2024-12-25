@@ -12,9 +12,8 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
-    <!-- CodeMirror JavaScript -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <!-- CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
@@ -549,14 +548,16 @@
                     <li>
                         <a class="article-link {% if file_full_path == current_file %}active-file{% endif %}"
                            href="/article/{{ file_full_path }}">
-                            {{ file_info.title }}
+                           <i class="fab fa-python"></i> {{ file_info.title }}
                         </a>
                     </li>
                 {% endfor %}
                 {% for dirname, subdir_tree in tree.subdirs.items() %}
                     {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
                     <li>
-                        <div class="folder-name" onclick="toggleFolder(this)">{{ dirname }}</div>
+                        <div class="folder-name" onclick="toggleFolder(this)">
+                            <i class="fas fa-folder"></i> {{ dirname }}
+                        </div>
                         <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
                             {{ render_tree(subdir_tree, subdir_path) }}
                         </ul>
@@ -657,9 +658,10 @@
 
     document.addEventListener('click', function (e) {
         const target = e.target;
-        if (target.classList.contains('article-link')) {
+        if (target.classList.contains('article-link') || target.closest('.article-link')) {
             e.preventDefault();
-            const url = target.getAttribute('href');
+            const linkEl = target.closest('.article-link');
+            const url = linkEl.getAttribute('href');
             fetch(url)
                 .then(response => {
                     return response.text();
