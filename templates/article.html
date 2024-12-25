@@ -567,8 +567,12 @@
         }
         .lightbox-content {
             display: block;
-            margin: 5% auto 0 auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             max-width: 90%;
+            max-height: 90%;
             object-fit: contain;  /* 等比缩放并保持完整 */
         }
         .lightbox-caption {
