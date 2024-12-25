@@ -301,6 +301,15 @@
             cursor: pointer; /* 图片可点击 */
         }
 
+        /* 新增：图片 ALT 样式（若有文字则在图片下方灰色小字显示） */
+        .alt-caption {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-top: 4px;
+            margin-bottom: 1em;
+        }
+
         /* ======== TOC（大纲） ======== */
         .toc-container {
             width: 250px;
@@ -559,9 +568,7 @@
         .lightbox-content {
             display: block;
             margin: 5% auto 0 auto;
-            {#margin: auto;         /* 水平居中 */#}
-            max-width: 90%;       /* 限制宽度，不超过视窗 90% */
-            {#max-height: 80vh;     /* 限制高度，不超过视窗 80% */#}
+            max-width: 90%;
             object-fit: contain;  /* 等比缩放并保持完整 */
         }
         .lightbox-caption {
@@ -933,8 +940,30 @@
             }
             setTimeout(() => isScrolling = false, 100);
         }
+
         // ============ 重新初始化图片灯箱 ============
         initializeLightbox();
+
+        // ============ 为每张图片添加 ALT 文本（若有） ============
+        addAltCaptions();
+    }
+
+    // 新增：给图片添加 alt 文本显示
+    function addAltCaptions() {
+        const images = document.querySelectorAll('.main-article img');
+        images.forEach((img) => {
+            // 如果已经插入过 caption，先删除旧的，避免重复
+            if (img.nextElementSibling && img.nextElementSibling.classList.contains('alt-caption')) {
+                img.nextElementSibling.remove();
+            }
+            // 如果 alt 非空，则插入一个新 div 显示 alt
+            if (img.alt && img.alt.trim() !== '') {
+                const caption = document.createElement('div');
+                caption.className = 'alt-caption';
+                caption.innerText = img.alt;
+                img.insertAdjacentElement('afterend', caption);
+            }
+        });
     }
 
     async function loadPyodideAndPackages() {
