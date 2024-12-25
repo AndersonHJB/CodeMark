@@ -112,15 +112,32 @@
         }
 
         .folder-name {
-            font-weight: bold;
+            display: flex;
+            align-items: center;
             cursor: pointer;
+            font-weight: bold;
             margin: 10px 0;
             color: #1d72b8;
+            user-select: none; /* 避免双击选中文字 */
+        }
+        .folder-icon {
+            margin-right: 6px;
+            font-size: 18px;
+            color: #666;  /* 可自行修改颜色 */
+        }
+        /* 箭头在最右侧 */
+        .arrow-icon {
+            margin-left: auto;
+            font-size: 18px;
+            color: #999;
         }
 
         .nested {
-            margin-left: 15px;
-            display: none; /* 初始折叠 */
+            display: none; /* 默认折叠 */
+            margin-left: 20px;   /* 缩进，让分组内文章更有层次 */
+            border-left: 1px dashed #ccc; /* 可选：左侧虚线以示层级 */
+            padding-left: 10px;  /* 让文字不紧贴虚线 */
+            margin-top: 5px;     /* 与分组标题略做间距 */
         }
 
         .nested.show {
@@ -556,7 +573,9 @@
                     {% set subdir_path = (parent_path ~ '/' ~ dirname).lstrip('/') %}
                     <li>
                         <div class="folder-name" onclick="toggleFolder(this)">
-                            <i class="fas fa-folder"></i> {{ dirname }}
+                            <i class="fas fa-folder folder-icon"></i>  <!-- 左侧文件夹图标 -->
+                            {{ dirname }}
+                            <i class="fas fa-angle-right arrow-icon"></i>
                         </div>
                         <ul class="nested {% if current_file.startswith(subdir_path) %}show{% endif %}">
                             {{ render_tree(subdir_tree, subdir_path) }}
@@ -654,6 +673,18 @@
         const nestedUl = folderNameDiv.nextElementSibling;
         if (!nestedUl) return;
         nestedUl.classList.toggle('show');
+
+        // 获取右侧箭头图标
+        const arrowIcon = folderNameDiv.querySelector('.arrow-icon');
+        if (nestedUl.classList.contains('show')) {
+            // 如果已展开，则将右箭头切换成下箭头
+            arrowIcon.classList.remove('fa-angle-right');
+            arrowIcon.classList.add('fa-angle-down');
+        } else {
+            // 否则切换回右箭头
+            arrowIcon.classList.remove('fa-angle-down');
+            arrowIcon.classList.add('fa-angle-right');
+        }
     }
 
     document.addEventListener('click', function (e) {
