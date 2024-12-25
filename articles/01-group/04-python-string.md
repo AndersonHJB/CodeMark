@@ -9,7 +9,7 @@ tag:
     - Python 1v1
 ---
 
-!!! warning
+!!! warning "警告"
     正负控制方向，数字大小控制步长。
 
 
