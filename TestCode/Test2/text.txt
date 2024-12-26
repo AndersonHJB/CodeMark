@@ -149,7 +149,6 @@ def article(filename):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 article.html:
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -1639,7 +1638,6 @@ index.html:
 </div>
 </body>
 </html>
-
 style.css:
 body, textarea {
     font-family: 'Consolas', 'Monaco', monospace;
