@@ -1162,6 +1162,9 @@
 
         // ============ 为每张图片添加 ALT 文本（若有） ============
         addAltCaptions();
+
+        // ============ 将 Markdown 风格的复选框渲染成真实的 checkbox ============
+        convertMarkdownCheckboxes();
     }
 
     // 新增：给图片添加 alt 文本显示
@@ -1178,6 +1181,38 @@
                 caption.className = 'alt-caption';
                 caption.innerText = img.alt;
                 img.insertAdjacentElement('afterend', caption);
+            }
+        });
+    }
+
+    // ============================== 重点：将 - [ ] 或 - [x] 转换为 checkbox ==============================
+    function convertMarkdownCheckboxes() {
+        // 获取所有 main-article 区域内的列表项
+        const listItems = document.querySelectorAll('.main-article li');
+        listItems.forEach(li => {
+            // 获取纯文本
+            const textContent = li.textContent.trim();
+            // 匹配形如 "[ ]" 或 "[x]" 或 "[X]" 开头的模式
+            const match = textContent.match(/^\[([ xX])\]\s+(.*)/);
+            if (match) {
+                const isChecked = match[1].toLowerCase() === 'x'; // 大小写都支持
+                const labelText = match[2];
+
+                // ★ 新增：去掉无序列表小圆点
+                li.style.listStyleType = 'none';
+
+                // 清空原来的 li 内容
+                li.innerHTML = '';
+
+                // 创建一个 checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = isChecked;
+                li.appendChild(checkbox);
+
+                // 添加后面的文字
+                const labelNode = document.createTextNode(' ' + labelText);
+                li.appendChild(labelNode);
             }
         });
     }
