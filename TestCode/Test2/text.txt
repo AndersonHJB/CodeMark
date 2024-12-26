@@ -843,6 +843,7 @@ article.html:
             transform-origin: center center;
             cursor: zoom-out;
         }
+
         .admonition {
             margin: 1em 0;
             border-radius: 6px;
@@ -1018,22 +1019,23 @@ article.html:
                 {% if meta.category %}
                     <div class="meta-item meta-categories">
                         <span class="meta-label"><i class="fas fa-folder"></i> 分类:</span>
-                        <span class="meta-value">
-                      {% for cat in meta.category %}
-                          <span>{{ cat }}</span>
-                      {% endfor %}
-                    </span>
+                        {% for cat in meta.category %}
+                            {% if cat.lstrip('-') %}
+                                <span>{{ cat.lstrip('-') }}</span>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 {% endif %}
 
                 {% if meta.tag %}
                     <div class="meta-item meta-tags">
                         <span class="meta-label"><i class="fas fa-tags"></i> 标签:</span>
-                        <span class="meta-value">
-                      {% for t in meta.tag %}
-                          <span>{{ t }}</span>
-                      {% endfor %}
-                    </span>
+                        {% for t in meta.tag %}
+                            {% if t.lstrip('-') %}
+                                <span>{{ t.lstrip('-') }}</span>
+                            {% endif %}
+                        {% endfor %}
+
                     </div>
                 {% endif %}
             </div>
