@@ -868,7 +868,9 @@
                         <span class="meta-value">
                             {# 如果有多个分类，分别显示；且去掉开头可能存在的 '-' #}
                             {% for cat in meta.category %}
-                                <span>{{ cat.lstrip('-') }}</span>
+                                {% if cat.lstrip('-') %}
+                                    <span>{{ cat.lstrip('-') }}</span>
+                                {% endif %}
                             {% endfor %}
                         </span>
                     </div>
@@ -880,7 +882,9 @@
                         <span class="meta-value">
                             {# 如果有多个标签，分别显示；且去掉开头可能存在的 '-' #}
                             {% for t in meta.tag %}
-                                <span>{{ t.lstrip('-') }}</span>
+                                {% if t.lstrip('-') %}
+                                    <span>{{ t.lstrip('-') }}</span>
+                                {% endif %}
                             {% endfor %}
                         </span>
                     </div>
