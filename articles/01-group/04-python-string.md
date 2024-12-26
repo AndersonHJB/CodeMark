@@ -7,6 +7,7 @@ category:
     - Python字符串
 tag:
     - Python 1v1
+    - 哈哈哈哈哈哈
 ---
 
 !!! warning "警告"
