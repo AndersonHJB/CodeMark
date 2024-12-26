@@ -1,3 +1,15 @@
+---
+title: 01-Variable
+icon: yongyan
+date: 2023-07-19 20:40:21
+author: AI悦创
+isOriginal: true
+category: 
+    - Python notebook
+tag:
+    - Python 1v1
+---
+
 ## 1. 理解变量——生活中的例子
 
 ### 1.1 从字面意思去理解
@@ -9,9 +21,9 @@
 
 假如，你是班级当中的课代表，每个月需要统计班级中每个学生的月考成绩。月考成绩会每个月一张纸，每张纸上都会依次记录每个学生的月考成绩，例如：
 
-1. 李雷 98分
-2. 马冬梅 89分
-3. 刘奕彤 96分
+1. 李雷    98分
+2. 马冬梅    89分
+3. 刘奕彤     96分
 4. ......
 
 某一天，老师要看刘奕彤 1月、2月、3月的成绩，这个时候作为课代表的你需要怎么办。——总不能直接把每个月的月考成绩单直接给老师，显然是不合适的。
@@ -44,12 +56,21 @@
 
 3. 代码实例
 
+::: code-tabs
+
+@tab demo1
+
 ```python
 x = 1  # 1 赋值给了 x，x 代表1
 x = x + 10  # x + 10 等价于 1 + 10 最后得出 11，11 赋值给 x
 print(x)  # print 打印、输出
 # 井号是用来注释、注解，解释某一行代码的功能或者作用
+
+# ---output---
+11
 ```
+
+@tab demo2
 
 ```python
 name1 = "lilei"
@@ -60,7 +81,13 @@ print(name2)
 name1 = "lilei"
 name1 = "hanmeimei"
 print(name1)
+
+# ---output---
+lilei
+hanmeimei
 ```
+
+:::
 
 ## 3. 探究 print
 
@@ -71,6 +98,9 @@ a = 1
 b = 2
 c = 3
 print(a, b, c)  # 使用 print 同时输出多个变量
+
+# ---output---
+1 2 3
 ```
 
 从输出的结果可以看出，print 同时输出多个变量，每个值之间默认以空格间隔。
@@ -86,9 +116,16 @@ a = 1
 b = 2
 c = 3
 print(a, b, c, sep=' 间隔 ')
+
+# ---output---
+1 间隔 2 间隔 3
 ```
 
 ### 3.3 end 修改 print 输出结尾方式
+
+::: code-tabs
+
+@tab 原本
 
 ```python
 a = 1
@@ -97,7 +134,14 @@ c = 1
 print(a)
 print(b)
 print(c)
+
+# ---output---
+1
+1
+1
 ```
+
+@tab 修改结尾 end 1
 
 ```python
 a = 1
@@ -106,7 +150,16 @@ c = 1
 print(a, end='\n\n\n')  # 多换行几个，\n 是换行的意思
 print(b)
 print(c)
+
+# ---output---
+1
+
+
+1
+1
 ```
+
+@tab 修改 end 2
 
 ```python
 a = 1
@@ -115,7 +168,13 @@ c = 1
 print(a, end=" Hugo is hugo ")  # 我们可以修改成不换行的字符串
 print(b)  # 这行的输出就会紧接着上面输出的结尾输出
 print(c)
+
+# ---output---
+1 Hugo is hugo 1
+1
 ```
+
+:::
 
 ### 3.4 end 和 sep 可以同时使用
 
@@ -124,6 +183,9 @@ a = 1
 b = 1
 c = 1
 print(a, b, c, sep="~", end=" love Python")
+
+# ---output---
+1~1~1 love Python
 ```
 
 ### 3.5 print 输出可以有提示的
@@ -134,6 +196,8 @@ a = 1
 print('a 的值是:', a)
 ```
 
+
+
 ## 4. 进阶的赋值方法
 
 ### 4.1 多个变量同时赋予相同的值
@@ -141,6 +205,9 @@ print('a 的值是:', a)
 ```python
 a = b = c = 1
 print(a, b, c)
+
+# ---output---
+1 1 1
 ```
 
 ### 4.2 多个变量同时赋予不同的值
@@ -148,7 +215,26 @@ print(a, b, c)
 ```python
 a, b, c = 1, 2, 3
 print(a, b, c)
+
+# ---output---
+1 2 3
 ```
+
+::: center
+
+<VPCard
+  title="变量的专项练习"
+  desc="交换果汁、多个变量输出"
+  logo="/aiyc.svg"
+  link="/column/py/basequestion/special_variabl.html"
+  background="rgba(253, 230, 138, 0.15)"
+/>
+
+:::
+
+::: code-tabs
+
+@tab 方法一：引入两个空杯子
 
 ```python
 Austin = "Coke"  # 该赋值可以理解为倒果汁的过程
@@ -163,6 +249,8 @@ print("Austin", Austin)
 print("Jaden", Jaden)
 ```
 
+@tab 方法二：引入一个空杯子
+
 ```python
 Austin = "Coke"  # 该赋值可以理解为倒果汁的过程
 Jaden = "juice"  # 该赋值可以理解为倒果汁的过程
@@ -175,6 +263,8 @@ print("Austin", Austin)
 print("Jaden", Jaden)
 ```
 
+@tab 方法三：Python 特有的方法
+
 ```python
 Austin = "Coke"  # 该赋值可以理解为倒果汁的过程
 Jaden = "juice"  # 该赋值可以理解为倒果汁的过程
@@ -185,6 +275,14 @@ print("Austin", Austin)
 print("Jaden", Jaden)
 ```
 
+
+
+:::
+
+
+
+
+
 ## 5. 变量的命名规则
 
 - 大小写英文、数字和 `_` 的结合，且不能用数字开头；
@@ -194,31 +292,228 @@ print("Jaden", Jaden)
 - 不要使用 Python 的内置函数名称做变量；
 
 ```python
+Here is a list of the Python keywords.  Enter any keyword to get more help.
+
+False               class               from                or
+None                continue            global              pass
+True                def                 if                  raise
+and                 del                 import              return
+as                  elif                in                  try
+assert              else                is                  while
+async               except              lambda              with
+await               finally             nonlocal            yield
+break               for                 not      
+```
+
+::: code-tabs
+
+@tab Code1
+
+```python
 n = "A"
 N = "a"
 print(n)  # 如果变量不区分大小写的话，输出什么结果？—— a
 # 但是，它区分大小写，所以输出的是 A
+
+# out
+A
 ```
+
+@tab Code2
 
 ```python
 # 数字不能开头
 a121iy212c21 = "a"  # 数字不能开头，除了开头。你想放哪就放哪。
 ```
 
+@tab Code3
+
 ```python
 user_name = "aiyc"
 ```
 
+@tab Code4
+
 ```python
 print = "aiyc"  # 不能使用 Python 内置函数名命名
-print(print)  # python 分不清
+print(print) # python 分不清
 ```
+
+@tab Code5
 
 ```python
 # 关键词不能当作变量名
 await = "aiyc"
-print(await)  # await 在 Python 当中有特殊功能，比如 while
+print(await) # await 在 Python 当中有特殊功能，比如 while
 ```
+
+:::
+
+## 6. 练习
+
+1. 在 Python 中，变量名可以以数字开始。
+    - [ ] 对
+    - [ ] 错
+
+2. 在 Python 中，以下哪个变量名是有效的？
+    - [ ] 2myVar
+    - [ ] myVar2
+    - [ ] my-var
+    - [ ] my var
+
+3. 在 Python 中，变量名区分大小写。
+    - [ ] 对
+    - [ ] 错
+
+4. 在 Python 中，`my_var` 和 `myVar` 是同一个变量。
+    - [ ] 对
+    - [ ] 错
+
+5. 变量名可以是 Python 中的关键字。
+    - [ ] 对
+    - [ ] 错
+
+6. `None` 是 Python 中的特殊类型，表示没有值或空值。
+    - [ ] 对
+    - [ ] 错
+
+7. 在 Python 中，以下哪个是有效的变量赋值？
+    - [ ] 123abc = "hello"
+    - [ ] for = "world"
+    - [ ] _hidden = "secret"
+    - [ ] import = 123
+
+8. 在 Python 中，一个变量可以同时被赋予多个值。
+    - [ ] 对
+    - [ ] 错
+
+9. 在 Python 中，以下哪个是多变量赋值？
+    - [ ] a, b, c = 1, 2, 3
+    - [ ] a = 1, b = 2, c = 3
+    - [ ] a; b; c = 1; 2; 3
+    - [ ] a = 1; b = 2; c = 3;
+
+10. 变量在使用之前必须被赋值。
+    - [ ] 对
+    - [ ] 错
+
+11. Python 中变量的类型是静态的，一旦赋值就不能改变。
+    - [ ] 对
+    - [ ] 错
+
+12. 在 Python 中，以下哪个表示全局变量？
+    - [ ] var = "hello"
+    - [ ] global var
+    - [ ] var(global)
+    - [ ] def var():
+
+13. 以下哪个表示删除变量？
+    - [ ] delete x
+    - [ ] del x
+    - [ ] remove x
+    - [ ] destroy x
+
+14. `x = 5` 之后 `y = x`，现在改变 `y` 的值，`x` 的值也会改变。
+    - [ ] 对
+    - [ ] 错
+
+15. `x = [1, 2, 3]` 之后 `y = x`，现在改变 `y` 的列表内容，`x` 的内容也会改变。
+    - [ ] 对
+    - [ ] 错
+
+16. 在 Python 中，变量只能存储基本数据类型的值，如整数或字符串。
+    - [ ] 对
+    - [ ] 错
+
+::: details Answer
+
+1. 在 Python 中，变量名可以以数字开始。
+   - [ ] 对
+   - [x] 错
+
+2. 在 Python 中，以下哪个变量名是有效的？
+   - [ ] 2myVar
+   - [x] myVar2
+   - [ ] my-var
+   - [ ] my var
+
+3. 在 Python 中，变量名区分大小写。
+   - [x] 对
+   - [ ] 错
+
+4. 在Python中，`my_var` 和 `myVar` 是同一个变量。
+   - [ ] 对
+   - [x] 错
+
+5. 变量名可以是 Python 中的关键字。
+   - [ ] 对
+   - [x] 错
+
+6. `None` 是 Python 中的特殊类型，表示没有值或空值。
+   - [x] 对
+   - [ ] 错
+
+7. 在 Python 中，以下哪个是有效的变量赋值？
+   - [ ] 123abc = "hello"
+   - [ ] for = "world"
+   - [x] _hidden = "secret"
+   - [ ] import = 123
+
+8. 在 Python 中，一个变量可以同时被赋予多个值。
+   - [ ] 对
+   - [x] 错
+
+9. 在 Python 中，以下哪个是多变量赋值？
+   - [x] a, b, c = 1, 2, 3
+   - [ ] a = 1, b = 2, c = 3
+   - [ ] a; b; c = 1; 2; 3
+   - [ ] a = 1; b = 2; c = 3;
+
+10. 变量在使用之前必须被赋值。
+    - [x] 对
+    - [ ] 错
+
+11. Python 中变量的类型是静态的，一旦赋值就不能改变。
+    - [ ] 对
+    - [x] 错
+
+12. 在 Python 中，以下哪个表示全局变量？
+    - [ ] var = "hello"
+    - [x] global var
+    - [ ] var(global)
+    - [ ] def var():
+
+13. 以下哪个表示删除变量？
+    - [ ] delete x
+    - [x] del x
+    - [ ] remove x
+    - [ ] destroy x
+
+14. `x = 5` 之后 `y = x`，现在改变 `y` 的值，`x` 的值也会改变。
+    - [ ] 对
+    - [x] 错
+
+15. `x = [1, 2, 3]` 之后 `y = x`，现在改变 `y` 的列表内容，`x` 的内容也会改变。
+    - [x] 对
+    - [ ] 错
+
+16. 在 Python 中，变量只能存储基本数据类型的值，如整数或字符串。
+    - [ ] 对
+    - [x] 错
+
+:::
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

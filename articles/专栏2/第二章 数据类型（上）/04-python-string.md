@@ -7,9 +7,24 @@ category:
     - Python字符串
 tag:
     - Python 1v1
+    - 哈哈哈哈哈哈
 ---
 
-这里有一个行内公式：$E = mc^2$
+!!! warning "警告"
+    正负控制方向，数字大小控制步长。
+!!! info
+    这里是一个 warning 提示块的内容
+!!! important
+    这里是一个 important 提示块的内容
+!!! tip
+    这里是一个 tip 提示块的内容
+!!! note "注"
+    这里是一个 note 提示块的内容
+!!! danger
+    这里是一个 danger 提示块的内容
+
+
+- 这里有一个行内公式：$E = mc^2$
 
 `$E = mc^2$`
 
@@ -25,6 +40,8 @@ $$
 **字符串是由字母、数字和特殊字符来组成的序列。**
 
 ![有序性](https://bornforthis.cn/assets/image-20231208131933540-D4UJmsso.png)
+
+![测试图片1:https://bornforthis.cn/](https://bornforthis.cn/img_home/079A23792.jpg)
 
 ## 2. 创建字符串
 
@@ -318,11 +335,8 @@ ofts
 
 字符串的第三个位置，控制的是字符提取的方向。默认为正数 1，如果我们改成 -1，则会变成反方向。
 
-::: warning
 
-正负控制方向，数字大小控制步长。
 
-:::
 
 ```python
 string = "bornforthis"
