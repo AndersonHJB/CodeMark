@@ -11,11 +11,17 @@ tag:
 
 !!! warning "警告"
     正负控制方向，数字大小控制步长。
-
-
-
 !!! info
     这里是一个 warning 提示块的内容
+!!! important
+    这里是一个 important 提示块的内容
+!!! tip
+    这里是一个 tip 提示块的内容
+!!! note "注"
+    这里是一个 note 提示块的内容
+!!! danger
+    这里是一个 danger 提示块的内容
+
 
 这里有一个行内公式：$E = mc^2$
 

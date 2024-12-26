@@ -21,8 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
-    <!-- Font Awesome（用于图标） -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ======== 全局基础样式 ======== */
         body {
@@ -691,8 +690,6 @@
             transform-origin: center center;
             cursor: zoom-out;
         }
-    </style>
-    <style>
         .admonition {
             margin: 1em 0;
             border-radius: 6px;
@@ -726,15 +723,7 @@
             color: #4c3a6a;
         }
 
-        /* 给“重要”图标一个示例(紫色的铃铛图标).
-           - 你可以用 Font Awesome/Bootstrap Icons，根据需要调下 */
-        .admonition.important .admonition-title i::before {
-            content: "\f0f3"; /* Font Awesome: fa-bell */
-            font-family: "Font Awesome 5 Free";
-            font-weight: 900;
-        }
-
-        /* ============ 信息(Info) 容器 ============ */
+        /* 信息(Info) */
         .admonition.info {
             background-color: #e5f4fb; /* 浅蓝色背景 */
             border-left-color: #7bd3f4;
@@ -745,14 +734,7 @@
             color: #13567a;
         }
 
-        /* 图标示例(信息图标) */
-        .admonition.info .admonition-title i::before {
-            content: "\f05a"; /* FA: fa-info-circle */
-            font-family: "Font Awesome 5 Free";
-            font-weight: 900;
-        }
-
-        /* ============ 注(注释/解释) 容器 ============ */
+        /* 注(Note) */
         .admonition.note {
             background-color: #f6f6f7; /* 比较浅的灰色 */
             border-left-color: #b4b4b4;
@@ -763,14 +745,7 @@
             color: #333;
         }
 
-        /* 图标示例(灰色info) */
-        .admonition.note .admonition-title i::before {
-            content: "\f129"; /* FA: fa-info */
-            font-family: "Font Awesome 5 Free";
-            font-weight: 900;
-        }
-
-        /* ============ 提示(Tip) 容器 ============ */
+        /* 提示(Tip) */
         .admonition.tip {
             background-color: #e4f7ea; /* 浅绿色 */
             border-left-color: #7ed09d;
@@ -781,14 +756,7 @@
             color: #104f27;
         }
 
-        /* 图标示例(绿色电灯泡) */
-        .admonition.tip .admonition-title i::before {
-            content: "\f0eb"; /* FA: fa-lightbulb */
-            font-family: "Font Awesome 5 Free";
-            font-weight: 900;
-        }
-
-        /* ============ 注意(警告/注意) 容器 ============ */
+        /* 注意(Warning) */
         .admonition.warning {
             background-color: #fff8da; /* 浅黄色 */
             border-left-color: #ffd659;
@@ -799,14 +767,7 @@
             color: #634f00;
         }
 
-        /* 图标示例(三角形感叹号) */
-        .admonition.warning .admonition-title i::before {
-            content: "\f071"; /* FA: fa-exclamation-triangle */
-            font-family: "Font Awesome 5 Free";
-            font-weight: 900;
-        }
-
-        /* ============ 警告/危险(Danger) 容器 ============ */
+        /* 危险(Danger) */
         .admonition.danger {
             background-color: #ffe9eb; /* 浅红色 */
             border-left-color: #ff7587;
@@ -815,13 +776,6 @@
 
         .admonition.danger .admonition-title {
             color: #9f2431;
-        }
-
-        /* 图标示例(骷髅头或炸弹、火等) */
-        .admonition.danger .admonition-title i::before {
-            content: "\f071"; /* 这里也可用fa-exclamation-triangle/f0a9(fa-skull)/等 */
-            font-family: "Font Awesome 5 Free";
-            font-weight: 900;
         }
     </style>
 </head>
@@ -975,6 +929,45 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    /************************************************************
+     * 这段函数会扫描所有 .admonition，根据它是 note / warning / info
+     * tip / important / danger 等类名，往其标题里 prepend 一个 <i> 图标
+     ************************************************************/
+    function insertAdmonitionIcons() {
+        const adms = document.querySelectorAll('.admonition');
+        adms.forEach(admonition => {
+            // 找到标题
+            const title = admonition.querySelector('.admonition-title');
+            if (!title) return;
+
+            // 根据不同类型，决定用什么 icon
+            let iconClass = null;
+            if (admonition.classList.contains('note')) {
+                iconClass = 'fa-info-circle';
+            } else if (admonition.classList.contains('info')) {
+                iconClass = 'fa-info-circle';
+            } else if (admonition.classList.contains('warning')) {
+                iconClass = 'fa-exclamation-triangle';
+            } else if (admonition.classList.contains('tip')) {
+                iconClass = 'fa-lightbulb';
+            } else if (admonition.classList.contains('important')) {
+                iconClass = 'fa-bell';
+            } else if (admonition.classList.contains('danger')) {
+                // 你也可以改成别的图标，如 fa-bomb ( \f1e2 )
+                iconClass = 'fa-skull-crossbones';
+            }
+
+            // 如果能匹配到 icon，就插入
+            if (iconClass) {
+                const i = document.createElement('i');
+                i.classList.add('fas', iconClass);
+                i.style.marginRight = '8px';
+                // prepend 到标题最前面
+                title.prepend(i);
+            }
+        });
+    }
+
     function toggleFolder(folderNameDiv) {
         const nestedUl = folderNameDiv.nextElementSibling;
         if (!nestedUl) return;
@@ -1027,6 +1020,7 @@
                     }
                     window.history.pushState({}, '', url);
                     reinitializeCodeBlocks();
+                    insertAdmonitionIcons();  // <-- 核心！重新插入
                     if (window.MathJax) {
                         window.MathJax.typesetPromise();
                     }
@@ -1332,19 +1326,16 @@
             isZoomed = !isZoomed;
             if (isZoomed) {
                 lightboxImg.classList.add('zoomed');
+                lightboxImg.style.cursor = 'zoom-out';
             } else {
                 lightboxImg.classList.remove('zoomed');
+                lightboxImg.style.cursor = 'zoom-in';
             }
         }
 
         // 图片点击时放大 / 缩小
         lightboxImg.addEventListener('click', function () {
             toggleZoom();
-            if (isZoomed) {
-                lightboxImg.style.cursor = 'zoom-out';
-            } else {
-                lightboxImg.style.cursor = 'zoom-in';
-            }
         });
 
         // 键盘事件：← / → / Esc
@@ -1384,6 +1375,7 @@
 
     window.onload = function () {
         reinitializeCodeBlocks();
+        insertAdmonitionIcons();  // 关键: 让 Admonition 有图标
     };
 </script>
 
