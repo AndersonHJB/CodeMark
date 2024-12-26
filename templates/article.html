@@ -866,10 +866,11 @@
                     <div class="meta-item meta-categories">
                         <span class="meta-label"><i class="fas fa-folder"></i> 分类:</span>
                         <span class="meta-value">
-                      {% for cat in meta.category %}
-                          <span>{{ cat }}</span>
-                      {% endfor %}
-                    </span>
+                            {# 如果有多个分类，分别显示；且去掉开头可能存在的 '-' #}
+                            {% for cat in meta.category %}
+                                <span>{{ cat.lstrip('-') }}</span>
+                            {% endfor %}
+                        </span>
                     </div>
                 {% endif %}
 
@@ -877,10 +878,11 @@
                     <div class="meta-item meta-tags">
                         <span class="meta-label"><i class="fas fa-tags"></i> 标签:</span>
                         <span class="meta-value">
-                      {% for t in meta.tag %}
-                          <span>{{ t }}</span>
-                      {% endfor %}
-                    </span>
+                            {# 如果有多个标签，分别显示；且去掉开头可能存在的 '-' #}
+                            {% for t in meta.tag %}
+                                <span>{{ t.lstrip('-') }}</span>
+                            {% endfor %}
+                        </span>
                     </div>
                 {% endif %}
             </div>
