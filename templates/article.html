@@ -1222,8 +1222,12 @@
                 }
             });
 
-            // ★★★ 在编辑代码时自动弹出补全窗口 ★★★
+            // ★★★ 在编辑代码时自动弹出补全窗口，但若输入的是空格则跳过 ★★★
             editor.on("inputRead", function(cm, change) {
+                // 如果输入的是空格，就不自动补全
+                if (change.text && change.text[0] === " ") {
+                    return;
+                }
                 // 若不是 setValue 之类的操作，并且当前无其它自动补全
                 if (change.origin !== "setValue" && !cm.state.completionActive) {
                     CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
