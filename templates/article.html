@@ -839,7 +839,7 @@
 
         .copy-hint {
             display: none;
-            margin-left: 8px;
+            margin-right: 8px; /* “复制成功”与图标之间的间距 */
             color: #4caf50; /* 你可以改成自己想要的提示色 */
             font-size: 14px;
         }
@@ -1124,13 +1124,20 @@
     function createCopyCodeButton(editor) {
         const button = document.createElement('button');
         button.className = 'copy-button';
-        button.innerHTML = '<i class="fas fa-copy"></i>复制';
 
         // “已复制”提示
         const hintSpan = document.createElement('span');
         hintSpan.className = 'copy-hint';
-        hintSpan.textContent = '已复制';
+        hintSpan.textContent = '复制成功';
         button.appendChild(hintSpan);
+
+        // 放置图标和“复制”文字
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-copy';
+        button.appendChild(icon);
+
+        const textNode = document.createTextNode('复制');
+        button.appendChild(textNode);
 
         button.onclick = async () => {
             const codeToCopy = editor.getValue();
@@ -1152,13 +1159,19 @@
     function createCopyOutputButton(outputElement) {
         const button = document.createElement('button');
         button.className = 'copy-button';
-        button.innerHTML = '<i class="fas fa-copy"></i>复制';
 
         // “已复制”提示
         const hintSpan = document.createElement('span');
         hintSpan.className = 'copy-hint';
-        hintSpan.textContent = '已复制';
+        hintSpan.textContent = '复制成功';
         button.appendChild(hintSpan);
+
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-copy';
+        button.appendChild(icon);
+
+        const textNode = document.createTextNode('复制');
+        button.appendChild(textNode);
 
         button.onclick = async () => {
             // 如果输出还没显示任何内容，就不做任何事
