@@ -21,6 +21,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+
+    <!-- =========== 重点：自动补全所需的脚本与样式 =========== -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+    <!-- 可选：anyword-hint, 但此处主要用 python-hint -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/python-hint.min.js"></script>
+    <!-- ========================================================== -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ======== 全局基础样式 ======== */
@@ -1062,8 +1070,27 @@
                 theme: "material-darker",
                 lineNumbers: true,
                 viewportMargin: Infinity,
-                lineWrapping: false
+                lineWrapping: false,
+                extraKeys: {
+                    // 保留：手动触发补全
+                    "Ctrl-Space": "autocomplete"
+                },
+                hintOptions: {
+                    // Python 专用的提示
+                    hint: CodeMirror.hint.python,
+                    // 不要在只有一个候选时自动填充
+                    completeSingle: false
+                }
             });
+
+            // ★★★ 在编辑代码时自动弹出补全窗口 ★★★
+            editor.on("inputRead", function(cm, change) {
+                // 若不是 setValue 之类的操作，并且当前无其它自动补全
+                if (change.origin !== "setValue" && !cm.state.completionActive) {
+                    CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+                }
+            });
+            // =============================================
 
             const codeBlockContainer = document.createElement('div');
             codeBlockContainer.className = 'code-block-container';
