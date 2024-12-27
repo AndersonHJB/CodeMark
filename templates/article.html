@@ -19,9 +19,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/ruby/ruby.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/show-hint.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/show-hint.min.js"></script>
-{#    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/python-hint.min.js"></script>#}
-    <!-- ========================================================== -->
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ======== 全局基础样式 ======== */
@@ -829,9 +826,11 @@
             transition: background 0.3s;
             font-size: 14px;
         }
+
         .copy-button:hover {
             background: rgba(255, 255, 255, 0.25);
         }
+
         .copy-button i {
             margin-right: 4px;
         }
@@ -842,6 +841,7 @@
             color: #4caf50; /* 你可以改成自己想要的提示色 */
             font-size: 14px;
         }
+
         /* 在按钮右侧稍作延时后自动消失的话，可以在JS里移除，也可以用简单的过渡动画 */
     </style>
 </head>
@@ -1180,7 +1180,7 @@
             });
 
             // ★★★ 在编辑代码时自动弹出补全窗口，但若输入的是空格则跳过 ★★★
-            editor.on("inputRead", function(cm, change) {
+            editor.on("inputRead", function (cm, change) {
                 // 如果输入的是空格，就不自动补全
                 if (change.text && change.text[0] === " ") {
                     return;
