@@ -155,24 +155,22 @@ article.html:
 <head>
     <meta charset="UTF-8">
     <title>Article</title>
-    <!-- Bootstrap CSS（使用最新版本） -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
           rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.21.0/full/pyodide.js"></script>
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
-    <!-- CodeMirror JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/material-darker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/ruby/ruby.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/show-hint.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ======== 全局基础样式 ======== */
@@ -354,7 +352,6 @@ article.html:
 
         .main-article {
             background-color: transparent;
-            /* 去掉独立的背景和阴影，让三块看起来一个整体 */
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 800px !important;
@@ -427,7 +424,7 @@ article.html:
         }
 
         /* ======== 文章内容中的代码块样式等 ======== */
-        button.run-button, button.reset-button {
+        button.run-button, button.reset-button, button.fullscreen-button {
             background-color: #1d72b8;
             color: white;
             border: none;
@@ -437,7 +434,8 @@ article.html:
             margin-left: 10px;
         }
 
-        button.run-button:hover, button.reset-button:hover {
+        button.run-button:hover, button.reset-button:hover,
+        button.fullscreen-button:hover {
             background-color: #155a8a;
         }
 
@@ -483,11 +481,6 @@ article.html:
             text-align: left;
             border-radius: 0;
             margin-top: 0 !important;
-            /*
-               分两部分：
-               1) .toc-title 固定在顶部
-               2) .toc-list 内滚动
-            */
             display: flex;
             flex-direction: column;
             height: calc(100vh - 260px);
@@ -511,10 +504,9 @@ article.html:
             padding: 0 10px; /* 内边距，可自行调 */
         }
 
-        /* 大纲列表，单独可滚动 */
+        /* 大纲列表 */
         .toc-list {
             overflow-y: auto;
-            /* 预留给标题的高度 (约40~60px)，可再减去一些边距 */
             flex: 1;
             padding: 0 10px; /* 左右内边距 */
         }
@@ -698,8 +690,9 @@ article.html:
             margin: 10px 0 0 0;
             white-space: pre;
             min-height: 25px;
-            display: none;
+            display: none; /* 默认隐藏 */
             overflow-x: auto;
+            position: relative; /* 便于右上角放复制按钮 */
         }
 
         /* ======== 响应式设计 ======== */
@@ -930,6 +923,78 @@ article.html:
         .admonition.danger .admonition-title {
             color: #9f2431;
         }
+
+        /* =========== 全屏编辑器相关样式 =========== */
+        .fullscreen-code {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 2000; /* 确保浮在最顶层 */
+            width: 100vw;
+            height: 100vh;
+            background-color: #282c34; /* 与代码块背景一致 */
+            margin: 0;
+            padding: 16px;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+        }
+
+        /* 全屏时，CodeMirror 自适应撑满高度 */
+        .fullscreen-code .CodeMirror {
+            flex: 1;
+            height: auto !important;
+            border: 1px solid #aaa;
+            margin-bottom: 8px;
+        }
+
+        /* 全屏状态下的顶部操作区 */
+        .fullscreen-code .button-container {
+            position: relative; /* 让右侧对齐可用 */
+            justify-content: flex-end;
+            margin-top: 0;
+        }
+
+        /* 全屏状态下的输出区域，高度可视情况设置 */
+        .fullscreen-code .output {
+            flex: 0 0 150px;
+            margin-bottom: 10px;
+            overflow-y: auto;
+        }
+
+        /* =========== 新增：复制按钮与“已复制”提示样式 =========== */
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ddd;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .copy-button i {
+            margin-right: 4px;
+        }
+
+        .copy-hint {
+            display: none;
+            margin-right: 8px; /* “复制成功”与图标之间的间距 */
+            color: #4caf50; /* 你可以改成自己想要的提示色 */
+            font-size: 14px;
+        }
+
+        /* 在按钮右侧稍作延时后自动消失的话，可以在JS里移除，也可以用简单的过渡动画 */
     </style>
 </head>
 <body>
@@ -1034,7 +1099,6 @@ article.html:
                                 <span>{{ t.lstrip('-') }}</span>
                             {% endif %}
                         {% endfor %}
-
                     </div>
                 {% endif %}
             </div>
@@ -1200,10 +1264,50 @@ article.html:
         }
     }
 
+    function copyToClipboard(text) {
+        return navigator.clipboard.writeText(text);
+    }
+
+    // 创建“复制代码”按钮（右上角）
+    function createCopyCodeButton(editor) {
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+
+        // “已复制”提示
+        const hintSpan = document.createElement('span');
+        hintSpan.className = 'copy-hint';
+        hintSpan.textContent = '复制成功';
+        button.appendChild(hintSpan);
+
+        // 放置图标和“复制”文字
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-copy';
+        button.appendChild(icon);
+
+        const textNode = document.createTextNode('复制');
+        button.appendChild(textNode);
+
+        button.onclick = async () => {
+            const codeToCopy = editor.getValue();
+            try {
+                await copyToClipboard(codeToCopy);
+                // 显示“已复制”
+                hintSpan.style.display = 'inline';
+                setTimeout(() => {
+                    hintSpan.style.display = 'none';
+                }, 1500);
+            } catch (err) {
+                console.error('复制失败：', err);
+            }
+        };
+        return button;
+    }
+
     function reinitializeCodeBlocks() {
         const codeBlocks = document.querySelectorAll('pre > code');
         codeBlocks.forEach(codeBlock => {
             const initialCode = codeBlock.textContent.trim();
+            // 可能是 language-python, language-js 等
             const language = codeBlock.className.replace('language-', '');
             const container = document.createElement('div');
             container.className = 'code-block';
@@ -1214,7 +1318,29 @@ article.html:
                 theme: "material-darker",
                 lineNumbers: true,
                 viewportMargin: Infinity,
-                lineWrapping: false
+                lineWrapping: false,
+                extraKeys: {
+                    // 保留：手动触发补全
+                    "Ctrl-Space": "autocomplete"
+                },
+                hintOptions: {
+                    // Python 专用的提示
+                    hint: CodeMirror.hint.python,
+                    // 不要在只有一个候选时自动填充
+                    completeSingle: false
+                }
+            });
+
+            // ★★★ 在编辑代码时自动弹出补全窗口，但若输入的是空格则跳过 ★★★
+            editor.on("inputRead", function (cm, change) {
+                // 如果输入的是空格，就不自动补全
+                if (change.text && change.text[0] === " ") {
+                    return;
+                }
+                // 若不是 setValue 之类的操作，并且当前无其它自动补全
+                if (change.origin !== "setValue" && !cm.state.completionActive) {
+                    CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+                }
             });
 
             const codeBlockContainer = document.createElement('div');
@@ -1233,6 +1359,8 @@ article.html:
                 buttonContainer.appendChild(createRunButton(editor, outputContainer));
             }
 
+            // 新增：全屏按钮
+            buttonContainer.appendChild(createFullscreenButton(editor, codeBlockContainer, outputContainer, language));
             codeBlockContainer.appendChild(container);
             codeBlockContainer.appendChild(buttonContainer);
             codeBlockContainer.appendChild(outputContainer);
@@ -1240,6 +1368,12 @@ article.html:
             codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
             codeBlock.style.display = 'none';
 
+            // 在代码块右上角加一个“复制”按钮
+            const copyCodeBtn = createCopyCodeButton(editor);
+            container.appendChild(copyCodeBtn);
+
+
+            // 为了让 CodeMirror 渲染完再刷新
             setTimeout(() => {
                 editor.refresh();
                 adjustEditorHeight(editor);
@@ -1403,6 +1537,7 @@ article.html:
         }
 
         editor.on('keydown', function (cm, event) {
+            // 支持 Ctrl + Enter / Cmd + Enter 运行
             if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
                 runCode();
             }
@@ -1426,11 +1561,51 @@ article.html:
         return button;
     }
 
-    function adjustEditorHeight(editor, isReset = false) {
+    // =========== 全屏按钮逻辑 =========== //
+    function createFullscreenButton(editor, codeBlockContainer, outputElement, language) {
+        const button = document.createElement('button');
+        button.className = 'fullscreen-button';
+        button.textContent = '全屏编辑';
+
+        let isFullscreen = false; // 用于标记当前是否处于全屏
+
+        button.onclick = () => {
+            isFullscreen = !isFullscreen;
+
+            if (isFullscreen) {
+                // 进入全屏
+                codeBlockContainer.classList.add('fullscreen-code');
+                button.textContent = '退出全屏';
+            } else {
+                // 退出全屏
+                codeBlockContainer.classList.remove('fullscreen-code');
+                button.textContent = '全屏编辑';
+            }
+
+            // 切换后刷新编辑器大小
+            setTimeout(() => {
+                editor.refresh();
+                // 如果想让全屏时自动撑满，也可以手动设置
+                adjustEditorHeight(editor, false, isFullscreen);
+            }, 100);
+        };
+
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false, isFullscreen = false) {
         const lineCount = editor.lineCount();
         const wrapperElement = editor.getWrapperElement();
         const previousHeight = wrapperElement.style.height;
 
+        // 如果处于全屏状态，编辑器高度交给 .fullscreen-code 的 flex 来决定
+        if (isFullscreen) {
+            // 不手动修改，让 flex 充满
+            wrapperElement.style.height = 'auto';
+            return;
+        }
+
+        // 否则普通逻辑
         if (lineCount > 30) {
             wrapperElement.style.height = '480px';
         } else {
