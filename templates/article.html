@@ -1154,46 +1154,6 @@
         return button;
     }
 
-    // 创建“复制输出”按钮（右上角）
-    function createCopyOutputButton(outputElement) {
-        const button = document.createElement('button');
-        button.className = 'copy-button';
-
-        // “已复制”提示
-        const hintSpan = document.createElement('span');
-        hintSpan.className = 'copy-hint';
-        hintSpan.textContent = '复制成功';
-        button.appendChild(hintSpan);
-
-        const icon = document.createElement('i');
-        icon.className = 'fas fa-copy';
-        button.appendChild(icon);
-
-        const textNode = document.createTextNode('复制');
-        button.appendChild(textNode);
-
-        button.onclick = async () => {
-            // 如果输出还没显示任何内容，就不做任何事
-            if (!outputElement || outputElement.style.display === 'none') {
-                return;
-            }
-            const outputText = outputElement.textContent.trim();
-            if (!outputText) return;
-
-            try {
-                await copyToClipboard(outputText);
-                // 显示“已复制”
-                hintSpan.style.display = 'inline';
-                setTimeout(() => {
-                    hintSpan.style.display = 'none';
-                }, 1500);
-            } catch (err) {
-                console.error('复制失败：', err);
-            }
-        };
-        return button;
-    }
-
     function reinitializeCodeBlocks() {
         const codeBlocks = document.querySelectorAll('pre > code');
         codeBlocks.forEach(codeBlock => {
@@ -1263,9 +1223,6 @@
             const copyCodeBtn = createCopyCodeButton(editor);
             container.appendChild(copyCodeBtn);
 
-            // 在输出框右上角加一个“复制输出”按钮
-            const copyOutputBtn = createCopyOutputButton(outputContainer);
-            outputContainer.appendChild(copyOutputBtn);
 
             // 为了让 CodeMirror 渲染完再刷新
             setTimeout(() => {
