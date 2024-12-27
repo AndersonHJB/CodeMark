@@ -283,7 +283,7 @@
         }
 
         /* ======== 文章内容中的代码块样式等 ======== */
-        button.run-button, button.reset-button {
+        button.run-button, button.reset-button, button.fullscreen-button {
             background-color: #1d72b8;
             color: white;
             border: none;
@@ -293,7 +293,8 @@
             margin-left: 10px;
         }
 
-        button.run-button:hover, button.reset-button:hover {
+        button.run-button:hover, button.reset-button:hover,
+        button.fullscreen-button:hover {
             background-color: #155a8a;
         }
 
@@ -339,11 +340,6 @@
             text-align: left;
             border-radius: 0;
             margin-top: 0 !important;
-            /*
-               分两部分：
-               1) .toc-title 固定在顶部
-               2) .toc-list 内滚动
-            */
             display: flex;
             flex-direction: column;
             height: calc(100vh - 260px);
@@ -367,10 +363,9 @@
             padding: 0 10px; /* 内边距，可自行调 */
         }
 
-        /* 大纲列表，单独可滚动 */
+        /* 大纲列表 */
         .toc-list {
             overflow-y: auto;
-            /* 预留给标题的高度 (约40~60px)，可再减去一些边距 */
             flex: 1;
             padding: 0 10px; /* 左右内边距 */
         }
@@ -786,6 +781,46 @@
         .admonition.danger .admonition-title {
             color: #9f2431;
         }
+
+        /* =========== 全屏编辑器相关样式 =========== */
+        .fullscreen-code {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 2000; /* 确保浮在最顶层 */
+            width: 100vw;
+            height: 100vh;
+            background-color: #282c34; /* 与代码块背景一致 */
+            margin: 0;
+            padding: 16px;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+        }
+
+        /* 全屏时，CodeMirror 自适应撑满高度 */
+        .fullscreen-code .CodeMirror {
+            flex: 1;
+            height: auto !important;
+            border: 1px solid #aaa;
+            margin-bottom: 8px;
+        }
+
+        /* 全屏状态下的顶部操作区 */
+        .fullscreen-code .button-container {
+            position: relative; /* 让右侧对齐可用 */
+            justify-content: flex-end;
+            margin-top: 0;
+        }
+
+        /* 全屏状态下的输出区域，高度可视情况设置 */
+        .fullscreen-code .output {
+            flex: 0 0 150px;
+            margin-bottom: 10px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -890,7 +925,6 @@
                                 <span>{{ t.lstrip('-') }}</span>
                             {% endif %}
                         {% endfor %}
-
                     </div>
                 {% endif %}
             </div>
@@ -1060,6 +1094,7 @@
         const codeBlocks = document.querySelectorAll('pre > code');
         codeBlocks.forEach(codeBlock => {
             const initialCode = codeBlock.textContent.trim();
+            // 可能是 language-python, language-js 等
             const language = codeBlock.className.replace('language-', '');
             const container = document.createElement('div');
             container.className = 'code-block';
@@ -1090,7 +1125,6 @@
                     CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
                 }
             });
-            // =============================================
 
             const codeBlockContainer = document.createElement('div');
             codeBlockContainer.className = 'code-block-container';
@@ -1108,6 +1142,8 @@
                 buttonContainer.appendChild(createRunButton(editor, outputContainer));
             }
 
+            // 新增：全屏按钮
+            buttonContainer.appendChild(createFullscreenButton(editor, codeBlockContainer, outputContainer, language));
             codeBlockContainer.appendChild(container);
             codeBlockContainer.appendChild(buttonContainer);
             codeBlockContainer.appendChild(outputContainer);
@@ -1278,6 +1314,7 @@
         }
 
         editor.on('keydown', function (cm, event) {
+            // 支持 Ctrl + Enter / Cmd + Enter 运行
             if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
                 runCode();
             }
@@ -1301,11 +1338,51 @@
         return button;
     }
 
-    function adjustEditorHeight(editor, isReset = false) {
+    // =========== 全屏按钮逻辑 =========== //
+    function createFullscreenButton(editor, codeBlockContainer, outputElement, language) {
+        const button = document.createElement('button');
+        button.className = 'fullscreen-button';
+        button.textContent = '全屏编辑';
+
+        let isFullscreen = false; // 用于标记当前是否处于全屏
+
+        button.onclick = () => {
+            isFullscreen = !isFullscreen;
+
+            if (isFullscreen) {
+                // 进入全屏
+                codeBlockContainer.classList.add('fullscreen-code');
+                button.textContent = '退出全屏';
+            } else {
+                // 退出全屏
+                codeBlockContainer.classList.remove('fullscreen-code');
+                button.textContent = '全屏编辑';
+            }
+
+            // 切换后刷新编辑器大小
+            setTimeout(() => {
+                editor.refresh();
+                // 如果想让全屏时自动撑满，也可以手动设置
+                adjustEditorHeight(editor, false, isFullscreen);
+            }, 100);
+        };
+
+        return button;
+    }
+
+    function adjustEditorHeight(editor, isReset = false, isFullscreen = false) {
         const lineCount = editor.lineCount();
         const wrapperElement = editor.getWrapperElement();
         const previousHeight = wrapperElement.style.height;
 
+        // 如果处于全屏状态，编辑器高度交给 .fullscreen-code 的 flex 来决定
+        if (isFullscreen) {
+            // 不手动修改，让 flex 充满
+            wrapperElement.style.height = 'auto';
+            return;
+        }
+
+        // 否则普通逻辑
         if (lineCount > 30) {
             wrapperElement.style.height = '480px';
         } else {
