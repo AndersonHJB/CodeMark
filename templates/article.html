@@ -542,8 +542,9 @@
             margin: 10px 0 0 0;
             white-space: pre;
             min-height: 25px;
-            display: none;
+            display: none; /* 默认隐藏 */
             overflow-x: auto;
+            position: relative; /* 便于右上角放复制按钮 */
         }
 
         /* ======== 响应式设计 ======== */
@@ -814,6 +815,35 @@
             margin-bottom: 10px;
             overflow-y: auto;
         }
+
+        /* =========== 新增：复制按钮与“已复制”提示样式 =========== */
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ddd;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        .copy-button i {
+            margin-right: 4px;
+        }
+
+        .copy-hint {
+            display: none;
+            margin-left: 8px;
+            color: #4caf50; /* 你可以改成自己想要的提示色 */
+            font-size: 14px;
+        }
+        /* 在按钮右侧稍作延时后自动消失的话，可以在JS里移除，也可以用简单的过渡动画 */
     </style>
 </head>
 <body>
@@ -1083,6 +1113,75 @@
         }
     }
 
+    /************************************************************
+     * 新增的工具函数：复制文本到剪贴板
+     ************************************************************/
+    function copyToClipboard(text) {
+        return navigator.clipboard.writeText(text);
+    }
+
+    // 创建“复制代码”按钮（右上角）
+    function createCopyCodeButton(editor) {
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+        button.innerHTML = '<i class="fas fa-copy"></i>复制';
+
+        // “已复制”提示
+        const hintSpan = document.createElement('span');
+        hintSpan.className = 'copy-hint';
+        hintSpan.textContent = '已复制';
+        button.appendChild(hintSpan);
+
+        button.onclick = async () => {
+            const codeToCopy = editor.getValue();
+            try {
+                await copyToClipboard(codeToCopy);
+                // 显示“已复制”
+                hintSpan.style.display = 'inline';
+                setTimeout(() => {
+                    hintSpan.style.display = 'none';
+                }, 1500);
+            } catch (err) {
+                console.error('复制失败：', err);
+            }
+        };
+        return button;
+    }
+
+    // 创建“复制输出”按钮（右上角）
+    function createCopyOutputButton(outputElement) {
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+        button.innerHTML = '<i class="fas fa-copy"></i>复制';
+
+        // “已复制”提示
+        const hintSpan = document.createElement('span');
+        hintSpan.className = 'copy-hint';
+        hintSpan.textContent = '已复制';
+        button.appendChild(hintSpan);
+
+        button.onclick = async () => {
+            // 如果输出还没显示任何内容，就不做任何事
+            if (!outputElement || outputElement.style.display === 'none') {
+                return;
+            }
+            const outputText = outputElement.textContent.trim();
+            if (!outputText) return;
+
+            try {
+                await copyToClipboard(outputText);
+                // 显示“已复制”
+                hintSpan.style.display = 'inline';
+                setTimeout(() => {
+                    hintSpan.style.display = 'none';
+                }, 1500);
+            } catch (err) {
+                console.error('复制失败：', err);
+            }
+        };
+        return button;
+    }
+
     function reinitializeCodeBlocks() {
         const codeBlocks = document.querySelectorAll('pre > code');
         codeBlocks.forEach(codeBlock => {
@@ -1144,6 +1243,15 @@
             codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
             codeBlock.style.display = 'none';
 
+            // 在代码块右上角加一个“复制”按钮
+            const copyCodeBtn = createCopyCodeButton(editor);
+            container.appendChild(copyCodeBtn);
+
+            // 在输出框右上角加一个“复制输出”按钮
+            const copyOutputBtn = createCopyOutputButton(outputContainer);
+            outputContainer.appendChild(copyOutputBtn);
+
+            // 为了让 CodeMirror 渲染完再刷新
             setTimeout(() => {
                 editor.refresh();
                 adjustEditorHeight(editor);
