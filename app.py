@@ -149,12 +149,12 @@ def article(filename):
                            meta=meta)
 
 
-@app.route('/sharecode')
+@app.route('/editor')
 def sharecode():
     """
-    直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     """
-    return render_template('sharecode.html', pre_code="")
+    return render_template('editor.html', pre_code="")
 
 
 @app.route('/upload_code', methods=['POST'])
@@ -212,7 +212,7 @@ def upload_code():
 def show_shared_code(project_id):
     """
     当别人访问 /share/<project_id> 时，
-    从本地 txt 文件读取对应代码，然后带着 code 数据渲染 sharecode.html，
+    从本地 txt 文件读取对应代码，然后带着 code 数据渲染 editor.html，
     让其自动填充到编辑器中。
     """
     code_content = "File not found or removed."
@@ -233,7 +233,7 @@ def show_shared_code(project_id):
     if not found:
         return f"File not found: {project_id}", 404
 
-    return render_template('sharecode.html', pre_code=code_content)
+    return render_template('editor.html', pre_code=code_content)
 
 
 if __name__ == '__main__':
