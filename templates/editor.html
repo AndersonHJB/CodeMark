@@ -266,6 +266,18 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script type="text/javascript">
+    /****************************************************
+     *  1. 监听 pageshow 事件，检测 bfcache，如果命中则刷新
+     *  这样即可在浏览器前进 / 后退时，强制页面重新加载
+     ****************************************************/
+    window.addEventListener("pageshow", function (event) {
+        // 当页面从缓存中加载（前进 / 后退）时，执行刷新
+        if (event.persisted
+            || (typeof window.performance !== "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
     // 全局 pyodide 对象
     let pyodide = null;
 
