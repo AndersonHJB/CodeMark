@@ -25,6 +25,7 @@ if __name__ == '__main__':
         'app.py',
         'templates/article.html',
         'templates/index.html',
+        'templates/sharecode.html',
         'static/css/style.css',
     ]
     generate_text(paths)
