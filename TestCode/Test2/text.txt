@@ -7,9 +7,12 @@ app.py:
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 import markdown
 import os, re, random
+import uuid
+import datetime
+import qrcode
 
 app = Flask(__name__)
 
@@ -146,9 +149,58 @@ def article(filename):
                            meta=meta)  # 传给模板
     # 注意：元信息在前端可通过 meta 来获取，比如 meta.title, meta.author 等。
 
+
 @app.route('/sharecode')
 def sharecode():
     return render_template('sharecode.html')
+
+
+# ===================== 新增：上传代码并生成二维码的接口 =====================
+@app.route('/upload_code', methods=['POST'])
+def upload_code():
+    """
+    前端 share() 函数会通过 AJAX 调用这个接口，提交代码内容。
+    这里将代码保存到本地文件，生成二维码图片，并返回一个 project_id。
+    """
+    # 从前端获取代码
+    code = request.form.get('code', '')
+    # 也可以取一下语言信息
+    language = request.form.get('language', '')
+
+    # 生成一个唯一 ID
+    unique_id = str(uuid.uuid4())
+    # 时间戳
+    timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    # 拼接最终文件名
+    file_name = unique_id + "_" + timestamp
+
+    # 1. 先拼装 sharecode/<yearmonth>/ 路径
+    #    例如 202412
+    yearmonth = datetime.datetime.now().strftime('%Y%m')
+    month_folder = os.path.join('sharecode', yearmonth)
+    os.makedirs(month_folder, exist_ok=True)
+
+    # 2. 将代码写入本地 txt 文件
+    code_file_path = os.path.join(month_folder, file_name + ".txt")
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(code)
+
+    # 3. 生成二维码并保存在 sharecode/images 文件夹
+    #    假设二维码内容可以是一个“分享链接”，此处仅演示生成 unique_id 作为内容
+    #    你也可以改成自己的逻辑，比如把分享链接放在二维码里
+    images_folder = os.path.join('sharecode', 'images')
+    os.makedirs(images_folder, exist_ok=True)
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(file_name)  # 二维码里存放的内容，可根据你的需求来
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    img_file_path = os.path.join(images_folder, file_name + ".png")
+    img.save(img_file_path)
+
+    # 返回 project_id 给前端
+    # 前端的 success 回调中会用到 d.project_id
+    return jsonify({"project_id": file_name})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
