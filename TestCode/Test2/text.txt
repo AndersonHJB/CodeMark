@@ -7,12 +7,13 @@ app.py:
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
+
 from flask import Flask, render_template, request, jsonify
 import markdown
 import os, re, random
 import uuid
 import datetime
-import qrcode
+import qrcode  # pip install qrcode[pil]
 
 app = Flask(__name__)
 
@@ -118,20 +119,20 @@ def article(filename):
     with open(full_path, 'r', encoding='utf-8') as f:
         content = f.read()
         md = markdown.Markdown(extensions=[
-            'extra',  # 包含tables、fenced_code、footnotes、def_list等一揽子常用扩展
+            'extra',  # 包含tables、fenced_code、footnotes、def_list等常用扩展
             'admonition',  # 支持 !!! note / warning 等提示块
-            'attr_list',  # 允许添加HTML属性，如 {#id .class} 写在 markdown 段落或标题后
+            'attr_list',  # 允许添加HTML属性
             'codehilite',  # 代码高亮
-            'def_list',  # 定义列表 (extra也有，留这里兼容一些场景)
-            'fenced_code',  # 代码块 (extra也有，留这里兼容一些场景)
-            'footnotes',  # 脚注
-            'tables',  # 表格 (extra也有，留这里兼容一些场景)
-            'abbr',  # 缩略词
-            'meta',  # 允许在文档开头书写元信息
-            'nl2br',  # 自动将单独的换行符转为 <br>
-            'sane_lists',  # 更智能地处理列表
-            'smarty',  # 智能引号、破折号等排版优化
-            'toc',  # 生成目录
+            'def_list',
+            'fenced_code',
+            'footnotes',
+            'tables',
+            'abbr',
+            'meta',
+            'nl2br',
+            'sane_lists',
+            'smarty',
+            'toc',
         ])
         html_content = md.convert(content)
         toc = md.toc
@@ -146,21 +147,22 @@ def article(filename):
                            toc=toc,
                            directory_tree=directory_tree,
                            current_file=filename,
-                           meta=meta)  # 传给模板
-    # 注意：元信息在前端可通过 meta 来获取，比如 meta.title, meta.author 等。
+                           meta=meta)
 
 
 @app.route('/sharecode')
 def sharecode():
-    return render_template('sharecode.html')
+    """
+    直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    """
+    return render_template('sharecode.html', pre_code="")
 
 
-# ===================== 新增：上传代码并生成二维码的接口 =====================
 @app.route('/upload_code', methods=['POST'])
 def upload_code():
     """
     前端 share() 函数会通过 AJAX 调用这个接口，提交代码内容。
-    这里将代码保存到本地文件，生成二维码图片，并返回一个 project_id。
+    这里将代码保存到本地文件，生成二维码图片，并返回一个可分享的链接。
     """
     # 从前端获取代码
     code = request.form.get('code', '')
@@ -171,35 +173,68 @@ def upload_code():
     unique_id = str(uuid.uuid4())
     # 时间戳
     timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    # 拼接最终文件名
-    file_name = unique_id + "_" + timestamp
+    # 拼接最终 project_id
+    project_id = unique_id + "_" + timestamp
 
     # 1. 先拼装 sharecode/<yearmonth>/ 路径
-    #    例如 202412
     yearmonth = datetime.datetime.now().strftime('%Y%m')
     month_folder = os.path.join('sharecode', yearmonth)
     os.makedirs(month_folder, exist_ok=True)
 
     # 2. 将代码写入本地 txt 文件
-    code_file_path = os.path.join(month_folder, file_name + ".txt")
+    code_file_path = os.path.join(month_folder, project_id + ".txt")
     with open(code_file_path, 'w', encoding='utf-8') as f:
         f.write(code)
 
     # 3. 生成二维码并保存在 sharecode/images 文件夹
-    #    假设二维码内容可以是一个“分享链接”，此处仅演示生成 unique_id 作为内容
-    #    你也可以改成自己的逻辑，比如把分享链接放在二维码里
     images_folder = os.path.join('sharecode', 'images')
     os.makedirs(images_folder, exist_ok=True)
+
+    # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
+    # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
+    share_link = request.host_url.strip('/') + "/share/" + project_id
+
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data(file_name)  # 二维码里存放的内容，可根据你的需求来
+    qr.add_data(share_link)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    img_file_path = os.path.join(images_folder, file_name + ".png")
+
+    img_file_path = os.path.join(images_folder, project_id + ".png")
     img.save(img_file_path)
 
-    # 返回 project_id 给前端
-    # 前端的 success 回调中会用到 d.project_id
-    return jsonify({"project_id": file_name})
+    # 返回给前端
+    return jsonify({
+        "project_id": project_id,
+        "share_link": share_link,
+    })
+
+
+@app.route('/share/<project_id>')
+def show_shared_code(project_id):
+    """
+    当别人访问 /share/<project_id> 时，
+    从本地 txt 文件读取对应代码，然后带着 code 数据渲染 sharecode.html，
+    让其自动填充到编辑器中。
+    """
+    code_content = "File not found or removed."
+    sharecode_root = "sharecode"
+    found = False
+
+    # 遍历 sharecode 文件夹下的所有子目录，找 <project_id>.txt
+    for folder in os.listdir(sharecode_root):
+        folder_path = os.path.join(sharecode_root, folder)
+        if os.path.isdir(folder_path):
+            possible_path = os.path.join(folder_path, project_id + ".txt")
+            if os.path.isfile(possible_path):
+                with open(possible_path, 'r', encoding='utf-8') as f:
+                    code_content = f.read()
+                found = True
+                break
+
+    if not found:
+        return f"File not found: {project_id}", 404
+
+    return render_template('sharecode.html', pre_code=code_content)
 
 
 if __name__ == '__main__':
@@ -352,6 +387,17 @@ sharecode.html:
             background-color: #5a5a5a;
         }
     </style>
+
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
+    {% if pre_code %}
+    <script>
+        let server_pre_code = {{ pre_code|tojson }};
+    </script>
+    {% else %}
+    <script>
+        let server_pre_code = "";
+    </script>
+    {% endif %}
 </head>
 
 <body>
@@ -407,6 +453,7 @@ sharecode.html:
                 </button>
             </div>
             <div class="modal-body text-center">
+                <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
                 <p>You can save this picture or scan the QR code to share it.</p>
             </div>
@@ -508,8 +555,13 @@ sharecode.html:
         });
         // ========== 自定义快捷键结束 ==========
 
-        // 初始化示例代码
-        editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')");
+        // 如果后端传来了 server_pre_code，则用它来填充编辑器
+        if (server_pre_code) {
+            editor.setValue(server_pre_code, -1);
+        } else {
+            // 否则使用默认示例
+            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
+        }
     });
 
     // 加载 Pyodide，并预先加载一些常用包
@@ -584,7 +636,7 @@ ${code}
         }
         let reader = new FileReader();
         reader.onload = function (e) {
-            window.editor.setValue(e.target.result);
+            window.editor.setValue(e.target.result, -1);
         };
         reader.readAsText(file);
     }
@@ -596,21 +648,29 @@ ${code}
         saveAs(blob, "bornforthis_code.py");
     }
 
-    // 分享功能（演示用，需要自行实现上传接口）
+    // 分享功能：上传代码到后端，返回一个可分享的链接
     function share() {
         let code = window.editor.getValue();
-        // 这里的上传接口，需要你自己实现
         $.ajax({
             type: 'post',
-            url: 'upload_code',
+            url: '/upload_code',
             dataType: 'json',
             data: {code: code, language: 'python'},
             success: function (d) {
-                let codeUrl = window.location.origin + "/?id=" + d.project_id;
-                jQuery('#qrcode').qrcode(codeUrl);
-                $('.modal-title').html('Code link：<a href="' + codeUrl + '">' + codeUrl + '</a>');
-                let canvas = $('#qrcode canvas')[0];
-                let qrcode_src = canvas.toDataURL('image/jpg');
+                // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
+                let shareLink = d.share_link;
+
+                // 1. 生成二维码（内容是 shareLink）
+                $('#qrcode').empty();
+                $('#qrcode').qrcode(shareLink);
+
+                // 2. 更新弹窗标题
+                $('.modal-title').html('Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>');
+
+                // 3. 把二维码叠加到编辑器截图的右上角
+                let qrcodeCanvas = $('#qrcode canvas')[0];
+                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+                // 先清掉 #qrcode 里的画布，准备插入合成图
                 $('#qrcode').html('');
 
                 html2canvas(document.querySelector("#editor")).then(canvas => {
@@ -618,14 +678,19 @@ ${code}
                     let img = new Image();
                     img.src = qrcode_src;
                     img.onload = function () {
-                        ctx.globalAlpha = 1;
-                        ctx.drawImage(img, canvas.width - img.width - 10, 10);
-                        let imgElement = document.createElement("img");
-                        imgElement.src = canvas.toDataURL('image/png');
-                        document.getElementById("qrcode").appendChild(imgElement);
+                        // 在编辑器截图上叠加二维码，缩小到 120x120
+                        let qrSize = 120;
+                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+
+                        // 显示合成后的最终图片
+                        let finalImgElement = document.createElement("img");
+                        finalImgElement.src = canvas.toDataURL('image/png');
+                        document.getElementById("qrcode").appendChild(finalImgElement);
                     }
                 });
-                $('#share-modal').modal('show')
+
+                // 4. 显示分享弹窗
+                $('#share-modal').modal('show');
             }
         });
     }
