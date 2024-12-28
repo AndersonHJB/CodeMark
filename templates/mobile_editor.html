@@ -20,7 +20,7 @@
             padding: 0;
             height: 100%;
             background-color: #2f3129;
-            overflow: hidden; /* 移动端一般可改为 auto，看你是否需要滚动 */
+            overflow: hidden;
         }
 
         /* 全屏编辑器容器 */
@@ -57,7 +57,7 @@
             right: 0; /* 切换显示 */
         }
 
-        /* 侧边栏内的按钮样式 */
+        /* 侧边栏内的按钮样式：单列浮动 */
         .sidebar-menu button {
             width: 90%;
             margin: 5px 0;
@@ -218,33 +218,6 @@
     </div>
 </div>
 
-<!-- About Modal（已去除主题和 About 按钮，这里如果还需 About 可保留/删除） -->
-<!-- 如果不想要 About，可删除以下 Modal -->
-<!--
-<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" style="max-width: 90%;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">About</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <h3>About</h3>
-                <hr>
-                <p>This page demonstrates running Python in the browser with Pyodide.</p>
-                <p>We have added support for micropip, NumPy, and Pandas.</p>
-                <p>Enjoy exploring Pyodide!</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
-            </div>
-        </div>
-    </div>
-</div>
--->
-
 <!-- ================== 代码编辑器相关 ================== -->
 <script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
@@ -273,7 +246,20 @@
         window.editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
         editor.session.setMode("ace/mode/python");
-        editor.setOptions({ fontSize: "18pt" });
+
+        // 让编辑器跟随输入行不被遮挡
+        editor.setOptions({
+            fontSize: "18pt",
+            scrollPastEnd: 1,               // 滚动超出内容结尾留白
+            autoScrollEditorIntoView: true  // 需要 ext-elasticlawn.js 或 Ace Cloud9 版支持
+        });
+        // 如果 autoScrollEditorIntoView 不生效，可加大底部留白
+        editor.renderer.setScrollMargin(0, 300, 0, 0);
+
+        // 监听编辑器点击，自动隐藏侧边栏
+        editor.container.addEventListener('click', function() {
+            closeSidebar();
+        });
 
         // 自定义快捷键：Ctrl/Command + D 复制当前行
         editor.commands.addCommand({
@@ -470,7 +456,7 @@ ${code}
         });
     }
 
-    // 新增：从剪贴板粘贴代码
+    // 从剪贴板粘贴代码
     function pasteCode() {
         if (navigator.clipboard && navigator.clipboard.readText) {
             navigator.clipboard.readText().then(function(text) {
