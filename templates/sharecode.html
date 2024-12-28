@@ -431,18 +431,21 @@ ${code}
                     'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
                 );
 
-                // ============ 如果你还想做把二维码叠加到编辑器截图的需求 ============
-
-                // 2.1 把刚生成的二维码canvas转为 base64
+                // 如果想把二维码叠加到编辑器截图，可以执行以下逻辑：
                 let qrcodeCanvas = $('#qrcode canvas')[0];
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
 
-                // 2.2 新建一个容器来放合成图（避免清空 #qrcode 导致二维码消失）
+                // 新建一个容器来放最终合成的图片（避免覆盖原二维码）
+                // 先检查是否已经存在，如果多次点击 share，则重复创建前先清理
+                let existingFinalImageContainer = document.getElementById("final-image-container");
+                if (existingFinalImageContainer) {
+                    existingFinalImageContainer.remove();
+                }
                 let finalImageContainer = document.createElement("div");
                 finalImageContainer.id = "final-image-container";
                 finalImageContainer.style.marginTop = "20px";
                 // 把这个容器插到模态框里
-                document.querySelector("#qrcode").parentNode.appendChild(finalImageContainer);
+                document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
                 // 2.3 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
                 html2canvas(document.querySelector("#editor")).then(canvas => {
