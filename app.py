@@ -211,7 +211,7 @@ def upload_code():
     # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
     # share_link = request.host_url.strip('/') + "/share/" + project_id
     share_link = url_for('show_shared_code', project_id=project_id, _external=True)  # 可以强制 https: _scheme='https'
-
+    print(f"share_link: {share_link}")
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(share_link)
     qr.make(fit=True)
