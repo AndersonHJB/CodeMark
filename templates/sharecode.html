@@ -289,7 +289,8 @@
         // 重定向 stdout / stderr
         try {
             await pyodide.runPythonAsync(`
-import sys
+import sys, builtins
+import js
 
 class PyodideIO:
     def write(self, data):
@@ -298,13 +299,19 @@ class PyodideIO:
             js_console_write(data)
         return len(data)
 
-sys.stdout = PyodideIO()
-sys.stderr = PyodideIO()
-
 def js_console_write(text):
     import js
     textarea = js.document.getElementById("console")
     textarea.value += text + "\\n"
+
+def py_input(prompt=''):
+    # 弹窗获取用户输入
+    return js.window.prompt(prompt)
+
+# 将自定义的 py_input 替换内置 input
+builtins.input = py_input
+sys.stdout = PyodideIO()
+sys.stderr = PyodideIO()
 
 # 执行用户编辑器的代码
 ${code}
