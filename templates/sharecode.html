@@ -148,13 +148,13 @@
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
     {% if pre_code %}
-    <script>
-        let server_pre_code = {{ pre_code|tojson }};
-    </script>
+        <script>
+            let server_pre_code = {{ pre_code|tojson }};
+        </script>
     {% else %}
-    <script>
-        let server_pre_code = "";
-    </script>
+        <script>
+            let server_pre_code = "";
+        </script>
     {% endif %}
 </head>
 
@@ -420,17 +420,31 @@ ${code}
 
                 // 1. 生成二维码（内容是 shareLink）
                 $('#qrcode').empty();
-                $('#qrcode').qrcode(shareLink);
+                $('#qrcode').qrcode({
+                    text: shareLink,
+                    width: 200,
+                    height: 200
+                });
 
-                // 2. 更新弹窗标题
-                $('.modal-title').html('Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>');
+                // 2. 更新弹窗标题中的可点击链接
+                $('.modal-title').html(
+                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
+                );
 
-                // 3. 把二维码叠加到编辑器截图的右上角
+                // ============ 如果你还想做把二维码叠加到编辑器截图的需求 ============
+
+                // 2.1 把刚生成的二维码canvas转为 base64
                 let qrcodeCanvas = $('#qrcode canvas')[0];
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
-                // 先清掉 #qrcode 里的画布，准备插入合成图
-                $('#qrcode').html('');
 
+                // 2.2 新建一个容器来放合成图（避免清空 #qrcode 导致二维码消失）
+                let finalImageContainer = document.createElement("div");
+                finalImageContainer.id = "final-image-container";
+                finalImageContainer.style.marginTop = "20px";
+                // 把这个容器插到模态框里
+                document.querySelector("#qrcode").parentNode.appendChild(finalImageContainer);
+
+                // 2.3 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
                 html2canvas(document.querySelector("#editor")).then(canvas => {
                     let ctx = canvas.getContext('2d');
                     let img = new Image();
@@ -443,7 +457,8 @@ ${code}
                         // 显示合成后的最终图片
                         let finalImgElement = document.createElement("img");
                         finalImgElement.src = canvas.toDataURL('image/png');
-                        document.getElementById("qrcode").appendChild(finalImgElement);
+                        finalImgElement.style.maxWidth = "90%";
+                        finalImageContainer.appendChild(finalImgElement);
                     }
                 });
 
