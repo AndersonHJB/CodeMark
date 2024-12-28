@@ -23,9 +23,9 @@ def generate_text(paths):
 if __name__ == '__main__':
     paths = [
         'app.py',
-        'templates/article.html',
-        'templates/index.html',
+        # 'templates/article.html',
+        # 'templates/index.html',
         'templates/sharecode.html',
-        'static/css/style.css',
+        # 'static/css/style.css',
     ]
     generate_text(paths)
