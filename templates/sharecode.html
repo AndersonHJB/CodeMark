@@ -11,9 +11,25 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            /* 如果不想出现滚动条，可以保留下面这句。
-               但为了更好地自适应，一般建议去掉。 */
-            /* overflow: hidden; */
+            background-color: #2f3129;
+            /* 若想强制隐藏滚动条可加：
+               overflow: hidden;
+            */
+        }
+        .container-fluid {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 2. 让 row 使用 no-gutters，去掉默认的左右内间距 */
+        .row.no-gutters {
+            margin-right: 0;
+            margin-left: 0;
+        }
+
+        /* 也可再覆盖 col 默认的padding */
+        .col-sm-8, .col-md-4 {
+            padding: 0 !important;
         }
 
         .ace_editor .ace_content span,
