@@ -154,8 +154,18 @@ def article(filename):
 def editor():
     """
     直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    使用可执行 Python 的模板 editor.html。
     """
     return render_template('editor.html', pre_code="")
+
+
+@app.route('/sharecode')
+def sharecode():
+    """
+    直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    使用不执行 Python 的模板 sharecode.html。
+    """
+    return render_template('sharecode.html', pre_code="")
 
 
 @app.route('/upload_code', methods=['POST'])
@@ -163,11 +173,16 @@ def upload_code():
     """
     前端 share() 函数会通过 AJAX 调用这个接口，提交代码内容。
     这里将代码保存到本地文件，生成二维码图片，并返回一个可分享的链接。
+
+    同时根据 template 值（editor / sharecode）记录在文本文件第一行，
+    以便后续 /share/<project_id> 时做判断，使用对应模板渲染。
     """
     # 从前端获取代码
     code = request.form.get('code', '')
     # 也可以取一下语言信息
     language = request.form.get('language', '')
+    # 新增获取模板类型（默认用 editor）
+    template_type = request.form.get('template', 'editor')
 
     # 生成一个唯一 ID
     unique_id = str(uuid.uuid4())
@@ -182,8 +197,11 @@ def upload_code():
     os.makedirs(month_folder, exist_ok=True)
 
     # 2. 将代码写入本地 txt 文件
+    #   文件第一行写入 "__TEMPLATE__=<template_type>"
+    #   第二行开始写实际的 code 内容
     code_file_path = os.path.join(month_folder, project_id + ".txt")
     with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(f"__TEMPLATE__={template_type}\n")
         f.write(code)
 
     # 3. 生成二维码并保存在 sharecode/images 文件夹
@@ -213,10 +231,10 @@ def upload_code():
 def show_shared_code(project_id):
     """
     当别人访问 /share/<project_id> 时，
-    从本地 txt 文件读取对应代码，然后带着 code 数据渲染 editor.html，
-    让其自动填充到编辑器中。
+    从本地 txt 文件读取对应代码的同时，也读取第一行以判断使用哪种模板。
     """
     code_content = "File not found or removed."
+    template_type = "editor"  # 默认使用 editor
     sharecode_root = "sharecode"
     found = False
 
@@ -226,19 +244,28 @@ def show_shared_code(project_id):
         if os.path.isdir(folder_path):
             possible_path = os.path.join(folder_path, project_id + ".txt")
             if os.path.isfile(possible_path):
-                with open(possible_path, 'r', encoding='utf-8') as f:
-                    code_content = f.read()
                 found = True
+                with open(possible_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+
+                if lines and lines[0].startswith("__TEMPLATE__="):
+                    template_type = lines[0].split("=", 1)[1].strip()
+                    code_content = "".join(lines[1:])
+                else:
+                    # 如果没有在第一行记录模板，则默认为 editor
+                    code_content = "".join(lines)
                 break
 
     if not found:
         return f"File not found: {project_id}", 404
 
-    return render_template('editor.html', pre_code=code_content)
+    # 根据 template_type 来渲染不同的模板
+    if template_type == "sharecode":
+        return render_template('sharecode.html', pre_code=code_content)
+    else:
+        # 默认为 editor
+        return render_template('editor.html', pre_code=code_content)
 
-@app.route('/sharecode')
-def sharecode():
-    return render_template('sharecode.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
@@ -246,9 +273,12 @@ sharecode.html:
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Pyodide Example</title>
-    <meta name="keywords" content="Python, JavaScript, Pyodide">
-    <meta name="description" content="">
+    <title>代码分享小工具｜便捷分享代码</title>
+    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码截图，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
     <style type="text/css" media="screen">
@@ -394,6 +424,25 @@ sharecode.html:
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
+
+        <!-- ========== 新增：语言选择器 ========== -->
+        <div class="choose-container" style="margin-left: 15px;">
+            <span class="ml-2 mr-2">Language: </span>
+            <select id="lang-selector" class="selectpicker" data-style="btn-dark" data-width="140px">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="c_cpp">C/C++</option>
+                <option value="java">Java</option>
+                <option value="php">PHP</option>
+                <option value="ruby">Ruby</option>
+                <option value="golang">Go</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="markdown">Markdown</option>
+                <!-- 需要更多可继续添加 -->
+            </select>
+        </div>
+
         <div class="choose-container theme-selector-container">
             <span class="ml-2 mr-2">Theme: </span>
             <select id="theme-selector" class="selectpicker" data-style="btn-dark" data-width="120px">
@@ -468,6 +517,16 @@ sharecode.html:
 <script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-javascript.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-c_cpp.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-java.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-php.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-ruby.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-golang.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
+
 <script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
 
 <!-- 第三方库 -->
@@ -481,13 +540,30 @@ sharecode.html:
 <!-- 已去掉 Pyodide 相关的引用与逻辑 -->
 
 <script type="text/javascript">
-    // 页面加载时，初始化 Ace 编辑器
+    /*******************************************************
+     *  1. 修复浏览器“前进 / 后退”无法加载最新代码的问题
+     *  通过监听 pageshow 事件检测 bfcache，如果命中缓存则刷新
+     *******************************************************/
+    window.addEventListener("pageshow", function (event) {
+        // 方式1：检测 event.persisted（命中 bfcache 时为 true）
+        // 方式2：检测 performance.navigation.type === 2
+        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // 2. 页面加载时，初始化 Ace 编辑器
     window.addEventListener("load", async function () {
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
         editor.session.setMode("ace/mode/python");
-        editor.setOptions({fontSize: "20pt"});
+        editor.setOptions({
+            fontSize: "20pt",
+            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+        });
 
         // Initialize bootstrap-select
         $('.selectpicker').selectpicker({
@@ -497,11 +573,25 @@ sharecode.html:
 
         // Set initial theme
         $('#theme-selector').selectpicker('val', 'monokai');
+        $('#lang-selector').selectpicker('val', 'python');
 
         // 主题切换事件
         $('#theme-selector').on('changed.bs.select', function () {
             let selectedTheme = $(this).val();
             window.editor.setTheme("ace/theme/" + selectedTheme);
+        });
+
+        // 语言切换事件
+        $('#lang-selector').on('changed.bs.select', function () {
+            let selectedLang = $(this).val();
+            // 注意：对于 python3 在 Ace 中一般是 "python" 这个 mode
+            // 如果使用外部 python3 模式文件，可能是 "mode-python3"
+            // 这里为了兼容，你可以做一个映射。这里简单处理：
+            if (selectedLang === 'python') {
+                editor.session.setMode("ace/mode/python");
+            } else {
+                editor.session.setMode("ace/mode/" + selectedLang);
+            }
         });
 
         // Ctrl-D / Command-D：复制当前行
@@ -517,10 +607,26 @@ sharecode.html:
         if (server_pre_code) {
             editor.setValue(server_pre_code, -1);
         } else {
-            // 否则使用默认示例
-            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
+            editor.setValue("# This editor does NOT run Python code.\n# You can edit and share the code, but there's no execution here.", -1);
         }
     });
+
+    // 简单的：从文件拓展名来猜测语言
+    function detectLanguageFromFilename(filename) {
+        let lowerName = filename.toLowerCase();
+        if (lowerName.endsWith(".py")) return "python";
+        if (lowerName.endsWith(".js")) return "javascript";
+        if (lowerName.endsWith(".c") || lowerName.endsWith(".cpp") || lowerName.endsWith(".h")) return "c_cpp";
+        if (lowerName.endsWith(".java")) return "java";
+        if (lowerName.endsWith(".php")) return "php";
+        if (lowerName.endsWith(".rb")) return "ruby";
+        if (lowerName.endsWith(".go")) return "golang";
+        if (lowerName.endsWith(".html")) return "html";
+        if (lowerName.endsWith(".css")) return "css";
+        if (lowerName.endsWith(".md")) return "markdown";
+        // 都不符合时，默认返回 python
+        return "python";
+    }
 
     // 打开文件
     function performClick(elemId) {
@@ -539,6 +645,16 @@ sharecode.html:
         let reader = new FileReader();
         reader.onload = function (e) {
             window.editor.setValue(e.target.result, -1);
+            // 自动识别语言
+            let autoLang = detectLanguageFromFilename(file.name);
+            // 设置 Ace 的 mode
+            if (autoLang === 'python') {
+                editor.session.setMode("ace/mode/python");
+            } else {
+                editor.session.setMode("ace/mode/" + autoLang);
+            }
+            // 同步更新下拉框
+            $('#lang-selector').selectpicker('val', autoLang);
         };
         reader.readAsText(file);
     }
@@ -546,18 +662,38 @@ sharecode.html:
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
+        // 这里可以根据当前 mode 来决定后缀，示例里简单判断
+        let langVal = $('#lang-selector').val();
+        let fileExt = ".txt";
+        if (langVal === "python") fileExt = ".py";
+        else if (langVal === "javascript") fileExt = ".js";
+        else if (langVal === "c_cpp") fileExt = ".cpp";
+        else if (langVal === "java") fileExt = ".java";
+        else if (langVal === "php") fileExt = ".php";
+        else if (langVal === "ruby") fileExt = ".rb";
+        else if (langVal === "golang") fileExt = ".go";
+        else if (langVal === "html") fileExt = ".html";
+        else if (langVal === "css") fileExt = ".css";
+        else if (langVal === "markdown") fileExt = ".md";
+
         let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
-        saveAs(blob, "bornforthis_code.py");
+        saveAs(blob, "bornforthis_code" + fileExt);
     }
 
     // 分享功能：上传代码到后端，返回一个可分享的链接
     function share() {
         let code = window.editor.getValue();
+        // 这里多传一个 language，方便后端存储
+        let langVal = $('#lang-selector').val();
         $.ajax({
             type: 'post',
             url: '/upload_code',
             dataType: 'json',
-            data: {code: code, language: 'python'},
+            data: {
+                code: code,
+                language: langVal,
+                template: 'sharecode'   // 告诉后端此分享来自 sharecode 模板
+            },
             success: function (d) {
                 // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
@@ -621,9 +757,12 @@ editor.html:
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Pyodide Example</title>
-    <meta name="keywords" content="Python, JavaScript, Pyodide">
-    <meta name="description" content="">
+    <title>Python在线代码编写</title>
+    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
     <style type="text/css" media="screen">
@@ -883,6 +1022,18 @@ editor.html:
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script type="text/javascript">
+    /****************************************************
+     *  1. 监听 pageshow 事件，检测 bfcache，如果命中则刷新
+     *  这样即可在浏览器前进 / 后退时，强制页面重新加载
+     ****************************************************/
+    window.addEventListener("pageshow", function (event) {
+        // 当页面从缓存中加载（前进 / 后退）时，执行刷新
+        if (event.persisted
+            || (typeof window.performance !== "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
     // 全局 pyodide 对象
     let pyodide = null;
 
@@ -1033,7 +1184,11 @@ ${code}
             type: 'post',
             url: '/upload_code',
             dataType: 'json',
-            data: {code: code, language: 'python'},
+            data: {
+                code: code,
+                language: 'python',
+                template: 'editor'   // 告诉后端此分享来自 editor，可执行 Python
+            },
             success: function (d) {
                 // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
