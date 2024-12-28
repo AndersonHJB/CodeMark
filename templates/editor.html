@@ -413,7 +413,11 @@ ${code}
             type: 'post',
             url: '/upload_code',
             dataType: 'json',
-            data: {code: code, language: 'python'},
+            data: {
+                code: code,
+                language: 'python',
+                template: 'editor'   // 告诉后端此分享来自 editor，可执行 Python
+            },
             success: function (d) {
                 // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
