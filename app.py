@@ -145,6 +145,9 @@ def article(filename):
                            meta=meta)  # 传给模板
     # 注意：元信息在前端可通过 meta 来获取，比如 meta.title, meta.author 等。
 
+@app.route('/sharecode')
+def sharecode():
+    return render_template('sharecode.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
