@@ -6,9 +6,13 @@
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-from flask import Flask, render_template
+
+from flask import Flask, render_template, request, jsonify
 import markdown
 import os, re, random
+import uuid
+import datetime
+import qrcode  # pip install qrcode[pil]
 
 app = Flask(__name__)
 
@@ -114,20 +118,20 @@ def article(filename):
     with open(full_path, 'r', encoding='utf-8') as f:
         content = f.read()
         md = markdown.Markdown(extensions=[
-            'extra',  # 包含tables、fenced_code、footnotes、def_list等一揽子常用扩展
+            'extra',  # 包含tables、fenced_code、footnotes、def_list等常用扩展
             'admonition',  # 支持 !!! note / warning 等提示块
-            'attr_list',  # 允许添加HTML属性，如 {#id .class} 写在 markdown 段落或标题后
+            'attr_list',  # 允许添加HTML属性
             'codehilite',  # 代码高亮
-            'def_list',  # 定义列表 (extra也有，留这里兼容一些场景)
-            'fenced_code',  # 代码块 (extra也有，留这里兼容一些场景)
-            'footnotes',  # 脚注
-            'tables',  # 表格 (extra也有，留这里兼容一些场景)
-            'abbr',  # 缩略词
-            'meta',  # 允许在文档开头书写元信息
-            'nl2br',  # 自动将单独的换行符转为 <br>
-            'sane_lists',  # 更智能地处理列表
-            'smarty',  # 智能引号、破折号等排版优化
-            'toc',  # 生成目录
+            'def_list',
+            'fenced_code',
+            'footnotes',
+            'tables',
+            'abbr',
+            'meta',
+            'nl2br',
+            'sane_lists',
+            'smarty',
+            'toc',
         ])
         html_content = md.convert(content)
         toc = md.toc
@@ -142,12 +146,95 @@ def article(filename):
                            toc=toc,
                            directory_tree=directory_tree,
                            current_file=filename,
-                           meta=meta)  # 传给模板
-    # 注意：元信息在前端可通过 meta 来获取，比如 meta.title, meta.author 等。
+                           meta=meta)
+
 
 @app.route('/sharecode')
 def sharecode():
-    return render_template('sharecode.html')
+    """
+    直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    """
+    return render_template('sharecode.html', pre_code="")
+
+
+@app.route('/upload_code', methods=['POST'])
+def upload_code():
+    """
+    前端 share() 函数会通过 AJAX 调用这个接口，提交代码内容。
+    这里将代码保存到本地文件，生成二维码图片，并返回一个可分享的链接。
+    """
+    # 从前端获取代码
+    code = request.form.get('code', '')
+    # 也可以取一下语言信息
+    language = request.form.get('language', '')
+
+    # 生成一个唯一 ID
+    unique_id = str(uuid.uuid4())
+    # 时间戳
+    timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    # 拼接最终 project_id
+    project_id = unique_id + "_" + timestamp
+
+    # 1. 先拼装 sharecode/<yearmonth>/ 路径
+    yearmonth = datetime.datetime.now().strftime('%Y%m')
+    month_folder = os.path.join('sharecode', yearmonth)
+    os.makedirs(month_folder, exist_ok=True)
+
+    # 2. 将代码写入本地 txt 文件
+    code_file_path = os.path.join(month_folder, project_id + ".txt")
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(code)
+
+    # 3. 生成二维码并保存在 sharecode/images 文件夹
+    images_folder = os.path.join('sharecode', 'images')
+    os.makedirs(images_folder, exist_ok=True)
+
+    # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
+    # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
+    share_link = request.host_url.strip('/') + "/share/" + project_id
+
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(share_link)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    img_file_path = os.path.join(images_folder, project_id + ".png")
+    img.save(img_file_path)
+
+    # 返回给前端
+    return jsonify({
+        "project_id": project_id,
+        "share_link": share_link,
+    })
+
+
+@app.route('/share/<project_id>')
+def show_shared_code(project_id):
+    """
+    当别人访问 /share/<project_id> 时，
+    从本地 txt 文件读取对应代码，然后带着 code 数据渲染 sharecode.html，
+    让其自动填充到编辑器中。
+    """
+    code_content = "File not found or removed."
+    sharecode_root = "sharecode"
+    found = False
+
+    # 遍历 sharecode 文件夹下的所有子目录，找 <project_id>.txt
+    for folder in os.listdir(sharecode_root):
+        folder_path = os.path.join(sharecode_root, folder)
+        if os.path.isdir(folder_path):
+            possible_path = os.path.join(folder_path, project_id + ".txt")
+            if os.path.isfile(possible_path):
+                with open(possible_path, 'r', encoding='utf-8') as f:
+                    code_content = f.read()
+                found = True
+                break
+
+    if not found:
+        return f"File not found: {project_id}", 404
+
+    return render_template('sharecode.html', pre_code=code_content)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

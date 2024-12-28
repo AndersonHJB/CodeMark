@@ -145,6 +145,17 @@
             background-color: #5a5a5a;
         }
     </style>
+
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
+    {% if pre_code %}
+    <script>
+        let server_pre_code = {{ pre_code|tojson }};
+    </script>
+    {% else %}
+    <script>
+        let server_pre_code = "";
+    </script>
+    {% endif %}
 </head>
 
 <body>
@@ -200,6 +211,7 @@
                 </button>
             </div>
             <div class="modal-body text-center">
+                <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
                 <p>You can save this picture or scan the QR code to share it.</p>
             </div>
@@ -301,8 +313,13 @@
         });
         // ========== 自定义快捷键结束 ==========
 
-        // 初始化示例代码
-        editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')");
+        // 如果后端传来了 server_pre_code，则用它来填充编辑器
+        if (server_pre_code) {
+            editor.setValue(server_pre_code, -1);
+        } else {
+            // 否则使用默认示例
+            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
+        }
     });
 
     // 加载 Pyodide，并预先加载一些常用包
@@ -377,7 +394,7 @@ ${code}
         }
         let reader = new FileReader();
         reader.onload = function (e) {
-            window.editor.setValue(e.target.result);
+            window.editor.setValue(e.target.result, -1);
         };
         reader.readAsText(file);
     }
@@ -389,21 +406,29 @@ ${code}
         saveAs(blob, "bornforthis_code.py");
     }
 
-    // 分享功能（演示用，需要自行实现上传接口）
+    // 分享功能：上传代码到后端，返回一个可分享的链接
     function share() {
         let code = window.editor.getValue();
-        // 这里的上传接口，需要你自己实现
         $.ajax({
             type: 'post',
             url: 'upload_code',
             dataType: 'json',
             data: {code: code, language: 'python'},
             success: function (d) {
-                let codeUrl = window.location.origin + "/?id=" + d.project_id;
-                jQuery('#qrcode').qrcode(codeUrl);
-                $('.modal-title').html('Code link：<a href="' + codeUrl + '">' + codeUrl + '</a>');
-                let canvas = $('#qrcode canvas')[0];
-                let qrcode_src = canvas.toDataURL('image/jpg');
+                // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
+                let shareLink = d.share_link;
+
+                // 1. 生成二维码（内容是 shareLink）
+                $('#qrcode').empty();
+                $('#qrcode').qrcode(shareLink);
+
+                // 2. 更新弹窗标题
+                $('.modal-title').html('Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>');
+
+                // 3. 把二维码叠加到编辑器截图的右上角
+                let qrcodeCanvas = $('#qrcode canvas')[0];
+                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+                // 先清掉 #qrcode 里的画布，准备插入合成图
                 $('#qrcode').html('');
 
                 html2canvas(document.querySelector("#editor")).then(canvas => {
@@ -411,14 +436,19 @@ ${code}
                     let img = new Image();
                     img.src = qrcode_src;
                     img.onload = function () {
-                        ctx.globalAlpha = 1;
-                        ctx.drawImage(img, canvas.width - img.width - 10, 10);
-                        let imgElement = document.createElement("img");
-                        imgElement.src = canvas.toDataURL('image/png');
-                        document.getElementById("qrcode").appendChild(imgElement);
+                        // 在编辑器截图上叠加二维码，缩小到 120x120
+                        let qrSize = 120;
+                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+
+                        // 显示合成后的最终图片
+                        let finalImgElement = document.createElement("img");
+                        finalImgElement.src = canvas.toDataURL('image/png');
+                        document.getElementById("qrcode").appendChild(finalImgElement);
                     }
                 });
-                $('#share-modal').modal('show')
+
+                // 4. 显示分享弹窗
+                $('#share-modal').modal('show');
             }
         });
     }
