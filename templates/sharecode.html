@@ -411,7 +411,7 @@ ${code}
         let code = window.editor.getValue();
         $.ajax({
             type: 'post',
-            url: 'upload_code',
+            url: '/upload_code',
             dataType: 'json',
             data: {code: code, language: 'python'},
             success: function (d) {
