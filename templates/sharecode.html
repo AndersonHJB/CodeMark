@@ -268,7 +268,27 @@
         window.editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
         editor.session.setMode("ace/mode/python");
-        editor.setOptions({fontSize: "20pt"});
+        editor.setOptions({ fontSize: "20pt" });
+        // ========== 绑定自定义快捷键 ==========
+        // Ctrl/Command + D：复制当前行
+        editor.commands.addCommand({
+            name: 'duplicateLine',
+            bindKey: { win: 'Ctrl-D', mac: 'Command-D' },
+            exec: function (editor) {
+                // 调用 Ace 内置命令 copylinesdown
+                editor.execCommand("copylinesdown");
+            }
+        });
+
+        // Ctrl/Command + B：直接执行代码
+        editor.commands.addCommand({
+            name: 'runCode',
+            bindKey: { win: 'Ctrl-B', mac: 'Command-B' },
+            exec: function () {
+                run();
+            }
+        });
+        // ========== 自定义快捷键结束 ==========
 
         // 初始化示例代码
         editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')");
