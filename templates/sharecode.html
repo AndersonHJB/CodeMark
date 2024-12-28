@@ -7,6 +7,15 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
     <style type="text/css" media="screen">
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            /* 如果不想出现滚动条，可以保留下面这句。
+               但为了更好地自适应，一般建议去掉。 */
+            /* overflow: hidden; */
+        }
+
         .ace_editor .ace_content span,
         .ace_editor .ace_content .ace_line {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace!important;
@@ -77,16 +86,20 @@
         .code-container {
             padding-left: 0;
             padding-right: 0;
+            /* 让编辑器所在列可伸缩，占满剩余空间 */
+            height: calc(100vh - 56px);
+            overflow: hidden;
         }
 
         #editor {
-            padding-right: 0;
-            padding-left: 0;
+            /* 让 Ace Editor 占满父容器的高度 */
+            height: 100%;
+            width: 100%;
         }
 
         .console {
             width: 100%;
-            height: 100%;
+            height: calc(100vh - 56px);
             background-color: #000;
             color: #FFF;
             font-size: 20px;
@@ -103,15 +116,6 @@
         .modal-dialog {
             max-width: 90%;
         }
-
-        html, body {
-            height: 100%;
-        }
-
-        body {
-            overflow: hidden;
-        }
-
         /* Add custom styles for bootstrap-select in dark theme */
         .bootstrap-select .dropdown-toggle {
             background-color: #4a4a4a;
@@ -236,9 +240,6 @@
     window.addEventListener("load", async function () {
         // 加载 Pyodide 及常用包
         await loadPyodideAndPackages();
-
-        // 设置编辑器高度
-        document.getElementById("editor").style.height = (window.innerHeight - 56) + "px";
 
         // Initialize ace editor
         ace.config.set("basePath", "static/js/ace/");
