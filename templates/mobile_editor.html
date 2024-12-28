@@ -1,139 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Python在线代码编写 - 移动端</title>
+    <title>Python在线代码编写</title>
     <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
-    <meta name="description" content="一个方便不用安装环境，可以在浏览器编写并分享Python代码的移动端小工具，还可以生成带二维码的代码截图，方便分享。">
-    <!-- 移动端适配 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
+    <meta name="description" content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 关键：移动端自适应 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
-
     <style type="text/css" media="screen">
-        /* 基础样式 */
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             background-color: #2f3129;
-            /* 移动端可滚动 */
-            overflow: auto;
+            overflow: hidden; /* PC 端默认隐藏滚动条 */
         }
+
         .container-fluid {
             margin: 0;
             padding: 0;
         }
 
-        /* 按钮区域在顶部 */
+        .row.no-gutters {
+            margin-right: 0;
+            margin-left: 0;
+        }
+
+        .col-sm-8, .col-md-4 {
+            padding: 0 !important;
+        }
+
+        .ace_editor .ace_content span,
+        .ace_editor .ace_content .ace_line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+        }
+
+        img {
+            max-width: 100%;
+        }
+
+        /* ============ 按钮区域与编辑器布局 ============ */
         .btn-area {
             height: 56px;
             background-color: #2f3129;
-            display: flex;
-            flex-direction: row;
+            white-space: nowrap; /* 保证按钮不换行 */
         }
+
         .btn-area button {
+            float: left;
             color: #fff;
             border-radius: 0;
             border-width: 0;
+            height: 100%;
             width: 80px;
         }
+
         #run {
             background-color: #a7c336;
-            color: #fff;
         }
+
         #save {
             background-color: #6dddf2;
         }
+
         #open {
             background-color: #f53855;
         }
+
         #share {
             background-color: #a7c336;
         }
+
         #home {
             background-color: #ef7d62;
         }
 
-        /* 主题下拉等 */
-        .choose-container {
+        .choose-container,
+        .theme-choose {
             color: #fff;
             padding-left: 5px;
             padding-right: 5px;
             display: flex;
             align-items: center;
         }
-        .help-link-container a {
-            color: #fff;
-        }
 
-        /* 代码编辑器容器 */
-        .editor-container {
-            /* 顶部有按钮区 56px，高度可根据需要调整 */
+        .code-container {
             height: calc(100vh - 56px);
             overflow: hidden;
         }
+
         #editor {
             height: 100%;
             width: 100%;
         }
 
-        /* ========= 移动端底部弹出控制台 ========= */
-        #mobile-console-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #000;
-            transform: translateY(100%); /* 初始隐藏在页面底部 */
-            transition: transform 0.3s ease-in-out;
-            z-index: 9999;
-        }
-        /* 显示时，从底部滑上来 */
-        #mobile-console-container.show {
-            transform: translateY(0);
-        }
-        /* 标题栏样式，可自行调整 */
-        .mobile-console-header {
-            background-color: #333;
+        .help-link-container a {
             color: #fff;
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .mobile-console-header button {
-            border: none;
-            background: transparent;
-            color: #fff;
-            font-size: 20px;
-        }
-        /* 底部弹出中的输出区 */
-        #console-mobile {
-            width: 100%;
-            height: 50vh; /* 占屏幕一半高度，可按需调整 */
+
+        /* ============ PC 端右侧控制台布局 ============ */
+        #console-panel {
+            height: calc(100vh - 56px);
             background-color: #000;
             color: #FFF;
-            font-size: 16px;
-            border: none;
+            font-size: 20px;
+            font-weight: 700;
+            border-width: 0;
             font-family: 'Monaco', 'Consolas', serif;
-            padding: 8px;
+            padding: 8px 8px;
             white-space: pre;
             overflow-x: auto;
             overflow-y: auto;
             resize: none;
         }
 
-        /* modal 样式微调 */
-        .modal-dialog {
-            max-width: 90%;
+        /* ============ 移动端“底部弹出”控制台容器 ============ */
+        .mobile-console-container {
+            position: fixed;
+            bottom: -80%; /* 初始隐藏在屏幕下方 */
+            left: 0;
+            width: 100%;
+            height: 80%;
+            background-color: #000;
+            color: #fff;
+            z-index: 9999;
+            transition: bottom 0.3s ease-in-out;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .mobile-console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #444;
+            padding: 5px 10px;
+            color: #fff;
+            font-weight: bold;
+        }
+        .mobile-console-close {
+            cursor: pointer;
+            color: #fff;
+            font-size: 24px;
+            line-height: 24px;
+        }
+        .mobile-console-body {
+            padding-top: 10px;
         }
 
-        /* 深色主题下拉菜单 */
+        /* ============ 侧边按钮栏（小屏幕下隐藏，在右侧浮动箭头触发） ============ */
+        .sidebar-btn-area {
+            position: fixed;
+            right: -240px; /* 初始隐藏在右侧 */
+            top: 0;
+            width: 240px;
+            height: 100%;
+            background-color: #2f3129;
+            z-index: 9998;
+            transition: right 0.3s ease-in-out;
+        }
+        .sidebar-btn-area.show-sidebar {
+            right: 0; /* 切换到显示 */
+        }
+        /* 内部按钮区 */
+        .sidebar-btn-container {
+            display: flex;
+            flex-wrap: wrap;
+            height: 56px;
+        }
+        .sidebar-btn-container button {
+            margin-right: 0;
+            flex: 1;
+        }
+
+        /* 浮动箭头 */
+        .toggle-sidebar-btn {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 9999;
+            background-color: #111;
+            color: #fff;
+            border: none;
+            font-size: 20px;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* ============ 让主题选择、About 链接在侧边栏可展示 ============ */
+        .sidebar-extra {
+            margin-top: 10px;
+            padding: 10px;
+            color: #fff;
+        }
+
+        /* ============ Bootstrap-select 的暗色样式 ============ */
         .bootstrap-select .dropdown-toggle {
             background-color: #4a4a4a;
             border-color: #666;
@@ -141,6 +209,27 @@
         }
         .bootstrap-select .dropdown-toggle:hover {
             background-color: #5a5a5a;
+        }
+
+        /* ============ 响应式：小于768px时启用移动端布局 ============ */
+        @media (max-width: 767px) {
+            /* 隐藏 PC 端的右侧并排布局 */
+            .col-md-4 {
+                display: none;
+            }
+            /* 编辑器全屏 (除按钮区域外) */
+            .code-container {
+                height: calc(100vh - 56px);
+                width: 100%;
+            }
+            /* 隐藏底部按钮行（btn-area），改用右侧栏 + 浮动按钮 */
+            .btn-area {
+                display: none;
+            }
+            /* 允许垂直滚动（移动端通常需要） */
+            html, body {
+                overflow: auto;
+            }
         }
     </style>
 
@@ -158,14 +247,25 @@
 
 <body>
 <div class="container-fluid">
-    <!-- 顶部按钮区域 -->
-    <div class="row btn-area no-gutters">
-        <button id="run" onclick="run()">> run</button>
+    <div class="row">
+        <!-- 代码编辑区 -->
+        <div class="col-sm-8 code-container">
+            <div id="editor"></div>
+        </div>
+        <!-- PC 端并排显示的控制台输出区 -->
+        <div class="col-md-4 pl-0 pr-0">
+            <textarea id="console-panel" autocomplete="off">Initializing Pyodide...</textarea>
+        </div>
+    </div>
+
+    <!-- PC端的按钮区域（仅在大屏幕显示） -->
+    <div class="row btn-area">
+        <button id="run" onclick="handleRunClick()">> run</button>
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
         <button id="home" onclick="home()">home</button>
-        <div class="choose-container">
+        <div class="choose-container theme-selector-container">
             <span class="ml-2 mr-2">Theme: </span>
             <select id="theme-selector" class="selectpicker" data-style="btn-dark" data-width="120px">
                 <option value="monokai">monokai</option>
@@ -184,23 +284,59 @@
         <div class="help-link-container my-auto ml-3">
             <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
         </div>
-        <!-- 隐藏的文件选择框 -->
-        <input id="file-input" type="file" style="display:none;"/>
-    </div>
-
-    <!-- 代码编辑器区域 -->
-    <div class="editor-container">
-        <div id="editor"></div>
+        <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
     </div>
 </div>
 
-<!-- 底部弹出式控制台 -->
-<div id="mobile-console-container">
-    <div class="mobile-console-header">
-        <span>Console</span>
-        <button onclick="toggleMobileConsole()">&times;</button>
+<!-- 小屏幕下，用于侧边隐藏的按钮区域 + 浮动箭头 -->
+<button class="toggle-sidebar-btn" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-btn-area" id="sidebarBtnArea">
+    <!-- 上方按钮行 -->
+    <div class="sidebar-btn-container">
+        <button id="run2" onclick="handleRunClick()">> run</button>
+        <button id="save2" onclick="save()">save</button>
     </div>
-    <textarea id="console-mobile" autocomplete="off">Initializing Pyodide...</textarea>
+    <!-- 下方按钮行 -->
+    <div class="sidebar-btn-container">
+        <button id="open2" onclick="performClick('file-input')">open</button>
+        <button id="share2" onclick="share()">share</button>
+    </div>
+    <!-- 更多按钮 -->
+    <div class="sidebar-btn-container">
+        <button id="home2" onclick="home()">home</button>
+    </div>
+    <div class="sidebar-extra">
+        <div class="choose-container theme-selector-container">
+            <span class="ml-2 mr-2">Theme: </span>
+            <select id="theme-selector-mobile" class="selectpicker" data-style="btn-dark" data-width="120px">
+                <option value="monokai">monokai</option>
+                <option value="github">github</option>
+                <option value="tomorrow">tomorrow</option>
+                <option value="kuroir">kuroir</option>
+                <option value="twilight">twilight</option>
+                <option value="vibrant_ink">vibrant_ink</option>
+                <option value="xcode">xcode</option>
+                <option value="textmate">textmate</option>
+                <option value="terminal">terminal</option>
+                <option value="solarized_dark">solarized dark</option>
+                <option value="solarized_light">solarized light</option>
+            </select>
+        </div>
+        <div class="help-link-container mt-2">
+            <a id="about-mobile" href="#" data-toggle="modal" data-target="#about-modal">About</a>
+        </div>
+    </div>
+</div>
+
+<!-- 移动端 底部弹出的控制台区域 -->
+<div class="mobile-console-container" id="mobileConsole">
+    <div class="mobile-console-header">
+        <span>Console Output</span>
+        <span class="mobile-console-close" onclick="closeMobileConsole()">&times;</span>
+    </div>
+    <div class="mobile-console-body">
+        <textarea id="mobile-console-panel" style="width:100%;height:calc(100% - 10px);background:#000;color:#fff;font-size:18px;border:none;resize:none;" readonly></textarea>
+    </div>
 </div>
 
 <!-- Share Modal -->
@@ -214,8 +350,8 @@
                 </button>
             </div>
             <div class="modal-body text-center">
-                <!-- 动态生成二维码+最终合成图 -->
-                <div id="qrcode" style="margin:0 auto 20px auto;"></div>
+                <!-- 这里会动态生成二维码+最终合成图 -->
+                <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
                 <p>You can save this picture or scan the QR code to share it.</p>
             </div>
             <div class="modal-footer">
@@ -250,7 +386,7 @@
     </div>
 </div>
 
-<!-- 代码编辑器相关 -->
+<!-- ================== 代码编辑器相关 ================== -->
 <script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
@@ -268,6 +404,7 @@
 <script type="text/javascript">
     /****************************************************
      *  1. 监听 pageshow 事件，检测 bfcache，如果命中则刷新
+     *  这样即可在浏览器前进 / 后退时，强制页面重新加载
      ****************************************************/
     window.addEventListener("pageshow", function (event) {
         if (event.persisted
@@ -276,37 +413,49 @@
         }
     });
 
-    let pyodide = null; // 全局 pyodide 对象
+    // 全局 pyodide 对象
+    let pyodide = null;
 
-    // 切换底部控制台的显示/隐藏
-    function toggleMobileConsole() {
-        const consoleContainer = document.getElementById('mobile-console-container');
-        consoleContainer.classList.toggle('show');
-    }
-
-    // 页面加载时初始化 Pyodide 和编辑器
+    // 页面加载时，初始化 Pyodide 和编辑器
     window.addEventListener("load", async function () {
+        // 加载 Pyodide 及常用包
         await loadPyodideAndPackages();
 
-        // 初始化 Ace Editor
+        // Initialize ace editor
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
         editor.session.setMode("ace/mode/python");
-        editor.setOptions({fontSize: "16pt"}); // 移动端字体可稍大
+        editor.setOptions({ fontSize: "20pt", wrap: true });
 
-        // 初始化 bootstrap-select
+        // Initialize bootstrap-select
         $('.selectpicker').selectpicker({
             style: 'btn-dark',
             size: 10
         });
+
+        // PC 端 & 移动端默认主题
         $('#theme-selector').selectpicker('val', 'monokai');
+        $('#theme-selector-mobile').selectpicker('val', 'monokai');
+
+        // 监听主题选择变化（PC端）
         $('#theme-selector').on('changed.bs.select', function () {
             let selectedTheme = $(this).val();
             window.editor.setTheme("ace/theme/" + selectedTheme);
+            // 同步移动端下拉
+            $('#theme-selector-mobile').selectpicker('val', selectedTheme);
         });
 
-        // 自定义快捷键 - 复制当前行
+        // 监听主题选择变化（移动端）
+        $('#theme-selector-mobile').on('changed.bs.select', function () {
+            let selectedTheme = $(this).val();
+            window.editor.setTheme("ace/theme/" + selectedTheme);
+            // 同步PC端下拉
+            $('#theme-selector').selectpicker('val', selectedTheme);
+        });
+
+        // 自定义快捷键
+        // 1) Ctrl/Command + D：复制当前行
         editor.commands.addCommand({
             name: 'duplicateLine',
             bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
@@ -314,41 +463,42 @@
                 editor.execCommand("copylinesdown");
             }
         });
-        // 自定义快捷键 - 运行代码
+        // 2) Ctrl/Command + B：直接执行代码
         editor.commands.addCommand({
             name: 'runCode',
             bindKey: {win: 'Ctrl-B', mac: 'Command-B'},
             exec: function () {
-                run();
+                handleRunClick();
             }
         });
 
-        // 如果后端传来了 server_pre_code，就用它来填充编辑器
+        // 如果后端传来了 server_pre_code，则用它来填充编辑器
         if (server_pre_code) {
             editor.setValue(server_pre_code, -1);
         } else {
-            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide on Mobile!')", -1);
+            // 否则使用默认示例
+            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
         }
     });
 
-    // 加载 Pyodide 并预装一些常用包
+    // 加载 Pyodide，并预先加载一些常用包
     async function loadPyodideAndPackages() {
         pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
         });
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
-        document.getElementById("console-mobile").value = "Pyodide and packages loaded!\n";
+        document.getElementById("console-panel").value = "Pyodide and packages loaded!\n";
+        document.getElementById("mobile-console-panel").value = "Pyodide and packages loaded!\n";
     }
 
     // 执行 Python 代码
     async function run() {
         let code = window.editor.getValue();
-        let consoleElement = document.getElementById("console-mobile");
         // 清空控制台
-        consoleElement.value = "";
-
-        // 点击 run 后自动显示控制台
-        toggleMobileConsole();
+        const consoleDesktop = document.getElementById("console-panel");
+        const consoleMobile = document.getElementById("mobile-console-panel");
+        consoleDesktop.value = "";
+        consoleMobile.value = "";
 
         try {
             await pyodide.runPythonAsync(`
@@ -363,8 +513,12 @@ class PyodideIO:
 
 def js_console_write(text):
     import js
-    textarea = js.document.getElementById("console-mobile")
-    textarea.value += text + "\\n"
+    # 同时写到PC端的 console-panel 和移动端的 mobile-console-panel
+    desktop_area = js.document.getElementById("console-panel")
+    mobile_area = js.document.getElementById("mobile-console-panel")
+    # 换行
+    desktop_area.value += text + "\\n"
+    mobile_area.value += text + "\\n"
 
 def py_input(prompt=''):
     return js.window.prompt(prompt)
@@ -376,8 +530,38 @@ sys.stderr = PyodideIO()
 ${code}
             `);
         } catch (err) {
-            consoleElement.value += String(err) + "\n";
+            consoleDesktop.value += String(err) + "\n";
+            consoleMobile.value += String(err) + "\n";
         }
+    }
+
+    // run 按钮点击事件：运行并在移动端弹出控制台
+    function handleRunClick() {
+        run();
+        // 如果是移动端视口，自动弹出控制台
+        if (window.innerWidth < 768) {
+            openMobileConsole();
+        }
+    }
+
+    // 侧边栏切换
+    function toggleSidebar() {
+        let sidebar = document.getElementById("sidebarBtnArea");
+        if (sidebar.classList.contains("show-sidebar")) {
+            sidebar.classList.remove("show-sidebar");
+        } else {
+            sidebar.classList.add("show-sidebar");
+        }
+    }
+
+    // 打开移动端底部弹出的控制台
+    function openMobileConsole() {
+        document.getElementById("mobileConsole").style.bottom = "0";
+    }
+
+    // 关闭移动端底部弹出的控制台
+    function closeMobileConsole() {
+        document.getElementById("mobileConsole").style.bottom = "-80%";
     }
 
     // 打开文件
@@ -387,20 +571,25 @@ ${code}
             elem.click();
         }
     }
+
     // 读文件
     function readSingleFile(e) {
         let file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+            return;
+        }
         let reader = new FileReader();
         reader.onload = function (e) {
             window.editor.setValue(e.target.result, -1);
         };
         reader.readAsText(file);
     }
+
     // 回到首页
     function home() {
         window.location.href = "/";
     }
+
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
@@ -408,7 +597,7 @@ ${code}
         saveAs(blob, "bornforthis_code.py");
     }
 
-    // 分享功能：上传代码到后端，返回可分享的链接
+    // 分享功能：上传代码到后端，返回一个可分享的链接
     function share() {
         let code = window.editor.getValue();
         $.ajax({
@@ -422,7 +611,6 @@ ${code}
             },
             success: function (d) {
                 let shareLink = d.share_link;
-                // 1. 生成二维码
                 $('#qrcode').empty();
                 $('#qrcode').qrcode({
                     text: shareLink,
@@ -430,15 +618,12 @@ ${code}
                     height: 200
                 });
 
-                // 2. 更新弹窗标题
                 $('.modal-title').html(
                     'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
                 );
 
-                // 合成二维码到编辑器截图
                 let qrcodeCanvas = $('#qrcode canvas')[0];
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
-
                 let existingFinalImageContainer = document.getElementById("final-image-container");
                 if (existingFinalImageContainer) {
                     existingFinalImageContainer.remove();
@@ -448,7 +633,6 @@ ${code}
                 finalImageContainer.style.marginTop = "20px";
                 document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-                // 截图编辑器并把二维码绘制到右上角
                 html2canvas(document.querySelector("#editor")).then(canvas => {
                     let ctx = canvas.getContext('2d');
                     let img = new Image();
@@ -456,7 +640,6 @@ ${code}
                     img.onload = function () {
                         let qrSize = 120;
                         ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
-
                         let finalImgElement = document.createElement("img");
                         finalImgElement.src = canvas.toDataURL('image/png');
                         finalImgElement.style.maxWidth = "90%";
@@ -464,12 +647,12 @@ ${code}
                     }
                 });
 
-                // 4. 显示分享弹窗
                 $('#share-modal').modal('show');
             }
         });
     }
 
+    // 监听文件选择
     document.getElementById('file-input').addEventListener('change', readSingleFile, false);
 </script>
 </body>
