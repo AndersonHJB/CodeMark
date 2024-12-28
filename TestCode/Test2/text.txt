@@ -7,8 +7,7 @@ app.py:
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, url_for
 import markdown
 import os, re, random
 import uuid
@@ -16,7 +15,8 @@ import datetime
 import qrcode  # pip install qrcode[pil]
 
 app = Flask(__name__)
-
+# app.config['SERVER_NAME'] = 'codemark.bornforthis.cn'  # 用于生成绝对 URL，可根据实际情况修改
+# app.config['PREFERRED_URL_SCHEME'] = 'https' # 强制使用 https
 
 def parse_sort_key(filename):
     """
@@ -210,7 +210,8 @@ def upload_code():
 
     # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
     # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
-    share_link = request.host_url.strip('/') + "/share/" + project_id
+    # share_link = request.host_url.strip('/') + "/share/" + project_id
+    share_link = url_for('show_shared_code', project_id=project_id, _external=True)  # 可以强制 https: _scheme='https'
 
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(share_link)
@@ -268,7 +269,8 @@ def show_shared_code(project_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(host="0.0.0.0", port=8991)
 sharecode.html:
 <!DOCTYPE html>
 <html lang="en">
@@ -287,9 +289,7 @@ sharecode.html:
             margin: 0;
             padding: 0;
             background-color: #2f3129;
-            /* 若想强制隐藏滚动条可加：
-               overflow: hidden;
-            */
+            overflow: hidden;
         }
 
         .container-fluid {
@@ -771,9 +771,7 @@ editor.html:
             margin: 0;
             padding: 0;
             background-color: #2f3129;
-            /* 若想强制隐藏滚动条可加：
-               overflow: hidden;
-            */
+            overflow: hidden;
         }
 
         .container-fluid {

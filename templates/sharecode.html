@@ -70,6 +70,10 @@
             background-color: #a7c336;
         }
 
+        #home {
+            background-color: #ef7d62;
+        }
+
         .help-link-container a {
             color: #fff;
         }
@@ -150,6 +154,7 @@
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
+        <button id="home" onclick="home()">home</button>
 
         <!-- ========== 新增：语言选择器 ========== -->
         <div class="choose-container" style="margin-left: 15px;">
@@ -384,7 +389,10 @@
         };
         reader.readAsText(file);
     }
-
+    // 回到首页
+    function home() {
+        window.location.href = "/";
+    }
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
