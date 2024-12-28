@@ -148,14 +148,27 @@ def article(filename):
                            current_file=filename,
                            meta=meta)
 
-
+def is_mobile(user_agent: str) -> bool:
+    """
+    判断是否为移动端访问，根据 user-agent 中常见的移动端标识来做简单匹配。
+    你可以根据业务需要，添加或修改更多关键词。
+    """
+    mobile_regex = re.compile(r'Mobile|Android|iPhone|iPad|iPod', re.IGNORECASE)
+    return bool(mobile_regex.search(user_agent))
 @app.route('/editor')
 def editor():
     """
     直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用可执行 Python 的模板 editor.html。
     """
-    return render_template('editor.html', pre_code="")
+    # 获取 User-Agent
+    user_agent = request.headers.get('User-Agent', '')
+    if is_mobile(user_agent):
+        # 如果是移动端，则渲染 mobile_editor.html
+        return render_template('mobile_editor.html', pre_code="")
+    else:
+        # 否则渲染原本的 editor.html
+        return render_template('editor.html', pre_code="")
 
 
 @app.route('/sharecode')
