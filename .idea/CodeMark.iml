@@ -27,6 +27,7 @@
     <orderEntry type="library" name="bootstrap-select" level="application" />
     <orderEntry type="library" name="html2canvas" level="application" />
     <orderEntry type="library" name="jquery.qrcode" level="application" />
+    <orderEntry type="library" name="jquery-3.6.0" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Jinja2" />
