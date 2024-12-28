@@ -30,6 +30,7 @@
 - [codemirror](https://codemirror.net/)
 - [codemirror](https://cdnjs.com/libraries/codemirror)
 - [pyodide](https://pyodide.org/en/stable/index.html)
+- [ace-builds](https://github.com/ajaxorg/ace-builds)
 
 ## 声明🖨️
 
