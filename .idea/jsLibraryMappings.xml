@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="JavaScriptLibraryMappings">
-    <file url="file://$PROJECT_DIR$" libraries="{bootstrap, codemirror, highlight.js, mathjax, prismjs}" />
+    <file url="file://$PROJECT_DIR$" libraries="{ace, bootstrap, bootstrap-select, codemirror, highlight.js, html2canvas, jquery.qrcode, mathjax, popper.js, prismjs}" />
   </component>
 </project>
