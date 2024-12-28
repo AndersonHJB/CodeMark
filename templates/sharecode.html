@@ -4,6 +4,9 @@
     <title>代码分享小工具｜便捷分享代码</title>
     <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
     <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码截图，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
     <style type="text/css" media="screen">
@@ -265,7 +268,19 @@
 <!-- 已去掉 Pyodide 相关的引用与逻辑 -->
 
 <script type="text/javascript">
-    // 页面加载时，初始化 Ace 编辑器
+    /*******************************************************
+     *  1. 修复浏览器“前进 / 后退”无法加载最新代码的问题
+     *  通过监听 pageshow 事件检测 bfcache，如果命中缓存则刷新
+     *******************************************************/
+    window.addEventListener("pageshow", function (event) {
+        // 方式1：检测 event.persisted（命中 bfcache 时为 true）
+        // 方式2：检测 performance.navigation.type === 2
+        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // 2. 页面加载时，初始化 Ace 编辑器
     window.addEventListener("load", async function () {
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
