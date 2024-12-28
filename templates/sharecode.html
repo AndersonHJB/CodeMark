@@ -324,10 +324,13 @@ ${code}
 
     // 打开文件
     function performClick(elemId) {
-        let elem = document.getElementById(elemId);
-        if (elem && document.createEvent) {
-            let evt = document.createEvent("MouseEvents");
-            evt.initEvent("click", true, false);
+        const elem = document.getElementById(elemId);
+        if (elem) {
+            const evt = new MouseEvent("click", {
+                bubbles: true,
+                cancelable: false,
+                view: window
+            });
             elem.dispatchEvent(evt);
         }
     }
