@@ -218,7 +218,7 @@
                 <h3>About</h3>
                 <hr>
                 <p>This page demonstrates running Python in the browser with Pyodide.</p>
-                <p>All p5.js references have been removed in this version.</p>
+                <p>We have added support for micropip, NumPy, and Pandas.</p>
                 <p>Enjoy exploring Pyodide!</p>
                 <a href="https://github.com/AndersonHJB/">Github</a>
             </div>
@@ -252,7 +252,7 @@
 
     // 页面加载时，初始化 Pyodide 和编辑器
     window.addEventListener("load", async function () {
-        // 加载 Pyodide
+        // 加载 Pyodide 及常用包
         await loadPyodideAndPackages();
 
         // 设置编辑器高度
@@ -270,13 +270,17 @@
         editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')");
     });
 
+    // 加载 Pyodide，并预先加载一些常用包
     async function loadPyodideAndPackages() {
         // 加载 pyodide
         pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
         });
+        // 通过内置的 loadPackage 方式加载 micropip、numpy、pandas 等
+        await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
+
         // 在控制台提示一下
-        document.getElementById("console").value = "Pyodide loaded!\n";
+        document.getElementById("console").value = "Pyodide and packages loaded!\n";
     }
 
     // 执行 Python 代码
@@ -395,7 +399,7 @@ ${code}
     document.getElementById('file-input').addEventListener('change', readSingleFile, false);
 
     // 主题选择监听
-    $('#theme-selector').on('changed.bs.select', function (e, clickedIndex, isSelected, previousValue) {
+    $('#theme-selector').on('changed.bs.select', function (e, clickedIndex) {
         if (clickedIndex !== null) {
             let theme = $('#theme-selector option')[clickedIndex].getAttribute('value');
             window.editor.setTheme("ace/theme/" + theme);
