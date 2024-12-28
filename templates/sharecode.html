@@ -272,8 +272,7 @@
         if (server_pre_code) {
             editor.setValue(server_pre_code, -1);
         } else {
-            // 否则使用默认示例
-            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
+            editor.setValue("# This editor does NOT run Python code.\n# You can edit and share the code, but there's no execution here.", -1);
         }
     });
 
@@ -312,7 +311,11 @@
             type: 'post',
             url: '/upload_code',
             dataType: 'json',
-            data: {code: code, language: 'python'},
+            data: {
+                code: code,
+                language: 'python',
+                template: 'sharecode'   // 告诉后端此分享来自 sharecode 模板
+            },
             success: function (d) {
                 // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
