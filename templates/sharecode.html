@@ -56,6 +56,7 @@
             width: 80px;
         }
 
+        /* 原 run 按钮已移除，仅保留 save / open / share */
         #save {
             background-color: #6dddf2;
         }
@@ -104,6 +105,8 @@
             width: 100%;
         }
 
+        /* 已去除与输出框相关的样式 */
+
         .modal-dialog {
             max-width: 90%;
         }
@@ -135,16 +138,14 @@
 <body>
 <div class="container-fluid">
     <div class="row">
-        <!-- 代码编辑区 -->
-        <div class="col-sm-8 code-container">
+        <!-- 代码编辑区：只保留编辑器，不再展示输出框 -->
+        <div class="col-sm-12 code-container">
             <div id="editor"></div>
         </div>
-        <!-- 已去掉控制台输出区 -->
     </div>
 
-    <!-- 按钮区域 -->
+    <!-- 按钮区域：已去掉运行按钮 -->
     <div class="row btn-area">
-        <!-- 已去掉运行按钮 -->
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
@@ -231,12 +232,12 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<!-- 已去掉 pyodide.js 引用 -->
+
+<!-- 已去掉 Pyodide 相关的引用与逻辑 -->
 
 <script type="text/javascript">
-    // 页面加载时，初始化编辑器
+    // 页面加载时，初始化 Ace 编辑器
     window.addEventListener("load", async function () {
-        // Initialize ace editor
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
@@ -252,18 +253,17 @@
         // Set initial theme
         $('#theme-selector').selectpicker('val', 'monokai');
 
-        // Theme change handler
-        $('#theme-selector').on('changed.bs.select', function (e) {
+        // 主题切换事件
+        $('#theme-selector').on('changed.bs.select', function () {
             let selectedTheme = $(this).val();
             window.editor.setTheme("ace/theme/" + selectedTheme);
         });
 
-        // 自定义快捷键：Ctrl-D / Command-D 复制当前行
+        // Ctrl-D / Command-D：复制当前行
         editor.commands.addCommand({
             name: 'duplicateLine',
             bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
             exec: function (editor) {
-                // 调用 Ace 内置命令 copylinesdown
                 editor.execCommand("copylinesdown");
             }
         });
@@ -285,7 +285,7 @@
         }
     }
 
-    // 读文件
+    // 读取文件
     function readSingleFile(e) {
         let file = e.target.files[0];
         if (!file) {
@@ -317,7 +317,7 @@
                 // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
 
-                // 1. 生成二维码（内容是 shareLink）
+                // 1. 生成二维码
                 $('#qrcode').empty();
                 $('#qrcode').qrcode({
                     text: shareLink,
@@ -330,11 +330,10 @@
                     'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
                 );
 
-                // 如果想把二维码叠加到编辑器截图，可以执行以下逻辑：
+                // 3. 合成二维码与编辑器截图
                 let qrcodeCanvas = $('#qrcode canvas')[0];
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
 
-                // 新建一个容器来放最终合成的图片（避免覆盖原二维码）
                 let existingFinalImageContainer = document.getElementById("final-image-container");
                 if (existingFinalImageContainer) {
                     existingFinalImageContainer.remove();
@@ -342,10 +341,9 @@
                 let finalImageContainer = document.createElement("div");
                 finalImageContainer.id = "final-image-container";
                 finalImageContainer.style.marginTop = "20px";
-                // 把这个容器插到模态框里
                 document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-                // 2.3 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
+                // 截取编辑器区域，并将二维码绘制到截图右上角
                 html2canvas(document.querySelector("#editor")).then(canvas => {
                     let ctx = canvas.getContext('2d');
                     let img = new Image();
@@ -360,7 +358,7 @@
                         finalImgElement.src = canvas.toDataURL('image/png');
                         finalImgElement.style.maxWidth = "90%";
                         finalImageContainer.appendChild(finalImgElement);
-                    }
+                    };
                 });
 
                 // 4. 显示分享弹窗
