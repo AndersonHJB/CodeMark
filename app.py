@@ -14,7 +14,8 @@ import datetime
 import qrcode  # pip install qrcode[pil]
 
 app = Flask(__name__)
-
+app.config['SERVER_NAME'] = 'codemark.bornforthis.cn'  # 用于生成绝对 URL，可根据实际情况修改
+# app.config['PREFERRED_URL_SCHEME'] = 'https' # 强制使用 https
 
 def parse_sort_key(filename):
     """
