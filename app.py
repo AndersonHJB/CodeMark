@@ -150,7 +150,7 @@ def article(filename):
 
 
 @app.route('/editor')
-def sharecode():
+def editor():
     """
     直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     """
@@ -235,6 +235,9 @@ def show_shared_code(project_id):
 
     return render_template('editor.html', pre_code=code_content)
 
+@app.route('/sharecode')
+def sharecode():
+    return render_template('sharecode.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
