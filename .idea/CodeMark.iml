@@ -15,10 +15,18 @@
     <orderEntry type="library" name="highlight.js" level="application" />
     <orderEntry type="library" name="mathjax" level="application" />
     <orderEntry type="library" name="ace" level="application" />
-    <orderEntry type="library" name="bootstrap-select" level="application" />
     <orderEntry type="library" name="jquery.qrcode" level="application" />
     <orderEntry type="library" name="html2canvas" level="application" />
     <orderEntry type="library" name="popper.js" level="application" />
+    <orderEntry type="library" name="ace" level="application" />
+    <orderEntry type="library" name="popper.js" level="application" />
+    <orderEntry type="library" name="jquery.qrcode" level="application" />
+    <orderEntry type="library" name="bootstrap-select" level="application" />
+    <orderEntry type="library" name="html2canvas" level="application" />
+    <orderEntry type="library" name="popper.js" level="application" />
+    <orderEntry type="library" name="bootstrap-select" level="application" />
+    <orderEntry type="library" name="html2canvas" level="application" />
+    <orderEntry type="library" name="jquery.qrcode" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Jinja2" />
