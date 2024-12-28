@@ -6,8 +6,7 @@
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, url_for
 import markdown
 import os, re, random
 import uuid
@@ -210,6 +209,7 @@ def upload_code():
     # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
     # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
     share_link = request.host_url.strip('/') + "/share/" + project_id
+    share_link = url_for('show_shared_code', project_id=project_id, _external=True)
 
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(share_link)
