@@ -1,0 +1,11 @@
+__TEMPLATE__=sharecode
+__LANG__=html
+# -*- coding: utf-8 -*-
+# @Time    : 2024/11/16 09:07
+# @Author  : AI悦创
+# @FileName: app.py
+# @Software: CodeMark
+# @Blog    ：https://bornforthis.cn/
+# 欢迎👏使用 CodeMark✨✨✨
+# 此编辑器你可以编辑和分享代码!
+# PS:注释部分你可以保留或者删除
