@@ -110,8 +110,6 @@
             width: 100%;
         }
 
-        /* 已去除与输出框相关的样式 */
-
         .modal-dialog {
             max-width: 90%;
         }
@@ -125,6 +123,29 @@
 
         .bootstrap-select .dropdown-toggle:hover {
             background-color: #5a5a5a;
+        }
+
+        /* 复制提示的动画样式 */
+        .copy-alert {
+            display: none; /* 默认隐藏，通过JS控制显示/隐藏 */
+            background-color: #28a745;
+            color: #fff;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            animation: fadeOut 2s forwards; /* 2s后自动淡出 */
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+            70% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
         }
     </style>
 
@@ -220,7 +241,20 @@
             <div class="modal-body text-center">
                 <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
+
+                <!-- 分享链接显示 + 复制按钮区域 -->
+                <div id="share-link-div" class="text-center" style="margin-bottom:10px;">
+                    <!-- 下面的 span 用于动态填充分享链接 -->
+                    <span id="share-link-text" style="display:inline-block; margin-right:10px; color: #000; font-weight: bold;"></span>
+                    <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制链接</button>
+                </div>
+
+                <!-- 提示复制成功的动画区域 -->
+                <div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
+
                 <p>You can save this picture or scan the QR code to share it.</p>
+                <!-- 合成图容器 -->
+                <div id="final-image-container" style="margin-top: 20px;"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
@@ -325,7 +359,7 @@
         if (server_pre_code) {
             editor.setValue(server_pre_code, -1);
         } else {
-            message = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n"
+            let message = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n"
             editor.setValue(message + '# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n', -1);
         }
 
@@ -354,6 +388,12 @@
             exec: function (editor) {
                 editor.execCommand("copylinesdown");
             }
+        });
+
+        // 监听「复制链接」按钮点击事件
+        $('#copy-share-link-btn').on('click', function(){
+            let shareLink = $('#share-link-text').text();
+            copyLinkToClipboard(shareLink);
         });
     });
 
@@ -456,18 +496,17 @@
                     'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
                 );
 
+                // 2.1 将分享链接填入 span 文本，供手动复制
+                $('#share-link-text').text(shareLink);
+
                 // 3. 合成二维码与编辑器截图
                 let qrcodeCanvas = $('#qrcode canvas')[0];
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
 
                 let existingFinalImageContainer = document.getElementById("final-image-container");
                 if (existingFinalImageContainer) {
-                    existingFinalImageContainer.remove();
+                    existingFinalImageContainer.innerHTML = "";
                 }
-                let finalImageContainer = document.createElement("div");
-                finalImageContainer.id = "final-image-container";
-                finalImageContainer.style.marginTop = "20px";
-                document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
                 // 截取编辑器区域，并将二维码绘制到截图右上角
                 html2canvas(document.querySelector("#editor")).then(canvas => {
@@ -483,13 +522,30 @@
                         let finalImgElement = document.createElement("img");
                         finalImgElement.src = canvas.toDataURL('image/png');
                         finalImgElement.style.maxWidth = "90%";
-                        finalImageContainer.appendChild(finalImgElement);
+                        existingFinalImageContainer.appendChild(finalImgElement);
                     };
                 });
 
-                // 4. 显示分享弹窗
+                // 4. 自动复制分享链接并显示提示
+                copyLinkToClipboard(shareLink);
+
+                // 5. 显示分享弹窗
                 $('#share-modal').modal('show');
             }
+        });
+    }
+
+    // 将链接复制到剪贴板并显示动画提示
+    function copyLinkToClipboard(link) {
+        // 调用浏览器的 Clipboard API
+        navigator.clipboard.writeText(link).then(() => {
+            let alertBox = document.getElementById("copy-alert");
+            // 每次复制时都重置一下动画
+            alertBox.style.display = "block";
+            alertBox.style.animation = "none";
+            // 触发回流，让上一次动画被移除后重新开始
+            void alertBox.offsetWidth;
+            alertBox.style.animation = null;
         });
     }
 </script>
