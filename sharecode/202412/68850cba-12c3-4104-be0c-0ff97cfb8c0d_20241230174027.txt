@@ -1,0 +1,4 @@
+__TEMPLATE__=editor
+__LANG__=python
+# Write your Python code here
+print('Hello from Pyodide!')

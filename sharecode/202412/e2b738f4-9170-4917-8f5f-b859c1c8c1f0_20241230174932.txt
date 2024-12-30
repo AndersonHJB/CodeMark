@@ -1,0 +1,4 @@
+__TEMPLATE__=sharecode
+__LANG__=html
+# This editor does NOT run Python code.
+# You can edit and share the code, but there's no execution here.
