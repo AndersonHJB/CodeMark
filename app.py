@@ -164,11 +164,11 @@ def editor():
     # 获取 User-Agent
     user_agent = request.headers.get('User-Agent', '')
     if is_mobile(user_agent):
-        # 如果是移动端，则渲染 mobile_editor.html
+        # 如果是移动端，则渲染 mobile_editor.html（假设你有）
         return render_template('mobile_editor.html', pre_code="")
     else:
         # 否则渲染原本的 editor.html
-        return render_template('editor.html', pre_code="")
+        return render_template('editor.html', pre_code="", pre_lang="python")
 
 
 @app.route('/sharecode')
@@ -177,7 +177,8 @@ def sharecode():
     直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用不执行 Python 的模板 sharecode.html。
     """
-    return render_template('sharecode.html', pre_code="")
+    # 默认语言也可以是 python 或其他，看你需求
+    return render_template('sharecode.html', pre_code="", pre_lang="python")
 
 
 @app.route('/upload_code', methods=['POST'])
@@ -186,8 +187,8 @@ def upload_code():
     前端 share() 函数会通过 AJAX 调用这个接口，提交代码内容。
     这里将代码保存到本地文件，生成二维码图片，并返回一个可分享的链接。
 
-    同时根据 template 值（editor / sharecode）记录在文本文件第一行，
-    以便后续 /share/<project_id> 时做判断，使用对应模板渲染。
+    同时根据 template 值（editor / sharecode）记录在文本文件前几行，
+    以便后续 /share/<project_id> 时做判断，使用对应模板渲染，并记住语言 language。
     """
     # 从前端获取代码
     code = request.form.get('code', '')
@@ -210,10 +211,12 @@ def upload_code():
 
     # 2. 将代码写入本地 txt 文件
     #   文件第一行写入 "__TEMPLATE__=<template_type>"
-    #   第二行开始写实际的 code 内容
+    #   第二行写入 "__LANG__=<language>"
+    #   第三行开始写实际的 code 内容
     code_file_path = os.path.join(month_folder, project_id + ".txt")
     with open(code_file_path, 'w', encoding='utf-8') as f:
         f.write(f"__TEMPLATE__={template_type}\n")
+        f.write(f"__LANG__={language}\n")
         f.write(code)
 
     # 3. 生成二维码并保存在 sharecode/images 文件夹
@@ -244,10 +247,11 @@ def upload_code():
 def show_shared_code(project_id):
     """
     当别人访问 /share/<project_id> 时，
-    从本地 txt 文件读取对应代码的同时，也读取第一行以判断使用哪种模板。
+    从本地 txt 文件读取对应代码的同时，也读取第一、二行以判断使用哪种模板和语言。
     """
     code_content = "File not found or removed."
     template_type = "editor"  # 默认使用 editor
+    lang = "python"  # 默认 python
     sharecode_root = "sharecode"
     found = False
 
@@ -261,23 +265,26 @@ def show_shared_code(project_id):
                 with open(possible_path, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
 
+                # 第一行: __TEMPLATE__=xxx
                 if lines and lines[0].startswith("__TEMPLATE__="):
                     template_type = lines[0].split("=", 1)[1].strip()
-                    code_content = "".join(lines[1:])
-                else:
-                    # 如果没有在第一行记录模板，则默认为 editor
-                    code_content = "".join(lines)
+                # 第二行: __LANG__=xxx
+                if len(lines) > 1 and lines[1].startswith("__LANG__="):
+                    lang = lines[1].split("=", 1)[1].strip()
+
+                # 从第三行起才是代码
+                code_content = "".join(lines[2:])
                 break
 
     if not found:
         return f"File not found: {project_id}", 404
 
-    # 根据 template_type 来渲染不同的模板
+    # 根据 template_type 来渲染不同的模板，并将 lang 也传过去
     if template_type == "sharecode":
-        return render_template('sharecode.html', pre_code=code_content)
+        return render_template('sharecode.html', pre_code=code_content, pre_lang=lang)
     else:
         # 默认为 editor
-        return render_template('editor.html', pre_code=code_content)
+        return render_template('editor.html', pre_code=code_content, pre_lang=lang)
 
 
 if __name__ == '__main__':

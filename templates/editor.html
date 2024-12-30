@@ -269,10 +269,7 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script type="text/javascript">
-    /****************************************************
-     *  1. 监听 pageshow 事件，检测 bfcache，如果命中则刷新
-     *  这样即可在浏览器前进 / 后退时，强制页面重新加载
-     ****************************************************/
+    // 防止浏览器前进/后退的缓存
     window.addEventListener("pageshow", function (event) {
         // 当页面从缓存中加载（前进 / 后退）时，执行刷新
         if (event.persisted
@@ -336,7 +333,8 @@
             editor.setValue(server_pre_code, -1);
         } else {
             // 否则使用默认示例
-            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
+            message = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n"
+            editor.setValue(message + '# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n', -1);
         }
     });
 
@@ -350,7 +348,7 @@
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
 
         // 在控制台提示一下
-        document.getElementById("console").value = "Pyodide and packages loaded!\n";
+        document.getElementById("console").value = "Python loaded!\n";
     }
 
     // 执行 Python 代码

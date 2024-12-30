@@ -149,14 +149,27 @@ def article(filename):
                            current_file=filename,
                            meta=meta)
 
-
+def is_mobile(user_agent: str) -> bool:
+    """
+    判断是否为移动端访问，根据 user-agent 中常见的移动端标识来做简单匹配。
+    你可以根据业务需要，添加或修改更多关键词。
+    """
+    mobile_regex = re.compile(r'Mobile|Android|iPhone|iPad|iPod', re.IGNORECASE)
+    return bool(mobile_regex.search(user_agent))
 @app.route('/editor')
 def editor():
     """
     直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用可执行 Python 的模板 editor.html。
     """
-    return render_template('editor.html', pre_code="")
+    # 获取 User-Agent
+    user_agent = request.headers.get('User-Agent', '')
+    if is_mobile(user_agent):
+        # 如果是移动端，则渲染 mobile_editor.html
+        return render_template('mobile_editor.html', pre_code="")
+    else:
+        # 否则渲染原本的 editor.html
+        return render_template('editor.html', pre_code="")
 
 
 @app.route('/sharecode')
@@ -212,7 +225,7 @@ def upload_code():
     # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
     # share_link = request.host_url.strip('/') + "/share/" + project_id
     share_link = url_for('show_shared_code', project_id=project_id, _external=True)  # 可以强制 https: _scheme='https'
-
+    print(f"share_link: {share_link}")
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(share_link)
     qr.make(fit=True)
@@ -344,6 +357,10 @@ sharecode.html:
             background-color: #a7c336;
         }
 
+        #home {
+            background-color: #ef7d62;
+        }
+
         .help-link-container a {
             color: #fff;
         }
@@ -424,6 +441,7 @@ sharecode.html:
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
+        <button id="home" onclick="home()">home</button>
 
         <!-- ========== 新增：语言选择器 ========== -->
         <div class="choose-container" style="margin-left: 15px;">
@@ -658,7 +676,10 @@ sharecode.html:
         };
         reader.readAsText(file);
     }
-
+    // 回到首页
+    function home() {
+        window.location.href = "/";
+    }
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
@@ -835,6 +856,10 @@ editor.html:
             background-color: #a7c336;
         }
 
+        #home {
+            background-color: #ef7d62;
+        }
+
         .help-link-container a {
             color: #fff;
         }
@@ -934,6 +959,7 @@ editor.html:
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
+        <button id="home" onclick="home()">home</button>
         <div class="choose-container theme-selector-container">
             <span class="ml-2 mr-2">Theme: </span>
             <select id="theme-selector" class="selectpicker" data-style="btn-dark" data-width="120px">
@@ -1167,7 +1193,10 @@ ${code}
         };
         reader.readAsText(file);
     }
-
+    // 回到首页
+    function home() {
+        window.location.href = "/";
+    }
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
