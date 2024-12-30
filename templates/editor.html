@@ -149,6 +149,22 @@
         .bootstrap-select .dropdown-toggle:hover {
             background-color: #5a5a5a;
         }
+
+        /* ====== 复制成功提示的动画样式 ====== */
+        .copy-success {
+            display: none;
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 10px;
+            /* 简单的渐入渐出动画 */
+            animation: fadeInOut 2s forwards;
+        }
+        @keyframes fadeInOut {
+            0%   { opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
@@ -219,7 +235,19 @@
             <div class="modal-body text-center">
                 <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
+                <!-- 显示可复制的链接 + 复制按钮 -->
+                <div class="input-group my-3">
+                    <input type="text" class="form-control" id="share-link-input" value="" readonly>
+                    <div class="input-group-append">
+                        <button class="btn btn-info" type="button" onclick="copyLinkManually()">手动复制</button>
+                    </div>
+                </div>
+
+                <!-- 自动复制 & 手动复制后的提示 -->
+                <div id="copy-success" class="copy-success">分享链接已经复制！</div>
+
                 <p>You can save this picture or scan the QR code to share it.</p>
+                <div id="final-image-container"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
@@ -333,7 +361,7 @@
             editor.setValue(server_pre_code, -1);
         } else {
             // 否则使用默认示例
-            message = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n"
+            let message = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n"
             editor.setValue(message + '# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n', -1);
         }
     });
@@ -453,6 +481,11 @@ ${code}
                 $('.modal-title').html(
                     'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
                 );
+                // 2. 把分享链接放入输入框
+                $('#share-link-input').val(shareLink);
+
+                // 3. 自动复制到剪贴板
+                copyToClipboard(shareLink);
 
                 // 如果想把二维码叠加到编辑器截图，可以执行以下逻辑：
                 let qrcodeCanvas = $('#qrcode canvas')[0];
@@ -470,7 +503,7 @@ ${code}
                 // 把这个容器插到模态框里
                 document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-                // 2.3 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
+                // 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
                 html2canvas(document.querySelector("#editor")).then(canvas => {
                     let ctx = canvas.getContext('2d');
                     let img = new Image();
@@ -492,6 +525,50 @@ ${code}
                 $('#share-modal').modal('show');
             }
         });
+    }
+
+    // 自动复制与提示
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            // 如果支持异步 clipboard API
+            navigator.clipboard.writeText(text).then(function(){
+                showCopySuccess();
+            });
+        } else {
+            // 兼容不支持异步 clipboard API 的情况
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showCopySuccess();
+        }
+    }
+
+    // 手动点击复制
+    function copyLinkManually() {
+        let shareLink = document.getElementById("share-link-input").value;
+        copyToClipboard(shareLink);
+    }
+
+    // 显示“分享链接已经复制！”的提示动画
+    function showCopySuccess() {
+        let copyMsg = document.getElementById("copy-success");
+        // 重置动画，用于多次触发
+        copyMsg.style.display = "block";
+        copyMsg.style.animation = "none";
+        // 触发重绘，让浏览器意识到需要重新播放动画
+        void copyMsg.offsetWidth;
+        copyMsg.style.animation = null;
+
+        // 2秒后隐藏
+        setTimeout(() => {
+            copyMsg.style.display = "none";
+        }, 2000);
     }
 
     // 监听文件选择
