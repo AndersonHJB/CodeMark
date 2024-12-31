@@ -408,7 +408,7 @@
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
         });
         // 通过内置的 loadPackage 方式加载 micropip、numpy、pandas 等
-        await pyodide.loadPackage(["micropip", "numpy", "pandas", "requests"]);
+        await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
 
     // 这里用 micropip 安装 autopep8，用于代码格式化
     await pyodide.runPythonAsync(`
