@@ -649,9 +649,31 @@ autopep8.fix_code(code)
 
 // 截图并下载
 function screenshotAndDownload() {
-    html2canvas(document.querySelector("#editor")).then(canvas => {
+    let code = window.editor.getValue();
+
+    // 创建一个隐藏容器
+    let hiddenContainer = document.createElement('div');
+    hiddenContainer.style.position = 'fixed';
+    hiddenContainer.style.top = '-9999px';
+    hiddenContainer.style.left = '0';
+    hiddenContainer.style.padding = '20px';
+    hiddenContainer.style.backgroundColor = '#2f3129';
+    hiddenContainer.style.color = '#fff';
+    hiddenContainer.style.fontFamily = 'Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro, monospace';
+    hiddenContainer.style.fontSize = '16px';
+    hiddenContainer.style.lineHeight = '1.5';
+    hiddenContainer.style.whiteSpace = 'pre';
+    hiddenContainer.id = 'hidden-screenshot-container';
+
+    hiddenContainer.textContent = code;
+    document.body.appendChild(hiddenContainer);
+
+    // 对这个隐藏容器进行截图
+    html2canvas(hiddenContainer).then(canvas => {
         canvas.toBlob(function(blob){
             saveAs(blob, "code_screenshot.png");
+            // 截图完成后移除隐藏容器
+            document.body.removeChild(hiddenContainer);
         });
     });
 }
