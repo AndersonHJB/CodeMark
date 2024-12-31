@@ -1,0 +1,6 @@
+__TEMPLATE__=sharecode
+__LANG__=python
+# -*- coding: utf-8 -*-
+# 欢迎使用 CodeMark（移动端版）
+# 你可以在此处编写并分享代码
+# 点击右侧按钮可打开更多功能
