@@ -14,6 +14,8 @@ import datetime
 import qrcode  # pip install qrcode[pil]
 
 app = Flask(__name__)
+
+
 # app.config['SERVER_NAME'] = 'codemark.bornforthis.cn'  # 用于生成绝对 URL，可根据实际情况修改
 # app.config['PREFERRED_URL_SCHEME'] = 'https' # 强制使用 https
 
@@ -148,6 +150,7 @@ def article(filename):
                            current_file=filename,
                            meta=meta)
 
+
 def is_mobile(user_agent: str) -> bool:
     """
     判断是否为移动端访问，根据 user-agent 中常见的移动端标识来做简单匹配。
@@ -155,6 +158,8 @@ def is_mobile(user_agent: str) -> bool:
     """
     mobile_regex = re.compile(r'Mobile|Android|iPhone|iPad|iPod', re.IGNORECASE)
     return bool(mobile_regex.search(user_agent))
+
+
 @app.route('/editor')
 def editor():
     """

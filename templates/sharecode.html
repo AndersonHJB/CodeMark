@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
     <title>代码分享小工具｜便捷分享代码</title>
-    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="keywords"
+          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
     <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码截图，方便分享。">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
+          rel="stylesheet">
     <style type="text/css" media="screen">
         html, body {
             height: 100%;
@@ -245,7 +247,8 @@
                 <!-- 分享链接显示 + 复制按钮区域 -->
                 <div id="share-link-div" class="text-center" style="margin-bottom:10px;">
                     <!-- 下面的 span 用于动态填充分享链接 -->
-                    <span id="share-link-text" style="display:inline-block; margin-right:10px; color: #000; font-weight: bold;"></span>
+                    <span id="share-link-text"
+                          style="display:inline-block; margin-right:10px; color: #000; font-weight: bold;"></span>
                     <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制链接</button>
                 </div>
 
@@ -274,11 +277,15 @@
                 </button>
             </div>
             <div class="modal-body text-center">
-                <h3>About</h3>
+                <h3>关于 CodeMark </h3>
                 <hr>
-                <p>This page demonstrates running Python in the browser with Pyodide.</p>
-                <p>We have added support for micropip, NumPy, and Pandas.</p>
-                <p>Enjoy exploring Pyodide!</p>
+                <p>你可以在此页面进行 Python 编写和代码分享</p>
+                <p>我们添加了对 micropip、NumPy 和 Pandas 的支持。</p>
+                <p>祝您探索 CodeMark 愉快！</p>
+                <p>对于想要制定化或高校合作，可以添加此微信：Jiabcdefh</p>
+                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh"
+                     style="zoom:25%;">
+                <br>
                 <a href="https://github.com/AndersonHJB/">Github</a>
             </div>
             <div class="modal-footer">
@@ -391,7 +398,7 @@
         });
 
         // 监听「复制链接」按钮点击事件
-        $('#copy-share-link-btn').on('click', function(){
+        $('#copy-share-link-btn').on('click', function () {
             let shareLink = $('#share-link-text').text();
             copyLinkToClipboard(shareLink);
         });
@@ -421,6 +428,7 @@
         };
         reader.readAsText(file);
     }
+
     document.getElementById('file-input').addEventListener('change', readSingleFile, false);
 
     function detectLanguageFromFilename(filename) {
@@ -443,6 +451,7 @@
     function home() {
         window.location.href = "/";
     }
+
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
@@ -450,16 +459,36 @@
         let langVal = $('#lang-selector').val();
         let fileExt = ".txt";
         switch (langVal) {
-            case "python": fileExt = ".py"; break;
-            case "javascript": fileExt = ".js"; break;
-            case "c_cpp": fileExt = ".cpp"; break;
-            case "java": fileExt = ".java"; break;
-            case "php": fileExt = ".php"; break;
-            case "ruby": fileExt = ".rb"; break;
-            case "golang": fileExt = ".go"; break;
-            case "html": fileExt = ".html"; break;
-            case "css": fileExt = ".css"; break;
-            case "markdown": fileExt = ".md"; break;
+            case "python":
+                fileExt = ".py";
+                break;
+            case "javascript":
+                fileExt = ".js";
+                break;
+            case "c_cpp":
+                fileExt = ".cpp";
+                break;
+            case "java":
+                fileExt = ".java";
+                break;
+            case "php":
+                fileExt = ".php";
+                break;
+            case "ruby":
+                fileExt = ".rb";
+                break;
+            case "golang":
+                fileExt = ".go";
+                break;
+            case "html":
+                fileExt = ".html";
+                break;
+            case "css":
+                fileExt = ".css";
+                break;
+            case "markdown":
+                fileExt = ".md";
+                break;
         }
         let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
         saveAs(blob, "bornforthis_code" + fileExt);

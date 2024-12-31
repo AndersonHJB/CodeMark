@@ -3,15 +3,18 @@
 <head>
     <title>Python在线代码编写（移动端）</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- 移动端自适应关键 -->
-    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
-    <meta name="description" content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
+    <meta name="keywords"
+          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description"
+          content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
     <!-- Bootstrap & 其他依赖 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
+          rel="stylesheet">
 
     <style type="text/css" media="screen">
         /* 通用重置与背景色 */
@@ -53,6 +56,7 @@
             align-items: center;
             padding-top: 10px;
         }
+
         .sidebar-menu.show {
             right: 0; /* 切换显示 */
         }
@@ -66,21 +70,27 @@
             border: none;
             border-radius: 4px;
         }
+
         #run-btn {
             background-color: #a7c336;
         }
+
         #save-btn {
             background-color: #6dddf2;
         }
+
         #open-btn {
             background-color: #f53855;
         }
+
         #share-btn {
             background-color: #a7c336;
         }
+
         #paste-btn {
             background-color: #ff9800;
         }
+
         #home-btn {
             background-color: #ef7d62;
         }
@@ -118,6 +128,7 @@
             display: flex;
             flex-direction: column;
         }
+
         .mobile-console-header {
             background-color: #444;
             padding: 8px;
@@ -125,9 +136,11 @@
             align-items: center;
             justify-content: space-between;
         }
+
         .mobile-console-header span {
             font-weight: bold;
         }
+
         .mobile-console-close {
             font-size: 24px;
             cursor: pointer;
@@ -156,13 +169,13 @@
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
     {% if pre_code %}
-    <script>
-        let server_pre_code = {{ pre_code|tojson }};
-    </script>
+        <script>
+            let server_pre_code = {{ pre_code|tojson }};
+        </script>
     {% else %}
-    <script>
-        let server_pre_code = "";
-    </script>
+        <script>
+            let server_pre_code = "";
+        </script>
     {% endif %}
 </head>
 
@@ -181,7 +194,7 @@
     <button id="home-btn" onclick="home()">home</button>
 
     <!-- 隐藏的上传文件 input -->
-    <input id="file-input" type="file" style="display:none" />
+    <input id="file-input" type="file" style="display:none"/>
 </div>
 
 <!-- 全屏编辑器 -->
@@ -257,7 +270,7 @@
         editor.renderer.setScrollMargin(0, 300, 0, 0);
 
         // 监听编辑器点击，自动隐藏侧边栏
-        editor.container.addEventListener('click', function() {
+        editor.container.addEventListener('click', function () {
             closeSidebar();
         });
 
@@ -347,6 +360,7 @@ ${code}
     function openMobileConsole() {
         document.getElementById("mobileConsole").style.bottom = "0";
     }
+
     function closeMobileConsole() {
         document.getElementById("mobileConsole").style.bottom = "-70%";
     }
@@ -360,6 +374,7 @@ ${code}
             sidebar.classList.add("show");
         }
     }
+
     function closeSidebar() {
         let sidebar = document.getElementById("sidebarMenu");
         sidebar.classList.remove("show");
@@ -374,7 +389,7 @@ ${code}
     }
 
     // 读文件
-    document.getElementById('file-input').addEventListener('change', function(e) {
+    document.getElementById('file-input').addEventListener('change', function (e) {
         let file = e.target.files[0];
         if (!file) {
             return;
@@ -459,13 +474,13 @@ ${code}
     // 从剪贴板粘贴代码
     function pasteCode() {
         if (navigator.clipboard && navigator.clipboard.readText) {
-            navigator.clipboard.readText().then(function(text) {
+            navigator.clipboard.readText().then(function (text) {
                 if (text && text.trim() !== "") {
                     window.editor.setValue(text, -1);
                 } else {
                     alert("剪贴板为空或不支持读取。");
                 }
-            }).catch(function(err) {
+            }).catch(function (err) {
                 alert("无法读取剪贴板: " + err);
             });
         } else {

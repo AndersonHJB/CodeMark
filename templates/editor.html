@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
     <title>Python在线代码编写</title>
-    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
-    <meta name="description" content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
+    <meta name="keywords"
+          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description"
+          content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
+          rel="stylesheet">
     <style type="text/css" media="screen">
         html, body {
             height: 100%;
@@ -159,11 +162,20 @@
             /* 简单的渐入渐出动画 */
             animation: fadeInOut 2s forwards;
         }
+
         @keyframes fadeInOut {
-            0%   { opacity: 0; }
-            10%  { opacity: 1; }
-            90%  { opacity: 1; }
-            100% { opacity: 0; }
+            0% {
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
         }
 
         /* ========== 自定义右键菜单样式 ========== */
@@ -174,20 +186,23 @@
             border: 1px solid #4f4f4f;
             border-radius: 5px;
             min-width: 180px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             display: none;
         }
+
         #custom-context-menu ul {
             list-style: none;
             margin: 0;
             padding: 6px 0;
         }
+
         #custom-context-menu li {
             padding: 8px 12px;
             cursor: pointer;
             color: #ffffff;
             font-size: 14px;
         }
+
         #custom-context-menu li:hover {
             background-color: #575757;
         }
@@ -293,11 +308,15 @@
                 </button>
             </div>
             <div class="modal-body text-center">
-                <h3>About</h3>
+                <h3>关于 CodeMark </h3>
                 <hr>
-                <p>This page demonstrates running Python in the browser with Pyodide.</p>
-                <p>We have added support for micropip, NumPy, and Pandas.</p>
-                <p>Enjoy exploring Pyodide!</p>
+                <p>你可以在此页面进行 Python 编写和代码分享</p>
+                <p>我们添加了对 micropip、NumPy 和 Pandas 的支持。</p>
+                <p>祝您探索 CodeMark 愉快！</p>
+                <p>对于想要制定化或高校合作，可以添加此微信：Jiabcdefh</p>
+                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh"
+                     style="zoom:25%;">
+                <br>
                 <a href="https://github.com/AndersonHJB/">Github</a>
             </div>
             <div class="modal-footer">
@@ -413,14 +432,14 @@
         // 通过内置的 loadPackage 方式加载 micropip、numpy、pandas 等
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
 
-    // 这里用 micropip 安装 autopep8，用于代码格式化
-    await pyodide.runPythonAsync(`
+        // 这里用 micropip 安装 autopep8，用于代码格式化
+        await pyodide.runPythonAsync(`
 import micropip
 await micropip.install("autopep8")
 `);
-    // 在控制台提示一下
-    document.getElementById("console").value = "Python loaded!\n";
-}
+        // 在控制台提示一下
+        document.getElementById("console").value = "Python loaded!\n";
+    }
 
     // 执行 Python 代码
     async function run() {
@@ -485,10 +504,12 @@ ${code}
         };
         reader.readAsText(file);
     }
+
     // 回到首页
     function home() {
         window.location.href = "/";
     }
+
     // 保存为文件
     function save() {
         let code = window.editor.getValue();
@@ -574,7 +595,7 @@ ${code}
     function copyToClipboard(text) {
         if (navigator.clipboard && window.isSecureContext) {
             // 如果支持异步 clipboard API
-            navigator.clipboard.writeText(text).then(function(){
+            navigator.clipboard.writeText(text).then(function () {
                 showCopySuccess();
             });
         } else {
@@ -614,106 +635,107 @@ ${code}
         }, 2000);
     }
 
-// ========== 自定义右键菜单相关 ==========
-// 右键事件，展示自定义菜单
-document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-    let menu = document.getElementById("custom-context-menu");
-    if(!menu) return;
+    // ========== 自定义右键菜单相关 ==========
+    // 右键事件，展示自定义菜单
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        let menu = document.getElementById("custom-context-menu");
+        if (!menu) return;
 
-    menu.style.display = 'block';
-    menu.style.left = e.pageX + 'px';
-    menu.style.top = e.pageY + 'px';
-});
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+    });
 
-// 左键点击后隐藏菜单
-document.addEventListener('click', function() {
-    let menu = document.getElementById("custom-context-menu");
-    if(menu) menu.style.display = 'none';
-});
+    // 左键点击后隐藏菜单
+    document.addEventListener('click', function () {
+        let menu = document.getElementById("custom-context-menu");
+        if (menu) menu.style.display = 'none';
+    });
 
-// 格式化代码（autopep8）
-async function formatCode() {
-    let code = window.editor.getValue();
-    try {
-        let formattedCode = await pyodide.runPythonAsync(`
+    // 格式化代码（autopep8）
+    async function formatCode() {
+        let code = window.editor.getValue();
+        try {
+            let formattedCode = await pyodide.runPythonAsync(`
 import autopep8
 code = """${escapeForPython(code)}"""
 autopep8.fix_code(code)
         `);
-        window.editor.setValue(formattedCode, -1);
-    } catch (e) {
-        alert("格式化失败: " + e);
+            window.editor.setValue(formattedCode, -1);
+        } catch (e) {
+            alert("格式化失败: " + e);
+        }
     }
-}
 
-// 截图并下载
-function screenshotAndDownload() {
-    let code = window.editor.getValue();
+    // 截图并下载
+    function screenshotAndDownload() {
+        let code = window.editor.getValue();
 
-    // 创建一个隐藏容器
-    let hiddenContainer = document.createElement('div');
-    hiddenContainer.style.position = 'fixed';
-    hiddenContainer.style.top = '-9999px';
-    hiddenContainer.style.left = '0';
-    hiddenContainer.style.padding = '20px';
-    hiddenContainer.style.backgroundColor = '#2f3129';
-    hiddenContainer.style.color = '#fff';
-    hiddenContainer.style.fontFamily = 'Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro, monospace';
-    hiddenContainer.style.fontSize = '16px';
-    hiddenContainer.style.lineHeight = '1.5';
-    hiddenContainer.style.whiteSpace = 'pre';
-    hiddenContainer.id = 'hidden-screenshot-container';
+        // 创建一个隐藏容器
+        let hiddenContainer = document.createElement('div');
+        hiddenContainer.style.position = 'fixed';
+        hiddenContainer.style.top = '-9999px';
+        hiddenContainer.style.left = '0';
+        hiddenContainer.style.padding = '20px';
+        hiddenContainer.style.backgroundColor = '#2f3129';
+        hiddenContainer.style.color = '#fff';
+        hiddenContainer.style.fontFamily = 'Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro, monospace';
+        hiddenContainer.style.fontSize = '16px';
+        hiddenContainer.style.lineHeight = '1.5';
+        hiddenContainer.style.whiteSpace = 'pre';
+        hiddenContainer.id = 'hidden-screenshot-container';
 
-    hiddenContainer.textContent = code;
-    document.body.appendChild(hiddenContainer);
+        hiddenContainer.textContent = code;
+        document.body.appendChild(hiddenContainer);
 
-    // 对这个隐藏容器进行截图
-    html2canvas(hiddenContainer).then(canvas => {
-        canvas.toBlob(function(blob){
-            saveAs(blob, "code_screenshot.png");
-            // 截图完成后移除隐藏容器
-            document.body.removeChild(hiddenContainer);
+        // 对这个隐藏容器进行截图
+        html2canvas(hiddenContainer).then(canvas => {
+            canvas.toBlob(function (blob) {
+                saveAs(blob, "code_screenshot.png");
+                // 截图完成后移除隐藏容器
+                document.body.removeChild(hiddenContainer);
+            });
         });
-    });
-}
-
-// 复制编辑器所有代码
-function copyAllCode() {
-    let code = window.editor.getValue();
-    copyToClipboard(code);
-}
-
-// 尝试粘贴到编辑器
-function pasteCode() {
-    if (navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText().then(text => {
-            window.editor.insert(text);
-        }).catch(err => {
-            alert("无法读取剪贴板：" + err);
-        });
-    } else {
-        alert("当前浏览器不支持直接读取剪贴板。");
     }
-}
-// 复制分享链接（在右键菜单中使用）
-function copyShareLinkInMenu() {
-    let shareLink = document.getElementById("share-link-input").value;
-    if (!shareLink) {
-        alert("暂无可分享的链接，请先点击分享按钮生成。");
-        return;
+
+    // 复制编辑器所有代码
+    function copyAllCode() {
+        let code = window.editor.getValue();
+        copyToClipboard(code);
     }
-    copyToClipboard(shareLink);
-}
 
-// 为避免多行字符串在 Python 中出现意外，需要做转义
-function escapeForPython(str) {
-    // 将反斜杠与双引号进行转义
-    return str.replace(/\\/g, '\\\\').replace(/\"/g, '\\"');
-}
+    // 尝试粘贴到编辑器
+    function pasteCode() {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(text => {
+                window.editor.insert(text);
+            }).catch(err => {
+                alert("无法读取剪贴板：" + err);
+            });
+        } else {
+            alert("当前浏览器不支持直接读取剪贴板。");
+        }
+    }
 
-// 监听文件选择
-document.getElementById('file-input').addEventListener('change', readSingleFile, false);
+    // 复制分享链接（在右键菜单中使用）
+    function copyShareLinkInMenu() {
+        let shareLink = document.getElementById("share-link-input").value;
+        if (!shareLink) {
+            alert("暂无可分享的链接，请先点击分享按钮生成。");
+            return;
+        }
+        copyToClipboard(shareLink);
+    }
+
+    // 为避免多行字符串在 Python 中出现意外，需要做转义
+    function escapeForPython(str) {
+        // 将反斜杠与双引号进行转义
+        return str.replace(/\\/g, '\\\\').replace(/\"/g, '\\"');
+    }
+
+    // 监听文件选择
+    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
 </script>
 </body>
 </html>
