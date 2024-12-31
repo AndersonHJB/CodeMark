@@ -115,19 +115,25 @@
             width: 100%;
         }
 
+        /* ========== 下面是对分享弹窗的样式适配改动 ========== */
+        /* 保持整体宽度在 90%，最大宽度 900px，保证在大屏时不会过宽，小屏可自适应 */
         .modal-dialog {
-            max-width: 90%;
+            width: 90%;
+            max-width: 900px;
+            margin: 1.75rem auto;
         }
 
-        /* Add custom styles for bootstrap-select in dark theme */
-        .bootstrap-select .dropdown-toggle {
-            background-color: #4a4a4a;
-            border-color: #666;
-            color: white;
+        /* 在小于 768px 的屏幕下再微调，使其更适配移动端 */
+        @media (max-width: 768px) {
+            .modal-dialog {
+                width: 95%;
+            }
         }
 
-        .bootstrap-select .dropdown-toggle:hover {
-            background-color: #5a5a5a;
+        /* 弹窗内容最大高度 80vh，超出部分可滚动 */
+        .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         /* 复制提示的动画样式 */
@@ -156,23 +162,24 @@
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
     {% if pre_code %}
-        <script>
-            let server_pre_code = {{ pre_code|tojson }};
-        </script>
+    <script>
+        let server_pre_code = {{ pre_code|tojson }};
+    </script>
     {% else %}
-        <script>
-            let server_pre_code = "";
-        </script>
+    <script>
+        let server_pre_code = "";
+    </script>
     {% endif %}
+
     <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器。否则默认是 "python" -->
     {% if pre_lang %}
-        <script>
-            let server_pre_lang = "{{ pre_lang }}";
-        </script>
+    <script>
+        let server_pre_lang = "{{ pre_lang }}";
+    </script>
     {% else %}
-        <script>
-            let server_pre_lang = "python";
-        </script>
+    <script>
+        let server_pre_lang = "python";
+    </script>
     {% endif %}
 </head>
 
@@ -235,7 +242,7 @@
 
 <!-- Share Modal -->
 <div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered"><!-- 可选：让弹窗在垂直居中 -->
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Share your code</h5>
@@ -271,7 +278,7 @@
 
 <!-- About Modal -->
 <div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered"><!-- 同样可以使用 modal-dialog-centered 居中 -->
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">About</h5>
@@ -391,6 +398,7 @@
             let selectedTheme = $(this).val();
             window.editor.setTheme("ace/theme/" + selectedTheme);
         });
+
         // Ctrl-D / Command-D：复制当前行
         editor.commands.addCommand({
             name: 'duplicateLine',
