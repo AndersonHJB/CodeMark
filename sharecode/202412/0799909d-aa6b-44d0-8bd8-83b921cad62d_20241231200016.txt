@@ -1,0 +1,34 @@
+__TEMPLATE__=sharecode
+__LANG__=java
+# -*- coding: utf-8 -*-
+# 欢迎使用 CodeMark（移动端版）
+# 你可以在此处编写并分享代码
+# 点击右侧按钮可打开更多功能
+// 传统的 if-else 写法
+public String getGrade(int score) {
+    String result;
+    if (score >= 90) {
+        result = "A";
+    } else if (score >= 80) {
+        result = "B";
+    } else if (score >= 70) {
+        result = "C";
+    } else {
+        result = "D";
+    }
+    return result;
+}
+
+// 使用 return 简化后的写法
+public String getGradeSimplified(int score) {
+    if (score >= 90) {
+        return "A";
+    }
+    if (score >= 80) {
+        return "B";
+    }
+    if (score >= 70) {
+        return "C";
+    }
+    return "D";
+}
