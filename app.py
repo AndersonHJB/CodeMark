@@ -169,7 +169,6 @@ def editor():
     # 获取 User-Agent
     user_agent = request.headers.get('User-Agent', '')
     if is_mobile(user_agent):
-        # 如果是移动端，则渲染 mobile_editor.html（假设你有）
         return render_template('mobile_editor.html', pre_code="")
     else:
         # 否则渲染原本的 editor.html
@@ -183,7 +182,11 @@ def sharecode():
     使用不执行 Python 的模板 sharecode.html。
     """
     # 默认语言也可以是 python 或其他，看你需求
-    return render_template('sharecode.html', pre_code="", pre_lang="python")
+    user_agent = request.headers.get('User-Agent', '')
+    if is_mobile(user_agent):
+        return render_template('mobile_sharecode.html', pre_code="", pre_lang="python")
+    else:
+        return render_template('sharecode.html', pre_code="", pre_lang="python")
 
 
 @app.route('/upload_code', methods=['POST'])
@@ -284,6 +287,9 @@ def show_shared_code(project_id):
     if not found:
         return f"File not found: {project_id}", 404
 
+    user_agent = request.headers.get('User-Agent', '')
+    if is_mobile(user_agent):
+        return render_template('mobile_sharecode.html', pre_code=code_content, pre_lang=lang)
     # 根据 template_type 来渲染不同的模板，并将 lang 也传过去
     if template_type == "sharecode":
         return render_template('sharecode.html', pre_code=code_content, pre_lang=lang)

@@ -1,10 +1,541 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <title>AI悦创代码分享小工具｜便捷分享代码</title>
+    <!-- 设置移动端适配 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:site_name" content="Python在线代码编写｜AI悦创编程一对一辅导">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <meta name="keywords"
+          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码截图，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
+          rel="stylesheet">
+    <style type="text/css" media="screen">
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #2f3129;
+            overflow: hidden; /* 禁止整体出现滚动条，编辑器内部可滚动 */
+        }
+        .container-fluid {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        .row.no-gutters {
+            margin-right: 0;
+            margin-left: 0;
+        }
+        .col-sm-12 {
+            padding: 0 !important;
+        }
+        /* Ace Editor 字体 */
+        .ace_editor .ace_content span,
+        .ace_editor .ace_content .ace_line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+        }
+        img {
+            max-width: 100%;
+        }
+        .code-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #editor {
+            height: 100%;
+            width: 100%;
+        }
+        /* 让 Modal 在移动端也能好看些 */
+        .modal-dialog {
+            max-width: 90%;
+        }
+        /* dark 主题下的下拉选项外观 */
+        .bootstrap-select .dropdown-toggle {
+            background-color: #4a4a4a;
+            border-color: #666;
+            color: white;
+        }
+        .bootstrap-select .dropdown-toggle:hover {
+            background-color: #5a5a5a;
+        }
+        /* 复制提示的动画样式 */
+        .copy-alert {
+            display: none; /* 默认隐藏，通过JS控制显示/隐藏 */
+            background-color: #28a745;
+            color: #fff;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            animation: fadeOut 2s forwards; /* 2s后自动淡出 */
+        }
+        @keyframes fadeOut {
+            0% {opacity: 1;}
+            70% {opacity: 1;}
+            100% {opacity: 0;}
+        }
+        /* ========== 浮动菜单样式 ========== */
+        /* 右侧一个小按钮，用来切换菜单的显示/隐藏 */
+        #floatingToggle {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            z-index: 10000;
+            width: 40px;
+            height: 40px;
+            background-color: #ef7d62;
+            border-radius: 6px 0 0 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            cursor: pointer;
+        }
+        /* 实际的浮动菜单容器 */
+        #floatingMenu {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background-color: #2f3129;
+            padding: 10px;
+            border-radius: 8px 0 0 8px;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            /* 默认隐藏（向右偏移100%） */
+            transform: translate(100%, -50%);
+            box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.5);
+        }
+        /* 菜单展开时的样式 */
+        #floatingMenu.show-menu {
+            transform: translate(0, -50%);
+        }
+        /* 菜单内部按钮的通用样式 */
+        #floatingMenu button {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            color: #fff;
+            border-width: 0;
+            border-radius: 4px;
+            height: 40px;
+        }
+        /* 分别给4个按钮不同的颜色 */
+        #save {
+            background-color: #6dddf2;
+        }
+        #open {
+            background-color: #f53855;
+        }
+        #share {
+            background-color: #a7c336;
+        }
+        #home {
+            background-color: #ef7d62;
+        }
+        /* 语言选择、主题选择容器 */
+        .selector-container {
+            margin-top: 8px;
+        }
+        .selector-container > select {
+            width: 100%;
+        }
+        .help-link-container a {
+            color: #fff;
+        }
+    </style>
+
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
+    {% if pre_code %}
+        <script>
+            let server_pre_code = {{ pre_code|tojson }};
+        </script>
+    {% else %}
+        <script>
+            let server_pre_code = "";
+        </script>
+    {% endif %}
+    <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器。否则默认是 "python" -->
+    {% if pre_lang %}
+        <script>
+            let server_pre_lang = "{{ pre_lang }}";
+        </script>
+    {% else %}
+        <script>
+            let server_pre_lang = "python";
+        </script>
+    {% endif %}
 </head>
+
 <body>
-$END$
+<div class="container-fluid">
+    <div class="row no-gutters" style="height: 100%;">
+        <!-- 代码编辑区 -->
+        <div class="col-sm-12 code-container">
+            <div id="editor" onclick="hideFloatingMenuIfOpen()"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 右侧的浮动菜单切换按钮 -->
+<div id="floatingToggle" onclick="toggleFloatingMenu()">≡</div>
+
+<!-- 浮动菜单：包含所有的功能按钮、语言/主题选择等 -->
+<div id="floatingMenu">
+    <button id="save" onclick="save()">save</button>
+    <button id="open" onclick="performClick('file-input')">open</button>
+    <button id="share" onclick="share()">share</button>
+    <button id="home" onclick="home()">home</button>
+
+    <!-- 语言选择器 -->
+    <div class="selector-container">
+        <label for="lang-selector" style="color:#fff;">Language:</label>
+        <select id="lang-selector" class="selectpicker" data-style="btn-dark">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="c_cpp">C/C++</option>
+            <option value="java">Java</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="golang">Go</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="markdown">Markdown</option>
+        </select>
+    </div>
+
+    <!-- 主题选择器 -->
+    <div class="selector-container">
+        <label for="theme-selector" style="color:#fff;">Theme:</label>
+        <select id="theme-selector" class="selectpicker" data-style="btn-dark">
+            <option value="monokai">monokai</option>
+            <option value="github">github</option>
+            <option value="tomorrow">tomorrow</option>
+            <option value="kuroir">kuroir</option>
+            <option value="twilight">twilight</option>
+            <option value="vibrant_ink">vibrant_ink</option>
+            <option value="xcode">xcode</option>
+            <option value="textmate">textmate</option>
+            <option value="terminal">terminal</option>
+            <option value="solarized_dark">solarized dark</option>
+            <option value="solarized_light">solarized light</option>
+        </select>
+    </div>
+
+    <!-- About 链接 -->
+    <div class="help-link-container mt-3">
+        <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
+    </div>
+
+    <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share your code</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrcode" style="margin:0 auto 20px;"></div>
+                <div id="share-link-div" class="text-center mb-2">
+                    <span id="share-link-text"
+                          style="display:inline-block; margin-right:10px; color: #000; font-weight: bold;"></span>
+                    <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制链接</button>
+                </div>
+                <div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
+                <p>You can save this picture or scan the QR code to share it.</p>
+                <div id="final-image-container" style="margin-top: 20px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">About</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <h3>关于 CodeMark </h3>
+                <hr>
+                <p>你可以在此页面进行 Python 编写和代码分享</p>
+                <p>我们添加了对 micropip、NumPy 和 Pandas 的支持。</p>
+                <p>祝您探索 CodeMark 愉快！</p>
+                <p>对于想要制定化或高校合作，可以添加此微信：Jiabcdefh</p>
+                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh" style="zoom:25%;">
+                <br>
+                <a href="https://github.com/AndersonHJB/">Github</a>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================== 代码编辑器相关 ================== -->
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-javascript.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-c_cpp.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-java.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-php.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-ruby.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-golang.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
+
+<!-- 第三方库 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script type="text/javascript">
+    // 防止浏览器前进/后退的缓存
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // 页面加载后，初始化 Ace 编辑器
+    window.addEventListener("load", async function () {
+        ace.config.set("basePath", "static/js/ace/");
+        window.editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/python");
+        editor.setOptions({
+            fontSize: "20pt",
+            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+        });
+
+        // 初始化 bootstrap-select
+        $('.selectpicker').selectpicker({
+            style: 'btn-dark',
+            size: 10
+        });
+
+        // 设置初始主题
+        $('#theme-selector').selectpicker('val', 'monokai');
+        $('#lang-selector').selectpicker('val', 'python');
+
+        // 如果后端传来了 pre_lang，就用它来设置语言
+        if (server_pre_lang) {
+            $('#lang-selector').selectpicker('val', server_pre_lang);
+            if (server_pre_lang === 'python') {
+                editor.session.setMode("ace/mode/python");
+            } else {
+                editor.session.setMode("ace/mode/" + server_pre_lang);
+            }
+        }
+
+        // 如果后端传来了 pre_code，则用它来填充编辑器
+        if (server_pre_code) {
+            editor.setValue(server_pre_code, -1);
+        } else {
+            let welcomeMsg = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n";
+            welcomeMsg += "# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n";
+            editor.setValue(welcomeMsg, -1);
+        }
+
+        // 语言选择器事件
+        $('#lang-selector').on('changed.bs.select', function () {
+            let selectedLang = $(this).val();
+            if (selectedLang === 'python') {
+                editor.session.setMode("ace/mode/python");
+            } else {
+                editor.session.setMode("ace/mode/" + selectedLang);
+            }
+        });
+
+        // 主题选择器事件
+        $('#theme-selector').on('changed.bs.select', function () {
+            let selectedTheme = $(this).val();
+            editor.setTheme("ace/theme/" + selectedTheme);
+        });
+
+        // 添加复制链接的事件
+        $('#copy-share-link-btn').on('click', function () {
+            let shareLink = $('#share-link-text').text();
+            copyLinkToClipboard(shareLink);
+        });
+
+        // Ctrl-D / Command-D：复制当前行
+        editor.commands.addCommand({
+            name: 'duplicateLine',
+            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
+            exec: function (editor) {
+                editor.execCommand("copylinesdown");
+            }
+        });
+    });
+
+    // 文件读取
+    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
+    function readSingleFile(e) {
+        let file = e.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            editor.setValue(e.target.result, -1);
+            let autoLang = detectLanguageFromFilename(file.name);
+            $('#lang-selector').selectpicker('val', autoLang);
+            editor.session.setMode("ace/mode/" + autoLang);
+        };
+        reader.readAsText(file);
+    }
+    function detectLanguageFromFilename(filename) {
+        let lowerName = filename.toLowerCase();
+        if (lowerName.endsWith(".py")) return "python";
+        if (lowerName.endsWith(".js")) return "javascript";
+        if (lowerName.endsWith(".c") || lowerName.endsWith(".cpp") || lowerName.endsWith(".h")) return "c_cpp";
+        if (lowerName.endsWith(".java")) return "java";
+        if (lowerName.endsWith(".php")) return "php";
+        if (lowerName.endsWith(".rb")) return "ruby";
+        if (lowerName.endsWith(".go")) return "golang";
+        if (lowerName.endsWith(".html")) return "html";
+        if (lowerName.endsWith(".css")) return "css";
+        if (lowerName.endsWith(".md")) return "markdown";
+        return "python";
+    }
+
+    // home
+    function home() {
+        window.location.href = "/";
+    }
+
+    // save
+    function save() {
+        let code = editor.getValue();
+        let langVal = $('#lang-selector').val();
+        let fileExt = ".txt";
+        switch (langVal) {
+            case "python": fileExt = ".py"; break;
+            case "javascript": fileExt = ".js"; break;
+            case "c_cpp": fileExt = ".cpp"; break;
+            case "java": fileExt = ".java"; break;
+            case "php": fileExt = ".php"; break;
+            case "ruby": fileExt = ".rb"; break;
+            case "golang": fileExt = ".go"; break;
+            case "html": fileExt = ".html"; break;
+            case "css": fileExt = ".css"; break;
+            case "markdown": fileExt = ".md"; break;
+        }
+        let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "bornforthis_code" + fileExt);
+    }
+
+    // open
+    function performClick(elemId) {
+        const elem = document.getElementById(elemId);
+        if (elem) elem.click();
+    }
+
+    // share
+    function share() {
+        let code = editor.getValue();
+        let langVal = $('#lang-selector').val();
+        $.ajax({
+            type: 'post',
+            url: '/upload_code',
+            dataType: 'json',
+            data: {
+                code: code,
+                language: langVal,
+                template: 'sharecode'
+            },
+            success: function (d) {
+                let shareLink = d.share_link;
+                // 1. 生成二维码
+                $('#qrcode').empty();
+                $('#qrcode').qrcode({
+                    text: shareLink,
+                    width: 200,
+                    height: 200
+                });
+                // 2. 更新弹窗标题
+                $('.modal-title').html(
+                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
+                );
+                $('#share-link-text').text(shareLink);
+
+                // 3. 截取编辑器区域并叠加二维码
+                let qrcodeCanvas = $('#qrcode canvas')[0];
+                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+                document.getElementById("final-image-container").innerHTML = "";
+
+                html2canvas(document.querySelector("#editor")).then(canvas => {
+                    let ctx = canvas.getContext('2d');
+                    let img = new Image();
+                    img.src = qrcode_src;
+                    img.onload = function () {
+                        let qrSize = 120;
+                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+                        let finalImgElement = document.createElement("img");
+                        finalImgElement.src = canvas.toDataURL('image/png');
+                        finalImgElement.style.maxWidth = "90%";
+                        document.getElementById("final-image-container").appendChild(finalImgElement);
+                    };
+                });
+                // 4. 自动复制分享链接
+                copyLinkToClipboard(shareLink);
+                // 5. 显示弹窗
+                $('#share-modal').modal('show');
+            }
+        });
+    }
+
+    // 复制链接到剪贴板 + 动画提示
+    function copyLinkToClipboard(link) {
+        navigator.clipboard.writeText(link).then(() => {
+            let alertBox = document.getElementById("copy-alert");
+            alertBox.style.display = "block";
+            alertBox.style.animation = "none";
+            void alertBox.offsetWidth; // 强制重绘
+            alertBox.style.animation = null;
+        });
+    }
+
+    // ========== 浮动菜单显示/隐藏操作 ==========
+    function toggleFloatingMenu() {
+        let menu = document.getElementById("floatingMenu");
+        menu.classList.toggle("show-menu");
+    }
+    function hideFloatingMenuIfOpen() {
+        let menu = document.getElementById("floatingMenu");
+        // 如果菜单是展开的，则点击编辑器时收起菜单
+        if (menu.classList.contains("show-menu")) {
+            menu.classList.remove("show-menu");
+        }
+    }
+</script>
 </body>
 </html>
