@@ -1278,17 +1278,22 @@
 
         function ensureLinkVisible(link) {
             const tocContainer = document.querySelector('.toc-list');
-            const linkRect = link.getBoundingClientRect();
-            const tocRect = tocContainer.getBoundingClientRect();
-            let currentScroll = tocContainer.scrollTop;
+            const linkOffsetTop = link.offsetTop;        // link 在 tocContainer 内的垂直偏移
+            const linkHeight = link.offsetHeight;
+            const scrollTop = tocContainer.scrollTop;    // 当前滚动条位置
+            const containerHeight = tocContainer.clientHeight;
 
             isScrolling = true;
-            if (linkRect.top < tocRect.top) {
-                tocContainer.scrollTop = currentScroll - (tocRect.top - linkRect.top) - 20;
-            } else if (linkRect.bottom > tocRect.bottom) {
-                tocContainer.scrollTop = currentScroll + (linkRect.bottom - tocRect.bottom) + 20;
+            // 如果链接在当前可视区域上方，则滚动到它上方一点
+            if (linkOffsetTop < scrollTop) {
+                tocContainer.scrollTop = linkOffsetTop - 20;
             }
-            setTimeout(() => isScrolling = false, 100);
+            else if (linkOffsetTop + linkHeight > scrollTop + containerHeight) {
+                tocContainer.scrollTop = linkOffsetTop - containerHeight + linkHeight + 20;
+            }
+            setTimeout(() => {
+                isScrolling = false;
+            }, 100);
         }
 
         // ============ 重新初始化图片灯箱 ============
