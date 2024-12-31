@@ -143,7 +143,23 @@
         }
 
         .modal-dialog {
-            max-width: 90%;
+            margin: 0.5rem auto; /* 上下微距，左右居中 */
+            max-width: 70%;      /* 默认大屏时的最大宽度 */
+            width: auto;
+        }
+
+        /* 弹窗内容如果超出一定高度，产生滚动条，以防在小屏时撑出屏幕 */
+        .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* 针对小屏幕做自适应，让弹窗更大，几乎全屏 */
+        @media (max-width: 768px) {
+            .modal-dialog {
+                max-width: 95% !important;
+                margin: 1rem auto;
+            }
         }
 
         /* Add custom styles for bootstrap-select in dark theme */
@@ -629,8 +645,7 @@ ${code}
         // 重置动画，用于多次触发
         copyMsg.style.display = "block";
         copyMsg.style.animation = "none";
-        // 触发重绘，让浏览器意识到需要重新播放动画
-        void copyMsg.offsetWidth;
+        void copyMsg.offsetWidth; // 触发重绘，让浏览器意识到需要重新播放动画
         copyMsg.style.animation = null;
 
         // 2秒后隐藏
