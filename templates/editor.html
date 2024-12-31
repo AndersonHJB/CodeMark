@@ -170,24 +170,26 @@
         #custom-context-menu {
             position: absolute;
             z-index: 9999;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            min-width: 150px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background-color: #3c3c3c; /* 稍微比页面底色深一些 */
+            border: 1px solid #4f4f4f;
+            border-radius: 5px;
+            min-width: 180px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             display: none;
         }
         #custom-context-menu ul {
             list-style: none;
             margin: 0;
-            padding: 4px 0;
+            padding: 6px 0;
         }
         #custom-context-menu li {
-            padding: 6px 12px;
+            padding: 8px 12px;
             cursor: pointer;
+            color: #ffffff;
+            font-size: 14px;
         }
         #custom-context-menu li:hover {
-            background-color: #f2f2f2;
+            background-color: #575757;
         }
     </style>
 
@@ -313,6 +315,7 @@
         <li onclick="screenshotAndDownload()">截图并下载</li>
         <li onclick="copyAllCode()">复制所有代码</li>
         <li onclick="pasteCode()">粘贴到编辑器</li>
+        <li onclick="copyShareLinkInMenu()">复制分享链接</li>
     </ul>
 </div>
 
@@ -670,6 +673,15 @@ function pasteCode() {
     } else {
         alert("当前浏览器不支持直接读取剪贴板。");
     }
+}
+// 复制分享链接（在右键菜单中使用）
+function copyShareLinkInMenu() {
+    let shareLink = document.getElementById("share-link-input").value;
+    if (!shareLink) {
+        alert("暂无可分享的链接，请先点击分享按钮生成。");
+        return;
+    }
+    copyToClipboard(shareLink);
 }
 
 // 为避免多行字符串在 Python 中出现意外，需要做转义
