@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>AI悦创代码分享小工具｜便捷分享代码</title>
+    <title>AI悦创代码分享 - 移动端</title>
     <!-- 设置移动端适配 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:site_name" content="Python在线代码编写｜AI悦创编程一对一辅导">
@@ -12,76 +12,34 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+
+    <!-- 如果你依然想使用 Bootstrap 进行简单样式，可以保留；否则可去掉 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
           rel="stylesheet">
-    <style type="text/css" media="screen">
+
+    <style type="text/css">
+        /* 基础设置 */
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             background-color: #2f3129;
-            overflow: hidden; /* 禁止整体出现滚动条，编辑器内部可滚动 */
+            overflow: hidden; /* 禁止整体滚动，Ace编辑器自己可滚动 */
         }
-        .container-fluid {
-            margin: 0;
-            padding: 0;
+
+        /* Ace Editor 区域 */
+        #editor {
+            width: 100%;
             height: 100%;
         }
-        .row.no-gutters {
-            margin-right: 0;
-            margin-left: 0;
-        }
-        .col-sm-12 {
-            padding: 0 !important;
-        }
-        /* Ace Editor 字体 */
+        /* Ace Editor 字体设置 */
         .ace_editor .ace_content span,
         .ace_editor .ace_content .ace_line {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
         }
-        img {
-            max-width: 100%;
-        }
-        .code-container {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        #editor {
-            height: 100%;
-            width: 100%;
-        }
-        /* 让 Modal 在移动端也能好看些 */
-        .modal-dialog {
-            max-width: 90%;
-        }
-        /* dark 主题下的下拉选项外观 */
-        .bootstrap-select .dropdown-toggle {
-            background-color: #4a4a4a;
-            border-color: #666;
-            color: white;
-        }
-        .bootstrap-select .dropdown-toggle:hover {
-            background-color: #5a5a5a;
-        }
-        /* 复制提示的动画样式 */
-        .copy-alert {
-            display: none; /* 默认隐藏，通过JS控制显示/隐藏 */
-            background-color: #28a745;
-            color: #fff;
-            padding: 8px;
-            margin-top: 5px;
-            border-radius: 4px;
-            animation: fadeOut 2s forwards; /* 2s后自动淡出 */
-        }
-        @keyframes fadeOut {
-            0% {opacity: 1;}
-            70% {opacity: 1;}
-            100% {opacity: 0;}
-        }
-        /* ========== 浮动菜单样式 ========== */
-        /* 右侧一个小按钮，用来切换菜单的显示/隐藏 */
+
+        /* 浮动切换按钮（右侧小按钮） */
         #floatingToggle {
             position: fixed;
             top: 50%;
@@ -98,7 +56,8 @@
             color: #fff;
             cursor: pointer;
         }
-        /* 实际的浮动菜单容器 */
+
+        /* 浮动菜单（隐藏时右移、显示时贴边） */
         #floatingMenu {
             position: fixed;
             top: 50%;
@@ -109,15 +68,15 @@
             border-radius: 8px 0 0 8px;
             transition: all 0.3s ease;
             z-index: 9999;
-            /* 默认隐藏（向右偏移100%） */
+            /* 默认隐藏在右侧可视区外 */
             transform: translate(100%, -50%);
             box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.5);
         }
-        /* 菜单展开时的样式 */
         #floatingMenu.show-menu {
             transform: translate(0, -50%);
         }
-        /* 菜单内部按钮的通用样式 */
+
+        /* 浮动菜单内的按钮统一样式 */
         #floatingMenu button {
             display: block;
             width: 100%;
@@ -127,74 +86,118 @@
             border-radius: 4px;
             height: 40px;
         }
-        /* 分别给4个按钮不同的颜色 */
-        #save {
-            background-color: #6dddf2;
-        }
-        #open {
-            background-color: #f53855;
-        }
-        #share {
-            background-color: #a7c336;
-        }
-        #home {
-            background-color: #ef7d62;
-        }
-        /* 语言选择、主题选择容器 */
+        /* 不同按钮不同背景色 */
+        #save { background-color: #6dddf2; }
+        #open { background-color: #f53855; }
+        #share { background-color: #a7c336; }
+        #home { background-color: #ef7d62; }
+
+        /* 下拉选择器(语言/主题)容器 */
         .selector-container {
             margin-top: 8px;
         }
         .selector-container > select {
             width: 100%;
         }
-        .help-link-container a {
+
+        /* 复制成功提示 */
+        .copy-alert {
+            display: none;
+            background-color: #28a745;
             color: #fff;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            animation: fadeOut 2s forwards;
+        }
+        @keyframes fadeOut {
+            0%   { opacity: 1; }
+            70%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* ============= 自定义分享弹窗（非 Bootstrap Modal） ============= */
+        /* 全屏覆盖的半透明背景层 */
+        #shareOverlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none; /* 默认隐藏，JS控制显示 */
+            z-index: 20000; /* 在浮动菜单之上 */
+        }
+        /* 弹窗主体 */
+        #shareDialog {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 400px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        #shareDialog h5 {
+            margin-bottom: 1rem;
+        }
+        /* 关闭按钮 */
+        .close-share-dialog {
+            float: right;
+            font-size: 1.2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        /* 弹窗里的二维码、图片等 */
+        #qrcode {
+            margin: 10px auto 20px;
+        }
+        #share-link-text {
+            display: inline-block;
+            margin-right: 10px;
+            color: #000;
+            font-weight: bold;
+            word-break: break-all; /* 移动端链接太长可换行 */
+        }
+        #final-image-container img {
+            max-width: 95%;
+        }
+        /* 关闭按钮上方的小间距 */
+        .share-dialog-header {
+            margin-bottom: 10px;
         }
     </style>
 
-    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值 -->
     {% if pre_code %}
-        <script>
-            let server_pre_code = {{ pre_code|tojson }};
-        </script>
+        <script>let server_pre_code = {{ pre_code|tojson }};</script>
     {% else %}
-        <script>
-            let server_pre_code = "";
-        </script>
+        <script>let server_pre_code = "";</script>
     {% endif %}
-    <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器。否则默认是 "python" -->
+
+    <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器 -->
     {% if pre_lang %}
-        <script>
-            let server_pre_lang = "{{ pre_lang }}";
-        </script>
+        <script>let server_pre_lang = "{{ pre_lang }}";</script>
     {% else %}
-        <script>
-            let server_pre_lang = "python";
-        </script>
+        <script>let server_pre_lang = "python";</script>
     {% endif %}
 </head>
 
 <body>
-<div class="container-fluid">
-    <div class="row no-gutters" style="height: 100%;">
-        <!-- 代码编辑区 -->
-        <div class="col-sm-12 code-container">
-            <div id="editor" onclick="hideFloatingMenuIfOpen()"></div>
-        </div>
-    </div>
-</div>
 
-<!-- 右侧的浮动菜单切换按钮 -->
+<!-- ========== 代码编辑器区域 ========== -->
+<div id="editor" onclick="hideFloatingMenuIfOpen()"></div>
+
+<!-- ========== 右侧浮动切换按钮 ========== -->
 <div id="floatingToggle" onclick="toggleFloatingMenu()">≡</div>
 
-<!-- 浮动菜单：包含所有的功能按钮、语言/主题选择等 -->
+<!-- ========== 浮动菜单（包含按钮与语言/主题选择） ========== -->
 <div id="floatingMenu">
     <button id="save" onclick="save()">save</button>
     <button id="open" onclick="performClick('file-input')">open</button>
     <button id="share" onclick="share()">share</button>
     <button id="home" onclick="home()">home</button>
 
-    <!-- 语言选择器 -->
     <div class="selector-container">
         <label for="lang-selector" style="color:#fff;">Language:</label>
         <select id="lang-selector" class="selectpicker" data-style="btn-dark">
@@ -211,7 +214,6 @@
         </select>
     </div>
 
-    <!-- 主题选择器 -->
     <div class="selector-container">
         <label for="theme-selector" style="color:#fff;">Theme:</label>
         <select id="theme-selector" class="selectpicker" data-style="btn-dark">
@@ -229,67 +231,32 @@
         </select>
     </div>
 
-    <!-- About 链接 -->
-    <div class="help-link-container mt-3">
-        <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
-    </div>
-
-    <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
+    <input id="file-input" type="file" style="display: none;"/>
 </div>
 
-<!-- Share Modal -->
-<div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Share your code</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <div id="qrcode" style="margin:0 auto 20px;"></div>
-                <div id="share-link-div" class="text-center mb-2">
-                    <span id="share-link-text"
-                          style="display:inline-block; margin-right:10px; color: #000; font-weight: bold;"></span>
-                    <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制链接</button>
-                </div>
-                <div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
-                <p>You can save this picture or scan the QR code to share it.</p>
-                <div id="final-image-container" style="margin-top: 20px;"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- 复制提示 -->
+<div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
 
-<!-- About Modal -->
-<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">About</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <h3>关于 CodeMark </h3>
-                <hr>
-                <p>你可以在此页面进行 Python 编写和代码分享</p>
-                <p>我们添加了对 micropip、NumPy 和 Pandas 的支持。</p>
-                <p>祝您探索 CodeMark 愉快！</p>
-                <p>对于想要制定化或高校合作，可以添加此微信：Jiabcdefh</p>
-                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh" style="zoom:25%;">
-                <br>
-                <a href="https://github.com/AndersonHJB/">Github</a>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
-            </div>
+<!-- ========== 自定义分享弹窗 ========== -->
+<div id="shareOverlay">
+    <div id="shareDialog">
+        <div class="share-dialog-header">
+            <button class="close-share-dialog" onclick="closeShare()">×</button>
+            <h5>分享你的代码</h5>
         </div>
+        <!-- 生成的二维码 -->
+        <div id="qrcode"></div>
+        <!-- 展示分享链接 + 复制按钮 -->
+        <div id="share-link-div" class="text-center mb-2">
+            <span id="share-link-text"></span>
+            <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制</button>
+        </div>
+        <!-- 截图后的代码+二维码合成图展示 -->
+        <div id="final-image-container"></div>
+
+        <p style="margin-top:10px;font-size:0.9rem;">
+            （长按图片保存，或扫描二维码分享）
+        </p>
     </div>
 </div>
 
@@ -306,9 +273,10 @@
 <script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
+
 <script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
 
-<!-- 第三方库 -->
+<!-- 第三方库（保留是为了支持下拉选择器、二维码生成和截图等功能） -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
@@ -324,14 +292,14 @@
         }
     });
 
-    // 页面加载后，初始化 Ace 编辑器
-    window.addEventListener("load", async function () {
+    // 初始化 Ace 编辑器
+    window.addEventListener("load", function () {
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");
-        editor.session.setMode("ace/mode/python");
+        editor.setTheme("ace/theme/monokai");  // 默认主题
+        editor.session.setMode("ace/mode/python"); // 默认python
         editor.setOptions({
-            fontSize: "20pt",
+            fontSize: "16pt",
             enableLiveAutocompletion: true,
             enableBasicAutocompletion: true,
             enableSnippets: true,
@@ -343,52 +311,45 @@
             size: 10
         });
 
-        // 设置初始主题
-        $('#theme-selector').selectpicker('val', 'monokai');
-        $('#lang-selector').selectpicker('val', 'python');
-
         // 如果后端传来了 pre_lang，就用它来设置语言
         if (server_pre_lang) {
             $('#lang-selector').selectpicker('val', server_pre_lang);
-            if (server_pre_lang === 'python') {
-                editor.session.setMode("ace/mode/python");
-            } else {
-                editor.session.setMode("ace/mode/" + server_pre_lang);
-            }
+            setEditorLang(server_pre_lang);
+        } else {
+            $('#lang-selector').selectpicker('val', 'python');
         }
 
-        // 如果后端传来了 pre_code，则用它来填充编辑器
+        // 如果后端传来了 pre_code，则填充到编辑器
         if (server_pre_code) {
             editor.setValue(server_pre_code, -1);
         } else {
-            let welcomeMsg = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n";
-            welcomeMsg += "# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n";
-            editor.setValue(welcomeMsg, -1);
+            let msg = "# -*- coding: utf-8 -*-\n";
+            msg += "# 欢迎使用 CodeMark（移动端版）\n";
+            msg += "# 你可以在此处编写并分享代码\n";
+            msg += "# 点击右侧按钮可打开更多功能\n";
+            editor.setValue(msg, -1);
         }
 
-        // 语言选择器事件
+        // 监听语言切换
         $('#lang-selector').on('changed.bs.select', function () {
-            let selectedLang = $(this).val();
-            if (selectedLang === 'python') {
-                editor.session.setMode("ace/mode/python");
-            } else {
-                editor.session.setMode("ace/mode/" + selectedLang);
-            }
+            setEditorLang($(this).val());
         });
 
-        // 主题选择器事件
+        // 监听主题切换
         $('#theme-selector').on('changed.bs.select', function () {
-            let selectedTheme = $(this).val();
-            editor.setTheme("ace/theme/" + selectedTheme);
+            editor.setTheme("ace/theme/" + $(this).val());
         });
 
-        // 添加复制链接的事件
+        // 复制链接按钮
         $('#copy-share-link-btn').on('click', function () {
             let shareLink = $('#share-link-text').text();
             copyLinkToClipboard(shareLink);
         });
 
-        // Ctrl-D / Command-D：复制当前行
+        // 设置默认选择
+        $('#theme-selector').selectpicker('val', 'monokai');
+
+        // Ctrl-D/Command-D: 复制当前行
         editor.commands.addCommand({
             name: 'duplicateLine',
             bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
@@ -398,7 +359,34 @@
         });
     });
 
-    // 文件读取
+    // 设置编辑器语言
+    function setEditorLang(lang) {
+        if (lang === 'python') {
+            editor.session.setMode("ace/mode/python");
+        } else {
+            editor.session.setMode("ace/mode/" + lang);
+        }
+    }
+
+    // 切换浮动菜单
+    function toggleFloatingMenu() {
+        let menu = document.getElementById("floatingMenu");
+        menu.classList.toggle("show-menu");
+    }
+    // 如果菜单展开，点击编辑器时隐藏
+    function hideFloatingMenuIfOpen() {
+        let menu = document.getElementById("floatingMenu");
+        if (menu.classList.contains("show-menu")) {
+            menu.classList.remove("show-menu");
+        }
+    }
+
+    // 打开文件
+    function performClick(elemId) {
+        const elem = document.getElementById(elemId);
+        if (elem) elem.click();
+    }
+    // 读取文件并显示到编辑器
     document.getElementById('file-input').addEventListener('change', readSingleFile, false);
     function readSingleFile(e) {
         let file = e.target.files[0];
@@ -408,31 +396,32 @@
             editor.setValue(e.target.result, -1);
             let autoLang = detectLanguageFromFilename(file.name);
             $('#lang-selector').selectpicker('val', autoLang);
-            editor.session.setMode("ace/mode/" + autoLang);
+            setEditorLang(autoLang);
         };
         reader.readAsText(file);
     }
+    // 根据文件后缀判断语言
     function detectLanguageFromFilename(filename) {
-        let lowerName = filename.toLowerCase();
-        if (lowerName.endsWith(".py")) return "python";
-        if (lowerName.endsWith(".js")) return "javascript";
-        if (lowerName.endsWith(".c") || lowerName.endsWith(".cpp") || lowerName.endsWith(".h")) return "c_cpp";
-        if (lowerName.endsWith(".java")) return "java";
-        if (lowerName.endsWith(".php")) return "php";
-        if (lowerName.endsWith(".rb")) return "ruby";
-        if (lowerName.endsWith(".go")) return "golang";
-        if (lowerName.endsWith(".html")) return "html";
-        if (lowerName.endsWith(".css")) return "css";
-        if (lowerName.endsWith(".md")) return "markdown";
+        let lower = filename.toLowerCase();
+        if (lower.endsWith(".py")) return "python";
+        if (lower.endsWith(".js")) return "javascript";
+        if (lower.endsWith(".c") || lower.endsWith(".cpp") || lower.endsWith(".h")) return "c_cpp";
+        if (lower.endsWith(".java")) return "java";
+        if (lower.endsWith(".php")) return "php";
+        if (lower.endsWith(".rb")) return "ruby";
+        if (lower.endsWith(".go")) return "golang";
+        if (lower.endsWith(".html")) return "html";
+        if (lower.endsWith(".css")) return "css";
+        if (lower.endsWith(".md")) return "markdown";
         return "python";
     }
 
-    // home
+    // 跳转首页
     function home() {
         window.location.href = "/";
     }
 
-    // save
+    // 保存文件
     function save() {
         let code = editor.getValue();
         let langVal = $('#lang-selector').val();
@@ -453,18 +442,15 @@
         saveAs(blob, "bornforthis_code" + fileExt);
     }
 
-    // open
-    function performClick(elemId) {
-        const elem = document.getElementById(elemId);
-        if (elem) elem.click();
-    }
-
-    // share
+    // 分享代码
     function share() {
+        // 分享前先隐藏浮动菜单
+        hideFloatingMenuIfOpen();
+
         let code = editor.getValue();
         let langVal = $('#lang-selector').val();
         $.ajax({
-            type: 'post',
+            type: 'POST',
             url: '/upload_code',
             dataType: 'json',
             data: {
@@ -478,63 +464,56 @@
                 $('#qrcode').empty();
                 $('#qrcode').qrcode({
                     text: shareLink,
-                    width: 200,
-                    height: 200
+                    width: 150,
+                    height: 150
                 });
-                // 2. 更新弹窗标题
-                $('.modal-title').html(
-                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
-                );
+                // 2. 显示分享链接
                 $('#share-link-text').text(shareLink);
 
-                // 3. 截取编辑器区域并叠加二维码
+                // 3. 截图 editor 并叠加二维码
                 let qrcodeCanvas = $('#qrcode canvas')[0];
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
                 document.getElementById("final-image-container").innerHTML = "";
 
+                // 截图编辑器
                 html2canvas(document.querySelector("#editor")).then(canvas => {
                     let ctx = canvas.getContext('2d');
                     let img = new Image();
                     img.src = qrcode_src;
                     img.onload = function () {
-                        let qrSize = 120;
+                        // 在编辑器截图右上角绘制二维码
+                        let qrSize = 100;
                         ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+                        // 生成最终图片
                         let finalImgElement = document.createElement("img");
                         finalImgElement.src = canvas.toDataURL('image/png');
-                        finalImgElement.style.maxWidth = "90%";
                         document.getElementById("final-image-container").appendChild(finalImgElement);
                     };
                 });
-                // 4. 自动复制分享链接
+
+                // 4. 自动复制链接
                 copyLinkToClipboard(shareLink);
-                // 5. 显示弹窗
-                $('#share-modal').modal('show');
+
+                // 5. 显示自定义分享弹窗
+                document.getElementById("shareOverlay").style.display = "block";
             }
         });
     }
 
-    // 复制链接到剪贴板 + 动画提示
+    // 关闭分享弹窗
+    function closeShare() {
+        document.getElementById("shareOverlay").style.display = "none";
+    }
+
+    // 复制到剪贴板 + 动画提示
     function copyLinkToClipboard(link) {
         navigator.clipboard.writeText(link).then(() => {
             let alertBox = document.getElementById("copy-alert");
             alertBox.style.display = "block";
             alertBox.style.animation = "none";
-            void alertBox.offsetWidth; // 强制重绘
+            void alertBox.offsetWidth; // 触发回流
             alertBox.style.animation = null;
         });
-    }
-
-    // ========== 浮动菜单显示/隐藏操作 ==========
-    function toggleFloatingMenu() {
-        let menu = document.getElementById("floatingMenu");
-        menu.classList.toggle("show-menu");
-    }
-    function hideFloatingMenuIfOpen() {
-        let menu = document.getElementById("floatingMenu");
-        // 如果菜单是展开的，则点击编辑器时收起菜单
-        if (menu.classList.contains("show-menu")) {
-            menu.classList.remove("show-menu");
-        }
     }
 </script>
 </body>
