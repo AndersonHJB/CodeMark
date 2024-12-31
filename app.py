@@ -12,10 +12,14 @@ import os, re, random
 import uuid
 import datetime
 import qrcode  # pip install qrcode[pil]
+from flask_cors import CORS
 
 app = Flask(__name__)
 # app.config['SERVER_NAME'] = 'codemark.bornforthis.cn'  # 用于生成绝对 URL，可根据实际情况修改
 # app.config['PREFERRED_URL_SCHEME'] = 'https' # 强制使用 https
+# CORS(app, resources={r"/*": {"origins": ["https://blog.bornforthis.cn", "http://127.0.0.1:4000"]}})
+# 允许任何来源访问
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 def parse_sort_key(filename):
     """
