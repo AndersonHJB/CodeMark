@@ -1126,8 +1126,7 @@
         hintSpan.className = 'copy-hint';
         hintSpan.textContent = '复制成功';
         button.appendChild(hintSpan);
-
-        // 放置图标和“复制”文字
+        
         const icon = document.createElement('i');
         icon.className = 'fas fa-copy';
         button.appendChild(icon);
@@ -1168,18 +1167,13 @@
                 viewportMargin: Infinity,
                 lineWrapping: false,
                 extraKeys: {
-                    // 保留：手动触发补全
                     "Ctrl-Space": "autocomplete"
                 },
                 hintOptions: {
-                    // Python 专用的提示
                     hint: CodeMirror.hint.python,
-                    // 不要在只有一个候选时自动填充
                     completeSingle: false
                 }
             });
-
-            // ★★★ 在编辑代码时自动弹出补全窗口，但若输入的是空格则跳过 ★★★
             editor.on("inputRead", function (cm, change) {
                 // 如果输入的是空格，就不自动补全
                 if (change.text && change.text[0] === " ") {
@@ -1202,7 +1196,6 @@
 
             buttonContainer.appendChild(createResetButton(editor, initialCode, outputContainer));
 
-            // 仅在语言为Python时添加运行按钮
             if (language === 'python') {
                 buttonContainer.appendChild(createRunButton(editor, outputContainer));
             }
@@ -1215,13 +1208,8 @@
 
             codeBlock.parentNode.insertBefore(codeBlockContainer, codeBlock);
             codeBlock.style.display = 'none';
-
-            // 在代码块右上角加一个“复制”按钮
             const copyCodeBtn = createCopyCodeButton(editor);
             container.appendChild(copyCodeBtn);
-
-
-            // 为了让 CodeMirror 渲染完再刷新
             setTimeout(() => {
                 editor.refresh();
                 adjustEditorHeight(editor);
@@ -1278,13 +1266,12 @@
 
         function ensureLinkVisible(link) {
             const tocContainer = document.querySelector('.toc-list');
-            const linkOffsetTop = link.offsetTop;        // link 在 tocContainer 内的垂直偏移
+            const linkOffsetTop = link.offsetTop;
             const linkHeight = link.offsetHeight;
-            const scrollTop = tocContainer.scrollTop;    // 当前滚动条位置
+            const scrollTop = tocContainer.scrollTop;
             const containerHeight = tocContainer.clientHeight;
 
             isScrolling = true;
-            // 如果链接在当前可视区域上方，则滚动到它上方一点
             if (linkOffsetTop < scrollTop) {
                 tocContainer.scrollTop = linkOffsetTop - 20;
             } else if (linkOffsetTop + linkHeight > scrollTop + containerHeight) {
@@ -1295,13 +1282,8 @@
             }, 100);
         }
 
-        // ============ 重新初始化图片灯箱 ============
         initializeLightbox();
-
-        // ============ 为每张图片添加 ALT 文本（若有） ============
         addAltCaptions();
-
-        // ============ 将 Markdown 风格的复选框渲染成真实的 checkbox ============
         convertMarkdownCheckboxes();
     }
 
@@ -1323,7 +1305,6 @@
         });
     }
 
-    // ============================== 重点：将 - [ ] 或 - [x] 转换为 checkbox ==============================
     function convertMarkdownCheckboxes() {
         // 获取所有 main-article 区域内的列表项
         const listItems = document.querySelectorAll('.main-article li');
@@ -1413,31 +1394,26 @@
         return button;
     }
 
-    // =========== 全屏按钮逻辑 =========== //
     function createFullscreenButton(editor, codeBlockContainer, outputElement, language) {
         const button = document.createElement('button');
         button.className = 'fullscreen-button';
         button.innerHTML = '<i class="fas fa-expand"></i> 全屏编辑';
 
-        let isFullscreen = false; // 用于标记当前是否处于全屏
+        let isFullscreen = false;
 
         button.onclick = () => {
             isFullscreen = !isFullscreen;
 
             if (isFullscreen) {
-                // 进入全屏
                 codeBlockContainer.classList.add('fullscreen-code');
                 button.innerHTML = '<i class="fas fa-compress"></i> 退出全屏';
             } else {
-                // 退出全屏
                 codeBlockContainer.classList.remove('fullscreen-code');
                 button.innerHTML = '<i class="fas fa-expand"></i> 全屏编辑';
             }
 
-            // 切换后刷新编辑器大小
             setTimeout(() => {
                 editor.refresh();
-                // 如果想让全屏时自动撑满，也可以手动设置
                 adjustEditorHeight(editor, false, isFullscreen);
             }, 100);
         };
