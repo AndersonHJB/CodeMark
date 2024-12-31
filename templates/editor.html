@@ -359,6 +359,7 @@
 </div>
 
 <!-- ================== 代码编辑器相关 ================== -->
+<!-- 核心：要确保引入 ext-language_tools.js 才可使用自动补全功能 -->
 <script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
@@ -396,7 +397,15 @@
         window.editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
         editor.session.setMode("ace/mode/python");
-        editor.setOptions({fontSize: "20pt"});
+
+        // ======= 关键：打开自动补全及相关功能 =======
+        editor.setOptions({
+            fontSize: "20pt",
+            enableBasicAutocompletion: true,     // 启用基本代码提示
+            enableLiveAutocompletion: true,      // 启用实时自动补全
+            enableSnippets: true                 // 启用代码片段
+        });
+        // =======================================
 
         // Initialize bootstrap-select
         $('.selectpicker').selectpicker({
@@ -576,7 +585,6 @@ ${code}
                 let qrcode_src = qrcodeCanvas.toDataURL('image/png');
 
                 // 新建一个容器来放最终合成的图片（避免覆盖原二维码）
-                // 先检查是否已经存在，如果多次点击 share，则重复创建前先清理
                 let existingFinalImageContainer = document.getElementById("final-image-container");
                 if (existingFinalImageContainer) {
                     existingFinalImageContainer.remove();
@@ -584,7 +592,6 @@ ${code}
                 let finalImageContainer = document.createElement("div");
                 finalImageContainer.id = "final-image-container";
                 finalImageContainer.style.marginTop = "20px";
-                // 把这个容器插到模态框里
                 document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
                 // 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
@@ -655,7 +662,6 @@ ${code}
     }
 
     // ========== 自定义右键菜单相关 ==========
-    // 右键事件，展示自定义菜单
     document.addEventListener('contextmenu', function (e) {
         e.preventDefault();
         let menu = document.getElementById("custom-context-menu");
@@ -680,7 +686,7 @@ ${code}
 import autopep8
 code = """${escapeForPython(code)}"""
 autopep8.fix_code(code)
-        `);
+            `);
             window.editor.setValue(formattedCode, -1);
         } catch (e) {
             alert("格式化失败: " + e);
