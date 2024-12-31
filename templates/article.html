@@ -1287,8 +1287,7 @@
             // 如果链接在当前可视区域上方，则滚动到它上方一点
             if (linkOffsetTop < scrollTop) {
                 tocContainer.scrollTop = linkOffsetTop - 20;
-            }
-            else if (linkOffsetTop + linkHeight > scrollTop + containerHeight) {
+            } else if (linkOffsetTop + linkHeight > scrollTop + containerHeight) {
                 tocContainer.scrollTop = linkOffsetTop - containerHeight + linkHeight + 20;
             }
             setTimeout(() => {
@@ -1368,7 +1367,7 @@
     function createRunButton(editor, outputElement) {
         const button = document.createElement('button');
         button.className = 'run-button';
-        button.textContent = '运行代码';
+        button.innerHTML = '<i class="fas fa-play"></i> 运行代码';
         button.onclick = runCode;
 
         async function runCode() {
@@ -1404,7 +1403,7 @@
     function createResetButton(editor, initialCode, outputElement) {
         const button = document.createElement('button');
         button.className = 'reset-button';
-        button.textContent = '重置代码';
+        button.innerHTML = '<i class="fas fa-undo"></i> 重置代码';
         button.onclick = function () {
             editor.setValue(initialCode);
             outputElement.textContent = '';
@@ -1418,7 +1417,7 @@
     function createFullscreenButton(editor, codeBlockContainer, outputElement, language) {
         const button = document.createElement('button');
         button.className = 'fullscreen-button';
-        button.textContent = '全屏编辑';
+        button.innerHTML = '<i class="fas fa-expand"></i> 全屏编辑';
 
         let isFullscreen = false; // 用于标记当前是否处于全屏
 
@@ -1428,11 +1427,11 @@
             if (isFullscreen) {
                 // 进入全屏
                 codeBlockContainer.classList.add('fullscreen-code');
-                button.textContent = '退出全屏';
+                button.innerHTML = '<i class="fas fa-compress"></i> 退出全屏';
             } else {
                 // 退出全屏
                 codeBlockContainer.classList.remove('fullscreen-code');
-                button.textContent = '全屏编辑';
+                button.innerHTML = '<i class="fas fa-expand"></i> 全屏编辑';
             }
 
             // 切换后刷新编辑器大小
