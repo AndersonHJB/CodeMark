@@ -577,6 +577,25 @@
             }
         }
 
+        /* ======== 在更大屏幕下（如 >= 1400px）进行优化，让内容更宽一些 ======== */
+        @media (min-width: 1400px) {
+            .page-container {
+                max-width: 1400px;
+            }
+            .sidebar {
+                width: 300px; /* 侧边栏再宽一点 */
+            }
+            .toc-container {
+                width: 300px; /* TOC 也稍加宽 */
+            }
+            .main-article {
+                /* 保持文章区在大屏时合适的宽度，避免文字一行太长 */
+                width: 900px !important;
+                max-width: 900px !important;
+                min-width: 900px !important;
+            }
+        }
+
         /* ======== 底部 Footer ======== */
         footer {
             background-color: #ffffff;

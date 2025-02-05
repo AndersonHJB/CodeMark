@@ -12,7 +12,7 @@
 
 如果，你热衷于开源或者想要一起加入这个富有意义的项目当中，可以与我联系。
 
-诚招 Python、Web 精通的伙伴～
+诚邀 Python、Web!!! 精通的伙伴～
 
 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=O19F8f7kZPO2D6RWNJHuKViLAYf8bE7u&jump_from=webapi&authKey=Km2k2+Ssx7z1X/b314m0wws9692R7MPEIA/zK/U+g4jjytvr2s86qapzCsapE20r"><img border="0" src="https://pub.idqqimg.com/wpa/images/group.png" alt="CodeMark交流群" title="CodeMark交流群"></a>
 
