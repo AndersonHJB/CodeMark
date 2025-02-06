@@ -1,4 +1,0 @@
-__TEMPLATE__=sharecode
-__LANG__=css
-s = input("Ss")
-print(s)

@@ -1,4 +1,0 @@
-__TEMPLATE__=editor
-__LANG__=python
-# This editor does NOT run Python code.
-# You can edit and share the code, but there's no execution here.
