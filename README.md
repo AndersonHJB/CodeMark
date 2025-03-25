@@ -3,8 +3,8 @@
 - [简体中文🇨🇳](README.md)
 - [English🇺🇸](EN_README.md)
 - [Releases info📝](Releases.md)
-- [Plan☘️](./docs/Plan.md)
-- [ChangeLog📔️](./docs/ChangeLog.md)
+- [Plan☘️](dev-docs/Plan.md)
+- [ChangeLog📔️](dev-docs/ChangeLog.md)
 
 结合“Code”和“Markdown”的特点，用户可以在 Markdown 中编写并执行代码的功能。
 
