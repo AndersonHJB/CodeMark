@@ -24,3 +24,12 @@ textarea {
     color: #8BE9FD; /* A light blue color */
     text-decoration: none;
 }
+
+/* Simple hover animation for buttons */
+button {
+    transition: transform 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+}
