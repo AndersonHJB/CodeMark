@@ -62,8 +62,12 @@
             border-width: 0;
             height: 100%;
             width: 80px;
+            cursor: pointer;
+            /* 新增交互动效 */
+            transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
         }
 
+        /* 按钮各自配色 */
         #run {
             float: left;
             background-color: #a7c336;
@@ -88,6 +92,20 @@
 
         #home {
             background-color: #ef7d62;
+        }
+
+        /* hover 效果：轻微抬起、放大、加阴影、提亮 */
+        .btn-area button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+
+        /* active 效果：按下时缩回、减弱阴影、变暗 */
+        .btn-area button:active {
+            transform: translateY(0) scale(0.95);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            filter: brightness(0.9);
         }
 
         .help-link-container a {
@@ -184,18 +202,10 @@
         }
 
         @keyframes fadeInOut {
-            0% {
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                opacity: 0;
-            }
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
         }
 
         /* ========== 自定义右键菜单样式 ========== */
