@@ -55,20 +55,19 @@
             background-color: #2f3129;
         }
 
-        .btn-area button {
+        .btn-area > button {
             float: left;
             color: #fff;
             border-radius: 0;
             border-width: 0;
             height: 100%;
             width: 80px;
-            /* 新增：过渡动画 */
             transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
             will-change: transform;
         }
 
         /* 悬停时微微抬起并加阴影、变亮 */
-        .btn-area button:hover {
+        .btn-area > button:hover {
             transform: translateY(-3px) scale(1.05);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             filter: brightness(1.1);
@@ -76,7 +75,7 @@
         }
 
         /* 点击时按下效果 */
-        .btn-area button:active {
+        .btn-area > button:active {
             transform: translateY(0) scale(0.95);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             filter: brightness(0.9);
