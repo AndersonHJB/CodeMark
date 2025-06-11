@@ -108,6 +108,12 @@
             filter: brightness(0.9);
         }
 
+        .btn-area .bootstrap-select .dropdown-toggle:hover {
+            transform: none !important;
+            filter: none !important;
+            box-shadow: none !important;
+        }
+
         .help-link-container a {
             color: #fff;
         }
@@ -202,10 +208,18 @@
         }
 
         @keyframes fadeInOut {
-            0% { opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { opacity: 0; }
+            0% {
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
         }
 
         /* ========== 自定义右键菜单样式 ========== */
