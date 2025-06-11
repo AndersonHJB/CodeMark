@@ -70,7 +70,7 @@
         /* 悬停时微微抬起并加阴影、变亮 */
         .btn-area button:hover {
             transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             filter: brightness(1.1);
             cursor: pointer;
         }
@@ -78,7 +78,7 @@
         /* 点击时按下效果 */
         .btn-area button:active {
             transform: translateY(0) scale(0.95);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             filter: brightness(0.9);
         }
 
@@ -182,24 +182,24 @@
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
     {% if pre_code %}
-    <script>
-        let server_pre_code = {{ pre_code|tojson }};
-    </script>
+        <script>
+            let server_pre_code = {{ pre_code|tojson }};
+        </script>
     {% else %}
-    <script>
-        let server_pre_code = "";
-    </script>
+        <script>
+            let server_pre_code = "";
+        </script>
     {% endif %}
 
     <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器。否则默认是 "python" -->
     {% if pre_lang %}
-    <script>
-        let server_pre_lang = "{{ pre_lang }}";
-    </script>
+        <script>
+            let server_pre_lang = "{{ pre_lang }}";
+        </script>
     {% else %}
-    <script>
-        let server_pre_lang = "python";
-    </script>
+        <script>
+            let server_pre_lang = "python";
+        </script>
     {% endif %}
 </head>
 
@@ -438,13 +438,17 @@
     // 打开文件
     function performClick(elemId) {
         const elem = document.getElementById(elemId);
-        if (elem) { elem.click(); }
+        if (elem) {
+            elem.click();
+        }
     }
 
     // 读取文件
     function readSingleFile(e) {
         let file = e.target.files[0];
-        if (!file) { return; }
+        if (!file) {
+            return;
+        }
         let reader = new FileReader();
         reader.onload = function (e) {
             window.editor.setValue(e.target.result, -1);
@@ -486,16 +490,36 @@
         let langVal = $('#lang-selector').val();
         let fileExt = ".txt";
         switch (langVal) {
-            case "python": fileExt = ".py"; break;
-            case "javascript": fileExt = ".js"; break;
-            case "c_cpp": fileExt = ".cpp"; break;
-            case "java": fileExt = ".java"; break;
-            case "php": fileExt = ".php"; break;
-            case "ruby": fileExt = ".rb"; break;
-            case "golang": fileExt = ".go"; break;
-            case "html": fileExt = ".html"; break;
-            case "css": fileExt = ".css"; break;
-            case "markdown": fileExt = ".md"; break;
+            case "python":
+                fileExt = ".py";
+                break;
+            case "javascript":
+                fileExt = ".js";
+                break;
+            case "c_cpp":
+                fileExt = ".cpp";
+                break;
+            case "java":
+                fileExt = ".java";
+                break;
+            case "php":
+                fileExt = ".php";
+                break;
+            case "ruby":
+                fileExt = ".rb";
+                break;
+            case "golang":
+                fileExt = ".go";
+                break;
+            case "html":
+                fileExt = ".html";
+                break;
+            case "css":
+                fileExt = ".css";
+                break;
+            case "markdown":
+                fileExt = ".md";
+                break;
         }
         let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
         saveAs(blob, "bornforthis_code" + fileExt);
