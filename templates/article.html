@@ -366,14 +366,60 @@
             margin-top: 10px; /* 与标题分隔 */
         }
 
+        /* 基础树形结构：每一层的 ul 自带一条竖向连接线 */
         .toc-list .toc ul {
             list-style-type: none;
-            margin-left: 0;
-            padding-left: 10px;
+            margin: 6px 0 0 0;
+            padding-left: 18px;
+            position: relative;
         }
 
+        .toc-list .toc ul::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 0;
+            bottom: 0;
+            border-left: 2px dashed #d6e2f1;
+        }
+
+        /* 单个节点：带有水平线和圆点，突出层级 */
         .toc-list .toc li {
-            margin-bottom: 5px;
+            position: relative;
+            margin: 6px 0;
+            padding-left: 16px;
+            color: #2f3a4a;
+        }
+
+        .toc-list .toc > li {
+            margin-left: 0;
+        }
+
+        .toc-list .toc li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 10px;
+            height: 2px;
+            background: #d6e2f1;
+        }
+
+        .toc-list .toc li::after {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #1d72b8;
+            box-shadow: 0 0 0 3px #e8f1fb;
+        }
+
+        /* 最后一个同级节点取消多余的竖线延伸 */
+        .toc-list .toc ul > li:last-child::after {
+            box-shadow: 0 0 0 3px #e8f1fb, 0 12px 0 -6px #f8fbff;
         }
 
         .toc-list .toc a {
@@ -383,6 +429,7 @@
             position: relative;
             padding: 2px 0;
             word-wrap: break-word;
+            padding-left: 4px;
         }
 
         .toc-list .toc a:hover {
