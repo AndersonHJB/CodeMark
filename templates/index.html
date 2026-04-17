@@ -1,53 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>My Blog</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeMark 首页</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
 </head>
-<body>
-<div class="container-fluid">
-    <div class="row">
-        <!-- 左侧栏目，也可以考虑固定位置，但这里保留原样做最小修改 -->
-        <div class="col-md-3">
-            <div class="sidebar">
-                <h3>Categories</h3>
-                <ul>
-                    {# 递归渲染目录结构 #}
-                    {% macro render_tree(tree, parent_path='') %}
-                        {# 当前目录下的文件 #}
-                        {% for file_info in tree.files %}
-                            <li>
-                                <a href="/article/{{ (parent_path ~ '/' ~ file_info.filename).lstrip('/') }}">
-                                    {{ file_info.title }}
-                                </a>
-                            </li>
-                        {% endfor %}
+<body class="home-page">
+<div class="ambient-orb orb-one" aria-hidden="true"></div>
+<div class="ambient-orb orb-two" aria-hidden="true"></div>
+<div class="ambient-grid" aria-hidden="true"></div>
 
-                        {# 子目录 #}
-                        {% for dirname, subdir_tree in tree.subdirs.items() %}
-                            <li>
-                                <strong>{{ dirname }}</strong>
-                                <ul>
-                                    {{ render_tree(subdir_tree, parent_path ~ '/' ~ dirname) }}
-                                </ul>
-                            </li>
-                        {% endfor %}
-                    {% endmacro %}
-
-                    {{ render_tree(directory_tree, '') }}
+{% macro render_article_tree(tree, parent_path='') %}
+    {% for file_info in tree.files %}
+        <li class="article-item">
+            <a href="/article/{{ (parent_path ~ '/' ~ file_info.filename).lstrip('/') }}">
+                {{ file_info.title }}
+            </a>
+        </li>
+    {% endfor %}
+    {% for dirname, subdir_tree in tree.subdirs.items() %}
+        <li class="branch-item">
+            <details class="branch">
+                <summary>{{ dirname }}</summary>
+                <ul class="article-list nested-list">
+                    {{ render_article_tree(subdir_tree, parent_path ~ '/' ~ dirname) }}
                 </ul>
-            </div>
+            </details>
+        </li>
+    {% endfor %}
+{% endmacro %}
+
+<div class="home-shell">
+    <header class="hero reveal" style="--delay: 40ms;">
+        <p class="hero-tag">CodeMark Knowledge Hub</p>
+        <h1>把学习笔记与练习项目汇成一张可探索的地图</h1>
+        <p class="hero-copy">
+            这里收录了文章专栏、在线编辑器与代码分享入口，适合快速查阅、练习和分发。
+        </p>
+        <div class="hero-actions">
+            <a class="cta cta-primary" href="/editor">进入在线编辑器</a>
+            <a class="cta cta-ghost" href="/sharecode">打开代码分享</a>
         </div>
-        <div class="col-md-9">
-            <div id="content">
-                <h1>Welcome to My Blog</h1>
-                <p>这里是一个简单的首页示例，你可以在此列出所有文章分类，或做其它导航。</p>
+    </header>
+
+    <section class="content-layout">
+        <aside class="quick-panel reveal" style="--delay: 120ms;">
+            <h2>快速入口</h2>
+            <div class="quick-links">
+                <a href="/" class="quick-link">首页总览</a>
+                <a href="/editor" class="quick-link">在线运行代码</a>
+                <a href="/sharecode" class="quick-link">分享代码片段</a>
             </div>
-        </div>
-    </div>
+            <p class="quick-note">
+                目录中的每个条目都对应实际 Markdown 文档，点击即可进入文章阅读页。
+            </p>
+        </aside>
+
+        <main class="catalog-panel">
+            <div class="panel-head reveal" style="--delay: 180ms;">
+                <h2>专栏目录</h2>
+                <p class="panel-hint">支持多层目录，展开即可查看子章节</p>
+            </div>
+
+            {% if directory_tree.subdirs %}
+                <div class="category-grid">
+                    {% for dirname, subdir_tree in directory_tree.subdirs.items() %}
+                        <article class="category-card reveal" style="--delay: {{ 240 + loop.index0 * 80 }}ms;">
+                            <div class="card-head">
+                                <h3>{{ dirname }}</h3>
+                                <span class="card-pill">专题</span>
+                            </div>
+                            <ul class="article-list">
+                                {{ render_article_tree(subdir_tree, dirname) }}
+                            </ul>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state reveal" style="--delay: 220ms;">
+                    <p>暂时还没有检测到文章目录，请先在 <code>articles</code> 文件夹添加 Markdown 文档。</p>
+                </div>
+            {% endif %}
+
+            {% if directory_tree.files %}
+                <section class="root-files reveal" style="--delay: 300ms;">
+                    <h3>根目录文章</h3>
+                    <ul class="article-list">
+                        {% for file_info in directory_tree.files %}
+                            <li class="article-item">
+                                <a href="/article/{{ file_info.filename }}">{{ file_info.title }}</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+        </main>
+    </section>
 </div>
 </body>
 </html>
