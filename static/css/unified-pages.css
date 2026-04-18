@@ -231,7 +231,7 @@
     box-shadow: var(--shadow-md);
 }
 
-.mobile-sharecode-page #floatingMenu button {
+.mobile-sharecode-page #floatingMenu > button {
     border-radius: 10px;
     border: 0;
     font-family: var(--font-heading);
