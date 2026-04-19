@@ -1,3 +1,501 @@
+{% if is_mobile %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>AI悦创代码分享 - 移动端</title>
+    <!-- 设置移动端适配 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <meta name="keywords"
+          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码链接，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- 如果想使用 Bootstrap & bootstrap-select，可以保留以下链接，否则可去除 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
+          rel="stylesheet">
+
+    <style type="text/css">
+        /* 基础设置 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #2f3129;
+            overflow: hidden; /* 禁止整体滚动，Ace编辑器自己可滚动 */
+        }
+
+        /* Ace Editor 区域 */
+        #editor {
+            width: 100%;
+            height: 100%;
+        }
+        /* Ace Editor 字体设置 */
+        .ace_editor .ace_content span,
+        .ace_editor .ace_content .ace_line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+        }
+
+        /* 浮动切换按钮（右侧小按钮） */
+        #floatingToggle {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            z-index: 10000;
+            width: 40px;
+            height: 40px;
+            background-color: #ef7d62;
+            border-radius: 6px 0 0 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        /* 浮动菜单（隐藏时右移、显示时贴边） */
+        #floatingMenu {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background-color: #2f3129;
+            padding: 10px;
+            border-radius: 8px 0 0 8px;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            /* 默认隐藏在右侧可视区外 */
+            transform: translate(100%, -50%);
+            box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.5);
+        }
+        #floatingMenu.show-menu {
+            transform: translate(0, -50%);
+        }
+
+        /* 浮动菜单内的按钮统一样式 */
+        #floatingMenu button {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            color: #fff;
+            border-width: 0;
+            border-radius: 4px;
+            height: 40px;
+        }
+        /* 不同按钮不同背景色 */
+        #save { background-color: #6dddf2; }
+        #open { background-color: #f53855; }
+        #share { background-color: #a7c336; }
+        #home { background-color: #ef7d62; }
+
+        /* 下拉选择器(语言/主题)容器 */
+        .selector-container {
+            margin-top: 8px;
+        }
+        .selector-container > select {
+            width: 100%;
+        }
+
+        /* 复制成功提示 */
+        .copy-alert {
+            display: none;
+            background-color: #28a745;
+            color: #fff;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            animation: fadeOut 2s forwards;
+        }
+        @keyframes fadeOut {
+            0%   { opacity: 1; }
+            70%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* ============= 自定义分享弹窗（非 Bootstrap Modal） ============= */
+        /* 全屏覆盖的半透明背景层 */
+        #shareOverlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none; /* 默认隐藏，JS控制显示 */
+            z-index: 20000; /* 在浮动菜单之上 */
+        }
+        /* 弹窗主体 */
+        #shareDialog {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 400px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        #shareDialog h5 {
+            margin-bottom: 1rem;
+        }
+        /* 关闭按钮 */
+        .close-share-dialog {
+            float: right;
+            font-size: 1.2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        /* 弹窗里的二维码、链接等 */
+        #qrcode {
+            margin: 10px auto 20px;
+        }
+        #share-link-text {
+            display: inline-block;
+            margin-right: 10px;
+            color: #000;
+            font-weight: bold;
+            word-break: break-all; /* 移动端链接太长可换行 */
+        }
+        .share-dialog-header {
+            margin-bottom: 10px;
+        }
+    </style>
+
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值 -->
+    {% if pre_code %}
+        <script>let server_pre_code = {{ pre_code|tojson }};</script>
+    {% else %}
+        <script>let server_pre_code = "";</script>
+    {% endif %}
+
+    <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器 -->
+    {% if pre_lang %}
+        <script>let server_pre_lang = "{{ pre_lang }}";</script>
+    {% else %}
+        <script>let server_pre_lang = "python";</script>
+    {% endif %}
+</head>
+
+<body>
+
+<!-- ========== 代码编辑器区域 ========== -->
+<div id="editor" onclick="hideFloatingMenuIfOpen()"></div>
+
+<!-- ========== 右侧浮动切换按钮 ========== -->
+<div id="floatingToggle" onclick="toggleFloatingMenu()">≡</div>
+
+<!-- ========== 浮动菜单（包含按钮与语言/主题选择） ========== -->
+<div id="floatingMenu">
+    <button id="save" onclick="save()">save</button>
+    <button id="open" onclick="performClick('file-input')">open</button>
+    <button id="share" onclick="share()">share</button>
+    <button id="home" onclick="home()">home</button>
+
+    <div class="selector-container">
+        <label for="lang-selector" style="color:#fff;">Language:</label>
+        <select id="lang-selector" class="selectpicker" data-style="btn-dark">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="c_cpp">C/C++</option>
+            <option value="java">Java</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="golang">Go</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="markdown">Markdown</option>
+        </select>
+    </div>
+
+    <div class="selector-container">
+        <label for="theme-selector" style="color:#fff;">Theme:</label>
+        <select id="theme-selector" class="selectpicker" data-style="btn-dark">
+            <option value="monokai">monokai</option>
+            <option value="github">github</option>
+            <option value="tomorrow">tomorrow</option>
+            <option value="kuroir">kuroir</option>
+            <option value="twilight">twilight</option>
+            <option value="vibrant_ink">vibrant_ink</option>
+            <option value="xcode">xcode</option>
+            <option value="textmate">textmate</option>
+            <option value="terminal">terminal</option>
+            <option value="solarized_dark">solarized dark</option>
+            <option value="solarized_light">solarized light</option>
+        </select>
+    </div>
+
+    <input id="file-input" type="file" style="display: none;"/>
+</div>
+
+<!-- 复制提示 -->
+<div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
+
+<!-- ========== 自定义分享弹窗 ========== -->
+<div id="shareOverlay">
+    <div id="shareDialog">
+        <div class="share-dialog-header">
+            <button class="close-share-dialog" onclick="closeShare()">×</button>
+            <h5>分享你的代码</h5>
+        </div>
+        <!-- 生成的二维码 -->
+        <div id="qrcode"></div>
+        <!-- 展示分享链接 + 复制按钮 -->
+        <div id="share-link-div" class="text-center mb-2">
+            <span id="share-link-text"></span>
+            <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================== 代码编辑器相关 ================== -->
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-javascript.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-c_cpp.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-java.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-php.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-ruby.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-golang.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
+
+<script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
+
+<!-- 第三方库（保留是为了支持下拉选择器、二维码生成等功能） -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+
+<script type="text/javascript">
+    // 防止浏览器前进/后退的缓存
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // 初始化 Ace 编辑器
+    window.addEventListener("load", function () {
+        ace.config.set("basePath", "static/js/ace/");
+        window.editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");  // 默认主题
+        editor.session.setMode("ace/mode/python"); // 默认python
+        editor.setOptions({
+            fontSize: "16pt",
+            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+        });
+
+        // 初始化 bootstrap-select
+        $('.selectpicker').selectpicker({
+            style: 'btn-dark',
+            size: 10
+        });
+
+        // 如果后端传来了 pre_lang，就用它来设置语言
+        if (typeof server_pre_lang !== "undefined" && server_pre_lang) {
+            $('#lang-selector').selectpicker('val', server_pre_lang);
+            setEditorLang(server_pre_lang);
+        } else {
+            $('#lang-selector').selectpicker('val', 'python');
+        }
+
+        // 如果后端传来了 pre_code，则填充到编辑器
+        if (typeof server_pre_code !== "undefined" && server_pre_code) {
+            editor.setValue(server_pre_code, -1);
+        } else {
+            let msg = "# -*- coding: utf-8 -*-\n";
+            msg += "# 欢迎使用 CodeMark（移动端版）\n";
+            msg += "# 你可以在此处编写并分享代码\n";
+            msg += "# 点击右侧按钮可打开更多功能\n";
+            editor.setValue(msg, -1);
+        }
+
+        // 监听语言切换
+        $('#lang-selector').on('changed.bs.select', function () {
+            setEditorLang($(this).val());
+        });
+
+        // 监听主题切换
+        $('#theme-selector').on('changed.bs.select', function () {
+            editor.setTheme("ace/theme/" + $(this).val());
+        });
+
+        // 复制链接按钮
+        $('#copy-share-link-btn').on('click', function () {
+            let shareLink = $('#share-link-text').text();
+            copyLinkToClipboard(shareLink);
+        });
+
+        // 设置默认选择
+        $('#theme-selector').selectpicker('val', 'monokai');
+
+        // Ctrl-D/Command-D: 复制当前行
+        editor.commands.addCommand({
+            name: 'duplicateLine',
+            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
+            exec: function (editor) {
+                editor.execCommand("copylinesdown");
+            }
+        });
+
+        // ===== 点击遮罩层时，若点击在 #shareOverlay 上，就关闭分享弹窗 =====
+        const shareOverlay = document.getElementById("shareOverlay");
+        shareOverlay.addEventListener("click", function(e) {
+            // 判断点击目标是否为 shareOverlay 本身
+            if(e.target === shareOverlay) {
+                closeShare();
+            }
+        });
+    });
+
+    // 设置编辑器语言
+    function setEditorLang(lang) {
+        if (lang === 'python') {
+            editor.session.setMode("ace/mode/python");
+        } else {
+            editor.session.setMode("ace/mode/" + lang);
+        }
+    }
+
+    // 切换浮动菜单
+    function toggleFloatingMenu() {
+        let menu = document.getElementById("floatingMenu");
+        menu.classList.toggle("show-menu");
+    }
+    // 如果菜单展开，点击编辑器时隐藏
+    function hideFloatingMenuIfOpen() {
+        let menu = document.getElementById("floatingMenu");
+        if (menu.classList.contains("show-menu")) {
+            menu.classList.remove("show-menu");
+        }
+    }
+
+    // 打开文件
+    function performClick(elemId) {
+        const elem = document.getElementById(elemId);
+        if (elem) elem.click();
+    }
+    // 读取文件并显示到编辑器
+    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
+    function readSingleFile(e) {
+        let file = e.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            editor.setValue(e.target.result, -1);
+            let autoLang = detectLanguageFromFilename(file.name);
+            $('#lang-selector').selectpicker('val', autoLang);
+            setEditorLang(autoLang);
+        };
+        reader.readAsText(file);
+    }
+    // 根据文件后缀判断语言
+    function detectLanguageFromFilename(filename) {
+        let lower = filename.toLowerCase();
+        if (lower.endsWith(".py")) return "python";
+        if (lower.endsWith(".js")) return "javascript";
+        if (lower.endsWith(".c") || lower.endsWith(".cpp") || lower.endsWith(".h")) return "c_cpp";
+        if (lower.endsWith(".java")) return "java";
+        if (lower.endsWith(".php")) return "php";
+        if (lower.endsWith(".rb")) return "ruby";
+        if (lower.endsWith(".go")) return "golang";
+        if (lower.endsWith(".html")) return "html";
+        if (lower.endsWith(".css")) return "css";
+        if (lower.endsWith(".md")) return "markdown";
+        return "python";
+    }
+
+    // 跳转首页
+    function home() {
+        window.location.href = "/";
+    }
+
+    // 保存文件
+    function save() {
+        let code = editor.getValue();
+        let langVal = $('#lang-selector').val();
+        let fileExt = ".txt";
+        switch (langVal) {
+            case "python": fileExt = ".py"; break;
+            case "javascript": fileExt = ".js"; break;
+            case "c_cpp": fileExt = ".cpp"; break;
+            case "java": fileExt = ".java"; break;
+            case "php": fileExt = ".php"; break;
+            case "ruby": fileExt = ".rb"; break;
+            case "golang": fileExt = ".go"; break;
+            case "html": fileExt = ".html"; break;
+            case "css": fileExt = ".css"; break;
+            case "markdown": fileExt = ".md"; break;
+        }
+        let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "bornforthis_code" + fileExt);
+    }
+
+    // 分享代码
+    function share() {
+        // 分享前先隐藏浮动菜单
+        hideFloatingMenuIfOpen();
+
+        let code = editor.getValue();
+        let langVal = $('#lang-selector').val();
+        $.ajax({
+            type: 'POST',
+            url: '/upload_code',
+            dataType: 'json',
+            data: {
+                code: code,
+                language: langVal,
+                template: 'sharecode'
+            },
+            success: function (d) {
+                let shareLink = d.share_link;
+                // 1. 生成二维码
+                $('#qrcode').empty();
+                $('#qrcode').qrcode({
+                    text: shareLink,
+                    width: 150,
+                    height: 150
+                });
+                // 2. 显示分享链接
+                $('#share-link-text').text(shareLink);
+
+                // 3. 自动复制链接
+                copyLinkToClipboard(shareLink);
+
+                // 4. 显示自定义分享弹窗
+                document.getElementById("shareOverlay").style.display = "block";
+            }
+        });
+    }
+
+    // 关闭分享弹窗
+    function closeShare() {
+        document.getElementById("shareOverlay").style.display = "none";
+    }
+
+    // 复制到剪贴板 + 动画提示
+    function copyLinkToClipboard(link) {
+        navigator.clipboard.writeText(link).then(() => {
+            let alertBox = document.getElementById("copy-alert");
+            alertBox.style.display = "block";
+            alertBox.style.animation = "none";
+            void alertBox.offsetWidth; // 触发回流
+            alertBox.style.animation = null;
+        });
+    }
+</script>
+</body>
+</html>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -610,3 +1108,4 @@
 </script>
 </body>
 </html>
+{% endif %}

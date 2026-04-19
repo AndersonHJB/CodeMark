@@ -160,19 +160,24 @@ def is_mobile(user_agent: str) -> bool:
     return bool(mobile_regex.search(user_agent))
 
 
+def is_mobile_request() -> bool:
+    """根据当前请求头判断是否移动端。"""
+    user_agent = request.headers.get('User-Agent', '')
+    return is_mobile(user_agent)
+
+
 @app.route('/editor')
 def editor():
     """
     直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用可执行 Python 的模板 editor.html。
     """
-    # 获取 User-Agent
-    user_agent = request.headers.get('User-Agent', '')
-    if is_mobile(user_agent):
-        return render_template('mobile_editor.html', pre_code="")
-    else:
-        # 否则渲染原本的 editor.html
-        return render_template('editor.html', pre_code="", pre_lang="python")
+    return render_template(
+        'editor.html',
+        pre_code="",
+        pre_lang="python",
+        is_mobile=is_mobile_request()
+    )
 
 
 @app.route('/sharecode')
@@ -181,12 +186,12 @@ def sharecode():
     直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用不执行 Python 的模板 sharecode.html。
     """
-    # 默认语言也可以是 python 或其他，看你需求
-    user_agent = request.headers.get('User-Agent', '')
-    if is_mobile(user_agent):
-        return render_template('mobile_sharecode.html', pre_code="", pre_lang="python")
-    else:
-        return render_template('sharecode.html', pre_code="", pre_lang="python")
+    return render_template(
+        'sharecode.html',
+        pre_code="",
+        pre_lang="python",
+        is_mobile=is_mobile_request()
+    )
 
 
 @app.route('/upload_code', methods=['POST'])
@@ -286,15 +291,14 @@ def show_shared_code(project_id):
     if not found:
         return f"File not found: {project_id}", 404
 
-    user_agent = request.headers.get('User-Agent', '')
-    if is_mobile(user_agent):
-        return render_template('mobile_sharecode.html', pre_code=code_content, pre_lang=lang)
     # 根据 template_type 来渲染不同的模板，并将 lang 也传过去
-    if template_type == "sharecode":
-        return render_template('sharecode.html', pre_code=code_content, pre_lang=lang)
-    else:
-        # 默认为 editor
-        return render_template('editor.html', pre_code=code_content, pre_lang=lang)
+    target_template = 'sharecode.html' if template_type == "sharecode" else 'editor.html'
+    return render_template(
+        target_template,
+        pre_code=code_content,
+        pre_lang=lang,
+        is_mobile=is_mobile_request()
+    )
 
 
 if __name__ == '__main__':
