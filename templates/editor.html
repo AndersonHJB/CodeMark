@@ -260,7 +260,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
 
 <script type="text/javascript">
     // 全局 pyodide 对象
@@ -319,7 +319,7 @@
     // 加载 Pyodide 并预加载常用包
     async function loadPyodideAndPackages() {
         pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/"
         });
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
         document.getElementById("mobile-console-output").value = "Pyodide and packages loaded!\n";
@@ -961,7 +961,7 @@ ${code}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
 
 <script type="text/javascript">
     // 防止浏览器前进/后退的缓存
@@ -1045,7 +1045,7 @@ ${code}
     async function loadPyodideAndPackages() {
         // 加载 pyodide
         pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/"
         });
         // 通过内置的 loadPackage 方式加载 micropip、numpy、pandas 等
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
