@@ -237,9 +237,6 @@
                         启用 Python 运行功能（关闭后为纯分享）
                     </label>
                 </div>
-                <button id="generate-share-btn" class="btn btn-primary mb-3" type="button" onclick="generateShareLink()">
-                    生成分享链接
-                </button>
                 <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
                 <p>You can save this picture or scan the QR code to share it.</p>
@@ -441,8 +438,12 @@ ${code}
         if (runToggleWrapper) {
             runToggleWrapper.style.display = shareLanguage === "python" ? "block" : "none";
         }
-        if (runSwitch && shareLanguage !== "python") {
-            runSwitch.checked = false;
+        if (runSwitch) {
+            // 每次点击 share 时，Python 默认开启运行
+            runSwitch.checked = shareLanguage === "python";
+            runSwitch.onchange = function () {
+                generateShareLink();
+            };
         }
 
         $('#qrcode').empty();
@@ -454,6 +455,8 @@ ${code}
 
         // 先打开分享弹窗，让用户选择是否启用运行功能
         $('#share-modal').modal('show');
+        // 点击 share 后立即生成默认链接（Python 默认可运行）
+        generateShareLink();
     }
 
     // 根据弹窗中的选项生成分享链接
@@ -879,11 +882,6 @@ ${code}
                         启用 Python 运行功能（关闭后为纯分享）
                     </label>
                 </div>
-                <div class="mb-3">
-                    <button id="generate-share-btn" class="btn btn-primary" type="button" onclick="generateShareLink()">
-                        生成分享链接
-                    </button>
-                </div>
                 <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
                 <!-- 显示可复制的链接 + 复制按钮 -->
@@ -1145,8 +1143,12 @@ ${code}
         if (runToggleWrapper) {
             runToggleWrapper.style.display = shareLanguage === "python" ? "block" : "none";
         }
-        if (runSwitch && shareLanguage !== "python") {
-            runSwitch.checked = false;
+        if (runSwitch) {
+            // 每次点击 share 时，Python 默认开启运行
+            runSwitch.checked = shareLanguage === "python";
+            runSwitch.onchange = function () {
+                generateShareLink();
+            };
         }
 
         $('#qrcode').empty();
@@ -1159,6 +1161,8 @@ ${code}
 
         // 先打开分享弹窗，让用户选择是否启用运行功能
         $('#share-modal').modal('show');
+        // 点击 share 后立即生成默认链接（Python 默认可运行）
+        generateShareLink();
     }
 
     // 根据弹窗中的选项生成分享链接
