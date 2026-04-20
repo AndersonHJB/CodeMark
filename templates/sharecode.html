@@ -90,6 +90,7 @@
         #save { background-color: #6dddf2; }
         #open { background-color: #f53855; }
         #share { background-color: #a7c336; }
+        #python-run { background-color: #3b82f6; display: none; }
         #home { background-color: #ef7d62; }
 
         /* 下拉选择器(语言/主题)容器 */
@@ -192,6 +193,7 @@
     <button id="save" onclick="save()">save</button>
     <button id="open" onclick="performClick('file-input')">open</button>
     <button id="share" onclick="share()">share</button>
+    <button id="python-run" onclick="goPythonRunPage()">py-run</button>
     <button id="home" onclick="home()">home</button>
 
     <div class="selector-container">
@@ -306,6 +308,7 @@
             setEditorLang(server_pre_lang);
         } else {
             $('#lang-selector').selectpicker('val', 'python');
+            updatePythonRunButtonVisibility('python');
         }
 
         // 如果后端传来了 pre_code，则填充到编辑器
@@ -364,6 +367,15 @@
         } else {
             editor.session.setMode("ace/mode/" + lang);
         }
+        updatePythonRunButtonVisibility(lang);
+    }
+
+    function updatePythonRunButtonVisibility(lang) {
+        const runButton = document.getElementById("python-run");
+        if (!runButton) {
+            return;
+        }
+        runButton.style.display = lang === 'python' ? 'block' : 'none';
     }
 
     // 切换浮动菜单
@@ -473,6 +485,28 @@
 
                 // 4. 显示自定义分享弹窗
                 document.getElementById("shareOverlay").style.display = "block";
+            }
+        });
+    }
+
+    function goPythonRunPage() {
+        hideFloatingMenuIfOpen();
+        const langVal = $('#lang-selector').val();
+        if (langVal !== 'python') {
+            return;
+        }
+        const code = editor.getValue();
+        $.ajax({
+            type: 'POST',
+            url: '/upload_code',
+            dataType: 'json',
+            data: {
+                code: code,
+                language: 'python',
+                template: 'editor'
+            },
+            success: function (d) {
+                window.location.href = d.share_link;
             }
         });
     }
@@ -590,6 +624,11 @@
 
         #share {
             background-color: #a7c336;
+        }
+
+        #python-run {
+            background-color: #3b82f6;
+            display: none;
         }
 
         #home {
@@ -714,6 +753,7 @@
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
+        <button id="python-run" onclick="goPythonRunPage()">py-run</button>
         <button id="home" onclick="home()">home</button>
 
         <!-- ========== 语言选择器 ========== -->
@@ -888,6 +928,7 @@
                 editor.session.setMode("ace/mode/" + server_pre_lang);
             }
         }
+        updatePythonRunButtonVisibility($('#lang-selector').val());
 
         // 如果后端传来了 pre_code，则用它来填充编辑器
         if (server_pre_code) {
@@ -908,6 +949,7 @@
             } else {
                 editor.session.setMode("ace/mode/" + selectedLang);
             }
+            updatePythonRunButtonVisibility(selectedLang);
         });
 
         // 主题选择器事件
@@ -953,6 +995,7 @@
             let autoLang = detectLanguageFromFilename(file.name);
             $('#lang-selector').selectpicker('val', autoLang);
             editor.session.setMode("ace/mode/" + autoLang);
+            updatePythonRunButtonVisibility(autoLang);
         };
         reader.readAsText(file);
     }
@@ -978,6 +1021,14 @@
     // 回到首页
     function home() {
         window.location.href = "/";
+    }
+
+    function updatePythonRunButtonVisibility(lang) {
+        const runButton = document.getElementById("python-run");
+        if (!runButton) {
+            return;
+        }
+        runButton.style.display = lang === 'python' ? 'inline-block' : 'none';
     }
 
     // 保存为文件
@@ -1088,6 +1139,27 @@
 
                 // 5. 显示分享弹窗
                 $('#share-modal').modal('show');
+            }
+        });
+    }
+
+    function goPythonRunPage() {
+        const langVal = $('#lang-selector').val();
+        if (langVal !== 'python') {
+            return;
+        }
+        const code = window.editor.getValue();
+        $.ajax({
+            type: 'post',
+            url: '/upload_code',
+            dataType: 'json',
+            data: {
+                code: code,
+                language: 'python',
+                template: 'editor'
+            },
+            success: function (d) {
+                window.location.href = d.share_link;
             }
         });
     }
