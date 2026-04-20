@@ -154,12 +154,34 @@
             background-color: #000;
             color: #fff;
             border: none;
-            resize: none;
             padding: 8px;
             font-size: 16px;
             font-family: 'Monaco', 'Consolas', serif;
             overflow-y: auto;
-            white-space: pre;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        #mobile-console-output .console-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+        }
+
+        #mobile-console-output .console-input-prompt {
+            flex: 0 0 auto;
+        }
+
+        #mobile-console-output .console-inline-input {
+            flex: 1;
+            min-width: 0;
+            background-color: #111;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 2px 6px;
+            border-radius: 4px;
+            outline: none;
         }
 
         /* 隐藏不需要的 bootstrap-select 样式元素 */
@@ -216,7 +238,7 @@
         <span>Console Output</span>
         <span class="mobile-console-close" onclick="closeMobileConsole()">&times;</span>
     </div>
-    <textarea id="mobile-console-output" readonly>Initializing Pyodide...</textarea>
+    <div id="mobile-console-output" aria-live="polite"></div>
 </div>
 
 <!-- Share Modal -->
@@ -265,6 +287,109 @@
 <script type="text/javascript">
     // 全局 pyodide 对象
     let pyodide = null;
+    let isPythonRunning = false;
+    const INPUT_CANCEL_TOKEN = "__codemark_cancel_input_9f7d48__";
+    let rerunRequested = false;
+    let pendingMobileInputResolve = null;
+    let pendingMobileInputRow = null;
+    let pendingMobileInputPrompt = "";
+
+    function getMobileConsoleElement() {
+        return document.getElementById("mobile-console-output");
+    }
+
+    function scrollMobileConsoleToBottom() {
+        let consoleElement = getMobileConsoleElement();
+        consoleElement.scrollTop = consoleElement.scrollHeight;
+    }
+
+    function clearMobileConsole() {
+        getMobileConsoleElement().textContent = "";
+    }
+
+    function appendMobileConsoleText(text) {
+        getMobileConsoleElement().appendChild(document.createTextNode(text));
+        scrollMobileConsoleToBottom();
+    }
+
+    async function requestMobileConsoleInput(prompt = "") {
+        let consoleElement = getMobileConsoleElement();
+        let row = document.createElement("div");
+        row.className = "console-input-row";
+
+        if (prompt) {
+            let promptSpan = document.createElement("span");
+            promptSpan.className = "console-input-prompt";
+            promptSpan.textContent = prompt;
+            row.appendChild(promptSpan);
+        }
+
+        let inputElement = document.createElement("input");
+        inputElement.type = "text";
+        inputElement.className = "console-inline-input";
+        row.appendChild(inputElement);
+        consoleElement.appendChild(row);
+        scrollMobileConsoleToBottom();
+        inputElement.focus();
+
+        return await new Promise((resolve) => {
+            pendingMobileInputResolve = resolve;
+            pendingMobileInputRow = row;
+            pendingMobileInputPrompt = prompt;
+
+            function submit() {
+                if (!pendingMobileInputResolve) {
+                    return;
+                }
+                const value = inputElement.value;
+                let historyLine = document.createElement("div");
+                historyLine.textContent = `${prompt}${value}`;
+                row.replaceWith(historyLine);
+                pendingMobileInputResolve = null;
+                pendingMobileInputRow = null;
+                pendingMobileInputPrompt = "";
+                appendMobileConsoleText("\n");
+                resolve(value);
+            }
+
+            inputElement.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    submit();
+                }
+            });
+        });
+    }
+
+    function cancelPendingMobileInputForRerun() {
+        if (!pendingMobileInputResolve) {
+            return false;
+        }
+        const resolve = pendingMobileInputResolve;
+        const row = pendingMobileInputRow;
+        const prompt = pendingMobileInputPrompt;
+
+        pendingMobileInputResolve = null;
+        pendingMobileInputRow = null;
+        pendingMobileInputPrompt = "";
+
+        if (row && row.parentNode) {
+            let historyLine = document.createElement("div");
+            historyLine.textContent = `${prompt}[已取消，准备重新运行]`;
+            row.replaceWith(historyLine);
+        }
+        appendMobileConsoleText("\n");
+        resolve(INPUT_CANCEL_TOKEN);
+        return true;
+    }
+
+    window.codemarkConsoleWrite = function (text) {
+        appendMobileConsoleText(String(text ?? ""));
+    };
+
+    window.codemarkRequestInput = async function (prompt) {
+        return await requestMobileConsoleInput(String(prompt ?? ""));
+    };
 
     // 页面加载完后执行
     window.addEventListener("load", async function () {
@@ -322,54 +447,149 @@
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/"
         });
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
-        document.getElementById("mobile-console-output").value = "Pyodide and packages loaded!\n";
+        clearMobileConsole();
+        appendMobileConsoleText("Pyodide and packages loaded!\n");
     }
 
     // 运行按钮点击
     async function handleRunClick() {
-        // 先清空控制台
-        const consoleOutput = document.getElementById("mobile-console-output");
-        consoleOutput.value = "";
-        // 运行 Python 代码
-        await runCode();
         // 打开底部控制台
         openMobileConsole();
         // 自动折叠右侧侧边栏
         closeSidebar();
+
+        if (isPythonRunning) {
+            if (!rerunRequested) {
+                appendMobileConsoleText("\n[检测到重新运行请求，将在当前执行结束后自动运行最新代码]\n");
+            }
+            rerunRequested = true;
+            cancelPendingMobileInputForRerun();
+            return;
+        }
+
+        // 先清空控制台，再运行代码
+        rerunRequested = false;
+        clearMobileConsole();
+        await runCode();
     }
 
     // 实际运行 Python 代码
     async function runCode() {
-        let code = window.editor.getValue();
-        let consoleOutput = document.getElementById("mobile-console-output");
+        if (isPythonRunning) {
+            return;
+        }
+        isPythonRunning = true;
 
         try {
+            let code = window.editor.getValue();
+            pyodide.globals.set("__codemark_user_code", code);
+
             await pyodide.runPythonAsync(`
-import sys, builtins
+import ast
+import builtins
 import js
+import sys
 
 class PyodideIO:
     def write(self, data):
-        if data.strip() != '':
-            js_console_write(data)
+        if data:
+            js.codemarkConsoleWrite(data)
         return len(data)
 
-def js_console_write(text):
-    import js
-    output_area = js.document.getElementById("mobile-console-output")
-    output_area.value += text + "\\n"
+    def flush(self):
+        return None
 
-def py_input(prompt=''):
-    return js.window.prompt(prompt)
+async def __codemark_async_input(prompt=''):
+    value = await js.codemarkRequestInput(str(prompt))
+    if value is None:
+        raise EOFError("input cancelled")
+    if value == "${INPUT_CANCEL_TOKEN}":
+        raise KeyboardInterrupt("rerun requested")
+    return str(value)
 
-builtins.input = py_input
+def __unsupported_sync_input(prompt=''):
+    raise RuntimeError("仅支持模块顶层使用 input()，请将 input() 放到顶层执行语句中。")
+
+class _ModuleInputTransformer(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        return node
+
+    def visit_AsyncFunctionDef(self, node):
+        return node
+
+    def visit_Lambda(self, node):
+        return node
+
+    def visit_ClassDef(self, node):
+        return node
+
+    def visit_Call(self, node):
+        node = self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == "input":
+            return ast.copy_location(
+                ast.Await(
+                    value=ast.Call(
+                        func=ast.Name(id="__codemark_async_input", ctx=ast.Load()),
+                        args=node.args,
+                        keywords=node.keywords,
+                    )
+                ),
+                node,
+            )
+        return node
+
+def __compile_user_code(raw_code):
+    tree = ast.parse(raw_code, mode="exec")
+    tree = _ModuleInputTransformer().visit(tree)
+    ast.fix_missing_locations(tree)
+
+    async_main = ast.AsyncFunctionDef(
+        name="__codemark_user_main__",
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=tree.body if tree.body else [ast.Pass()],
+        decorator_list=[],
+        returns=None,
+        type_comment=None,
+    )
+
+    wrapped_module = ast.Module(body=[async_main], type_ignores=[])
+    ast.fix_missing_locations(wrapped_module)
+    exec(compile(wrapped_module, "<codemark-editor>", "exec"), globals(), globals())
+
+builtins.input = __unsupported_sync_input
 sys.stdout = PyodideIO()
 sys.stderr = PyodideIO()
 
-${code}
+__compile_user_code(__codemark_user_code)
+try:
+    await __codemark_user_main__()
+except KeyboardInterrupt as _codemark_interrupt:
+    if str(_codemark_interrupt) != "rerun requested":
+        raise
             `);
         } catch (err) {
-            consoleOutput.value += String(err) + "\n";
+            const errText = String(err);
+            if (!(rerunRequested && errText.includes("KeyboardInterrupt: rerun requested"))) {
+                appendMobileConsoleText(errText + "\n");
+            }
+        } finally {
+            isPythonRunning = false;
+            try {
+                pyodide.globals.delete("__codemark_user_code");
+            } catch (e) {
+            }
+        }
+
+        if (rerunRequested) {
+            rerunRequested = false;
+            clearMobileConsole();
+            await runCode();
         }
     }
 
@@ -601,6 +821,8 @@ ${code}
         .btn-area {
             height: 56px;
             background-color: #2f3129;
+            position: relative;
+            z-index: 30;
         }
 
         .btn-area button {
@@ -690,6 +912,8 @@ ${code}
             /* 让编辑器所在列可伸缩，占满剩余空间 */
             height: calc(100vh - 56px);
             overflow: hidden;
+            position: relative;
+            z-index: 1;
         }
 
         #editor {
@@ -708,10 +932,32 @@ ${code}
             border-width: 0;
             font-family: 'Monaco', 'Consolas', serif;
             padding: 8px 8px;
-            white-space: pre;
+            white-space: pre-wrap;
+            word-break: break-word;
             overflow-x: auto;
             overflow-y: auto;
-            resize: none;
+        }
+
+        .console .console-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+        }
+
+        .console .console-input-prompt {
+            flex: 0 0 auto;
+        }
+
+        .console .console-inline-input {
+            flex: 1;
+            min-width: 0;
+            background-color: #111;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 3px 8px;
+            border-radius: 4px;
+            outline: none;
         }
 
         .modal-dialog {
@@ -830,7 +1076,7 @@ ${code}
         </div>
         <!-- 控制台输出区 -->
         <div class="col-md-4 pl-0 pr-0">
-            <textarea id="console" class="console" autocomplete="off">Initializing Pyodide...</textarea>
+            <div id="console" class="console" aria-live="polite"></div>
         </div>
     </div>
 
@@ -975,6 +1221,109 @@ ${code}
 
     // 全局 pyodide 对象
     let pyodide = null;
+    let isPythonRunning = false;
+    const INPUT_CANCEL_TOKEN = "__codemark_cancel_input_9f7d48__";
+    let rerunRequested = false;
+    let pendingConsoleInputResolve = null;
+    let pendingConsoleInputRow = null;
+    let pendingConsoleInputPrompt = "";
+
+    function getConsoleElement() {
+        return document.getElementById("console");
+    }
+
+    function scrollConsoleToBottom() {
+        let consoleElement = getConsoleElement();
+        consoleElement.scrollTop = consoleElement.scrollHeight;
+    }
+
+    function clearConsole() {
+        getConsoleElement().textContent = "";
+    }
+
+    function appendConsoleText(text) {
+        getConsoleElement().appendChild(document.createTextNode(text));
+        scrollConsoleToBottom();
+    }
+
+    async function requestConsoleInput(prompt = "") {
+        let consoleElement = getConsoleElement();
+        let row = document.createElement("div");
+        row.className = "console-input-row";
+
+        if (prompt) {
+            let promptSpan = document.createElement("span");
+            promptSpan.className = "console-input-prompt";
+            promptSpan.textContent = prompt;
+            row.appendChild(promptSpan);
+        }
+
+        let inputElement = document.createElement("input");
+        inputElement.type = "text";
+        inputElement.className = "console-inline-input";
+        row.appendChild(inputElement);
+        consoleElement.appendChild(row);
+        scrollConsoleToBottom();
+        inputElement.focus();
+
+        return await new Promise((resolve) => {
+            pendingConsoleInputResolve = resolve;
+            pendingConsoleInputRow = row;
+            pendingConsoleInputPrompt = prompt;
+
+            function submit() {
+                if (!pendingConsoleInputResolve) {
+                    return;
+                }
+                const value = inputElement.value;
+                let historyLine = document.createElement("div");
+                historyLine.textContent = `${prompt}${value}`;
+                row.replaceWith(historyLine);
+                pendingConsoleInputResolve = null;
+                pendingConsoleInputRow = null;
+                pendingConsoleInputPrompt = "";
+                appendConsoleText("\n");
+                resolve(value);
+            }
+
+            inputElement.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    submit();
+                }
+            });
+        });
+    }
+
+    function cancelPendingConsoleInputForRerun() {
+        if (!pendingConsoleInputResolve) {
+            return false;
+        }
+        const resolve = pendingConsoleInputResolve;
+        const row = pendingConsoleInputRow;
+        const prompt = pendingConsoleInputPrompt;
+
+        pendingConsoleInputResolve = null;
+        pendingConsoleInputRow = null;
+        pendingConsoleInputPrompt = "";
+
+        if (row && row.parentNode) {
+            let historyLine = document.createElement("div");
+            historyLine.textContent = `${prompt}[已取消，准备重新运行]`;
+            row.replaceWith(historyLine);
+        }
+        appendConsoleText("\n");
+        resolve(INPUT_CANCEL_TOKEN);
+        return true;
+    }
+
+    window.codemarkConsoleWrite = function (text) {
+        appendConsoleText(String(text ?? ""));
+    };
+
+    window.codemarkRequestInput = async function (prompt) {
+        return await requestConsoleInput(String(prompt ?? ""));
+    };
 
     // 页面加载时，初始化 Pyodide 和编辑器
     window.addEventListener("load", async function () {
@@ -1056,49 +1405,134 @@ import micropip
 await micropip.install("autopep8")
 `);
         // 在控制台提示一下
-        document.getElementById("console").value = "Python loaded!\n";
+        clearConsole();
+        appendConsoleText("Python loaded!\n");
     }
 
     // 执行 Python 代码
     async function run() {
-        let code = window.editor.getValue();
-        // 清空 console
-        let consoleElement = document.getElementById("console");
-        consoleElement.value = "";
+        if (isPythonRunning) {
+            if (!rerunRequested) {
+                appendConsoleText("\n[检测到重新运行请求，将在当前执行结束后自动运行最新代码]\n");
+            }
+            rerunRequested = true;
+            cancelPendingConsoleInputForRerun();
+            return;
+        }
+        isPythonRunning = true;
+        rerunRequested = false;
+        clearConsole();
 
-        // 重定向 stdout / stderr
         try {
+            let code = window.editor.getValue();
+            pyodide.globals.set("__codemark_user_code", code);
+
             await pyodide.runPythonAsync(`
-import sys, builtins
+import ast
+import builtins
 import js
+import sys
 
 class PyodideIO:
     def write(self, data):
-        # 把 stdout / stderr 写到前端 console
-        if data.strip() != '':
-            js_console_write(data)
+        if data:
+            js.codemarkConsoleWrite(data)
         return len(data)
 
-def js_console_write(text):
-    import js
-    textarea = js.document.getElementById("console")
-    textarea.value += text + "\\n"
+    def flush(self):
+        return None
 
-def py_input(prompt=''):
-    # 弹窗获取用户输入
-    return js.window.prompt(prompt)
+async def __codemark_async_input(prompt=''):
+    value = await js.codemarkRequestInput(str(prompt))
+    if value is None:
+        raise EOFError("input cancelled")
+    if value == "${INPUT_CANCEL_TOKEN}":
+        raise KeyboardInterrupt("rerun requested")
+    return str(value)
 
-# 将自定义的 py_input 替换内置 input
-builtins.input = py_input
+def __unsupported_sync_input(prompt=''):
+    raise RuntimeError("仅支持模块顶层使用 input()，请将 input() 放到顶层执行语句中。")
+
+class _ModuleInputTransformer(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        return node
+
+    def visit_AsyncFunctionDef(self, node):
+        return node
+
+    def visit_Lambda(self, node):
+        return node
+
+    def visit_ClassDef(self, node):
+        return node
+
+    def visit_Call(self, node):
+        node = self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == "input":
+            return ast.copy_location(
+                ast.Await(
+                    value=ast.Call(
+                        func=ast.Name(id="__codemark_async_input", ctx=ast.Load()),
+                        args=node.args,
+                        keywords=node.keywords,
+                    )
+                ),
+                node,
+            )
+        return node
+
+def __compile_user_code(raw_code):
+    tree = ast.parse(raw_code, mode="exec")
+    tree = _ModuleInputTransformer().visit(tree)
+    ast.fix_missing_locations(tree)
+
+    async_main = ast.AsyncFunctionDef(
+        name="__codemark_user_main__",
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=tree.body if tree.body else [ast.Pass()],
+        decorator_list=[],
+        returns=None,
+        type_comment=None,
+    )
+
+    wrapped_module = ast.Module(body=[async_main], type_ignores=[])
+    ast.fix_missing_locations(wrapped_module)
+    exec(compile(wrapped_module, "<codemark-editor>", "exec"), globals(), globals())
+
+builtins.input = __unsupported_sync_input
 sys.stdout = PyodideIO()
 sys.stderr = PyodideIO()
 
-# 执行用户编辑器的代码
-${code}
+__compile_user_code(__codemark_user_code)
+try:
+    await __codemark_user_main__()
+except KeyboardInterrupt as _codemark_interrupt:
+    if str(_codemark_interrupt) != "rerun requested":
+        raise
             `);
         } catch (err) {
-            // 如果有异常，打印到 console
-            consoleElement.value += String(err) + "\n";
+            const errText = String(err);
+            if (!(rerunRequested && errText.includes("KeyboardInterrupt: rerun requested"))) {
+                appendConsoleText(errText + "\n");
+            }
+        } finally {
+            isPythonRunning = false;
+            try {
+                pyodide.globals.delete("__codemark_user_code");
+            } catch (e) {
+            }
+        }
+
+        if (rerunRequested) {
+            rerunRequested = false;
+            clearConsole();
+            await run();
         }
     }
 
