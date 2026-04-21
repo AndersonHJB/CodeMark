@@ -1,0 +1,170 @@
+/* 通用重置与背景色 */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #2f3129;
+    overflow: hidden;
+}
+
+/* 全屏编辑器容器 */
+#editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* Ace Editor 全屏填充 */
+}
+
+.ace_editor .ace_content span,
+.ace_editor .ace_content .ace_line {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+}
+
+/* -------- 右侧隐藏的按钮侧边栏 -------- */
+.sidebar-menu {
+    position: fixed;
+    right: -220px; /* 初始隐藏 */
+    top: 0;
+    width: 220px;
+    height: 100%;
+    background-color: #333;
+    z-index: 9999;
+    transition: right 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+}
+
+.sidebar-menu.show {
+    right: 0; /* 切换显示 */
+}
+
+/* 侧边栏内的按钮样式：单列浮动 */
+.sidebar-menu button {
+    width: 90%;
+    margin: 5px 0;
+    height: 48px;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+}
+
+#run-btn {
+    background-color: #a7c336;
+}
+
+#save-btn {
+    background-color: #6dddf2;
+}
+
+#open-btn {
+    background-color: #f53855;
+}
+
+#share-btn {
+    background-color: #a7c336;
+}
+
+#paste-btn {
+    background-color: #ff9800;
+}
+
+#home-btn {
+    background-color: #ef7d62;
+}
+
+/* 浮动箭头按钮（控制侧边栏显隐） */
+.toggle-sidebar-btn {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10000;
+    background-color: #111;
+    color: #fff;
+    border: none;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    outline: none;
+    font-size: 20px;
+}
+
+/* 底部弹出的控制台容器 */
+.mobile-console-container {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: -70%; /* 初始隐藏在屏幕下方 */
+    height: 70%;
+    background-color: #000;
+    color: #fff;
+    z-index: 10001;
+    transition: bottom 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-console-header {
+    background-color: #444;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mobile-console-header span {
+    font-weight: bold;
+}
+
+.mobile-console-close {
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* 控制台文本区域 */
+#mobile-console-output {
+    flex: 1;
+    width: 100%;
+    background-color: #000;
+    color: #fff;
+    border: none;
+    padding: 8px;
+    font-size: 16px;
+    font-family: 'Monaco', 'Consolas', serif;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#mobile-console-output .console-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0;
+}
+
+#mobile-console-output .console-input-prompt {
+    flex: 0 0 auto;
+}
+
+#mobile-console-output .console-inline-input {
+    flex: 1;
+    min-width: 0;
+    background-color: #111;
+    color: #fff;
+    border: 1px solid #666;
+    padding: 2px 6px;
+    border-radius: 4px;
+    outline: none;
+}
+
+/* 隐藏不需要的 bootstrap-select 样式元素 */
+.bootstrap-select {
+    display: none !important;
+}
