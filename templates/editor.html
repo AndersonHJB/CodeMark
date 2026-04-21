@@ -637,16 +637,36 @@ except KeyboardInterrupt as _codemark_interrupt:
 
 <body>
 <div class="container-fluid">
-    <div class="row">
+    <div class="row no-gutters editor-layout-row" id="editor-main-row">
         <!-- 代码编辑区 -->
-        <div class="col-sm-8 code-container">
+        <div class="col-sm-8 code-container" id="editor-panel">
             <div id="editor"></div>
         </div>
+        <div id="console-resizer" class="console-resizer" aria-hidden="true" title="拖拽调整输出框宽度"></div>
         <!-- 控制台输出区 -->
-        <div class="col-md-4 pl-0 pr-0">
-            <div id="console" class="console" aria-live="polite"></div>
+        <div class="col-md-4 pl-0 pr-0 console-column" id="console-column">
+            <div class="console-shell">
+                <div class="console-toolbar">
+                    <span class="console-title">Python Output</span>
+                    <div class="console-toolbar-actions">
+                        <button id="console-wrap-toggle" class="console-action-btn" type="button"
+                                onclick="toggleConsoleWrap()" aria-pressed="false">
+                            自动换行：关
+                        </button>
+                        <button id="console-collapse-btn" class="console-action-btn console-action-btn-secondary"
+                                type="button" onclick="collapseConsolePanel()">
+                            折叠
+                        </button>
+                    </div>
+                </div>
+                <div id="console" class="console" aria-live="polite"></div>
+            </div>
         </div>
     </div>
+    <button id="console-expand-trigger" class="console-expand-trigger" type="button"
+            aria-label="展开 Python 输出框" onclick="expandConsolePanel()">
+        输出
+    </button>
 
     <!-- 按钮区域 -->
     <div class="row btn-area">
@@ -795,6 +815,159 @@ except KeyboardInterrupt as _codemark_interrupt:
     let pendingConsoleInputResolve = null;
     let pendingConsoleInputRow = null;
     let pendingConsoleInputPrompt = "";
+    const DESKTOP_CONSOLE_AUTO_COLLAPSE_BREAKPOINT = 1260;
+    const DESKTOP_CONSOLE_DEFAULT_WIDTH = 420;
+    const DESKTOP_CONSOLE_MIN_WIDTH = 300;
+    const DESKTOP_EDITOR_MIN_WIDTH = 460;
+    let desktopConsoleWrapped = false;
+    let desktopConsoleCollapsedByAuto = false;
+    let desktopConsoleManualOverride = false;
+
+    function getEditorMainRow() {
+        return document.getElementById("editor-main-row");
+    }
+
+    function isConsolePanelCollapsed() {
+        let layoutRow = getEditorMainRow();
+        return !!layoutRow && layoutRow.classList.contains("console-collapsed");
+    }
+
+    function setConsoleWidth(widthPx) {
+        let layoutRow = getEditorMainRow();
+        if (!layoutRow || !Number.isFinite(widthPx)) {
+            return;
+        }
+        layoutRow.style.setProperty("--desktop-console-width", `${Math.round(widthPx)}px`);
+    }
+
+    function refreshConsoleWrapToggleLabel() {
+        let wrapButton = document.getElementById("console-wrap-toggle");
+        if (!wrapButton) {
+            return;
+        }
+        wrapButton.textContent = desktopConsoleWrapped ? "自动换行：开" : "自动换行：关";
+        wrapButton.setAttribute("aria-pressed", desktopConsoleWrapped ? "true" : "false");
+    }
+
+    function setConsoleWrapMode(enabled) {
+        desktopConsoleWrapped = !!enabled;
+        let consoleElement = getConsoleElement();
+        if (consoleElement) {
+            consoleElement.classList.toggle("console-wrap-enabled", desktopConsoleWrapped);
+        }
+        refreshConsoleWrapToggleLabel();
+    }
+
+    function toggleConsoleWrap() {
+        setConsoleWrapMode(!desktopConsoleWrapped);
+        scrollConsoleToBottom();
+    }
+
+    function setConsolePanelCollapsed(collapsed, options = {}) {
+        let layoutRow = getEditorMainRow();
+        if (!layoutRow) {
+            return;
+        }
+        let isCollapsed = !!collapsed;
+        layoutRow.classList.toggle("console-collapsed", isCollapsed);
+
+        let expandTrigger = document.getElementById("console-expand-trigger");
+        if (expandTrigger) {
+            expandTrigger.classList.toggle("show", isCollapsed);
+        }
+
+        if (options.auto) {
+            desktopConsoleCollapsedByAuto = isCollapsed;
+        } else if (!isCollapsed) {
+            desktopConsoleCollapsedByAuto = false;
+        }
+
+        if (window.editor) {
+            window.requestAnimationFrame(function () {
+                window.editor.resize();
+            });
+        }
+    }
+
+    function collapseConsolePanel(options = {}) {
+        if (!options.auto) {
+            desktopConsoleManualOverride = true;
+        }
+        setConsolePanelCollapsed(true, options);
+    }
+
+    function expandConsolePanel(options = {}) {
+        if (!options.auto) {
+            desktopConsoleManualOverride = true;
+        }
+        setConsolePanelCollapsed(false, options);
+    }
+
+    function handleDesktopConsoleAutoCollapse() {
+        if (desktopConsoleManualOverride) {
+            return;
+        }
+        let shouldAutoCollapse = window.innerWidth <= DESKTOP_CONSOLE_AUTO_COLLAPSE_BREAKPOINT;
+        if (shouldAutoCollapse && !isConsolePanelCollapsed()) {
+            collapseConsolePanel({auto: true});
+            return;
+        }
+        if (!shouldAutoCollapse && isConsolePanelCollapsed() && desktopConsoleCollapsedByAuto) {
+            expandConsolePanel({auto: true});
+        }
+    }
+
+    function initDesktopConsoleResizer() {
+        let resizer = document.getElementById("console-resizer");
+        let consoleColumn = document.getElementById("console-column");
+        if (!resizer || !consoleColumn) {
+            return;
+        }
+
+        resizer.addEventListener("mousedown", function (event) {
+            if (isConsolePanelCollapsed()) {
+                return;
+            }
+            event.preventDefault();
+
+            const startX = event.clientX;
+            const startWidth = consoleColumn.getBoundingClientRect().width || DESKTOP_CONSOLE_DEFAULT_WIDTH;
+            document.body.classList.add("console-resizing");
+
+            function handleMouseMove(moveEvent) {
+                const delta = startX - moveEvent.clientX;
+                const maxWidth = Math.max(
+                    DESKTOP_CONSOLE_MIN_WIDTH,
+                    window.innerWidth - DESKTOP_EDITOR_MIN_WIDTH
+                );
+                const nextWidth = Math.min(
+                    maxWidth,
+                    Math.max(DESKTOP_CONSOLE_MIN_WIDTH, startWidth + delta)
+                );
+                setConsoleWidth(nextWidth);
+                if (window.editor) {
+                    window.editor.resize();
+                }
+            }
+
+            function stopResize() {
+                document.body.classList.remove("console-resizing");
+                document.removeEventListener("mousemove", handleMouseMove);
+                document.removeEventListener("mouseup", stopResize);
+            }
+
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", stopResize);
+        });
+    }
+
+    function initDesktopConsolePanel() {
+        setConsoleWidth(DESKTOP_CONSOLE_DEFAULT_WIDTH);
+        setConsoleWrapMode(false);
+        handleDesktopConsoleAutoCollapse();
+        initDesktopConsoleResizer();
+        window.addEventListener("resize", handleDesktopConsoleAutoCollapse);
+    }
 
     function getConsoleElement() {
         return document.getElementById("console");
@@ -895,6 +1068,8 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     // 页面加载时，初始化 Pyodide 和编辑器
     window.addEventListener("load", async function () {
+        initDesktopConsolePanel();
+
         // 加载 Pyodide 及常用包
         await loadPyodideAndPackages();
 
