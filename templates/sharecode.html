@@ -283,6 +283,113 @@
         }
     });
 
+    const SHARECODE_DRAFT_CACHE_KEY = "codemark:sharecode:draft:v1";
+    const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
+    const SHARECODE_DEFAULT_LANG = "python";
+    const SHARECODE_DEFAULT_THEME = "monokai";
+    let sharecodeDraftSaveTimer = null;
+
+    function loadSharecodeDraftCache() {
+        try {
+            let cacheRaw = localStorage.getItem(SHARECODE_DRAFT_CACHE_KEY);
+            if (!cacheRaw) {
+                return null;
+            }
+            let cacheData = JSON.parse(cacheRaw);
+            if (!cacheData || typeof cacheData !== "object") {
+                return null;
+            }
+            return cacheData;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveSharecodeDraftCache() {
+        if (!window.editor) {
+            return;
+        }
+        let langElement = document.getElementById("lang-selector");
+        let themeElement = document.getElementById("theme-selector");
+        try {
+            localStorage.setItem(SHARECODE_DRAFT_CACHE_KEY, JSON.stringify({
+                code: window.editor.getValue(),
+                language: langElement ? (langElement.value || SHARECODE_DEFAULT_LANG) : SHARECODE_DEFAULT_LANG,
+                theme: themeElement ? (themeElement.value || SHARECODE_DEFAULT_THEME) : SHARECODE_DEFAULT_THEME,
+                updatedAt: Date.now()
+            }));
+        } catch (e) {
+        }
+    }
+
+    function scheduleSharecodeDraftCacheSave() {
+        if (sharecodeDraftSaveTimer) {
+            clearTimeout(sharecodeDraftSaveTimer);
+        }
+        sharecodeDraftSaveTimer = setTimeout(function () {
+            saveSharecodeDraftCache();
+        }, SHARECODE_DRAFT_SAVE_DEBOUNCE_MS);
+    }
+
+    function normalizeSelectValue(selectId, value, fallbackValue) {
+        let selectElement = document.getElementById(selectId);
+        if (!selectElement) {
+            return fallbackValue;
+        }
+        for (let i = 0; i < selectElement.options.length; i++) {
+            if (selectElement.options[i].value === value) {
+                return value;
+            }
+        }
+        return fallbackValue;
+    }
+
+    function resolveSharecodeInitialState(defaultCode) {
+        let cacheData = loadSharecodeDraftCache();
+        let isSharedCodePage = window.location.pathname.indexOf("/share/") === 0;
+        let hasServerPreCode = typeof server_pre_code !== "undefined" && server_pre_code;
+        let initialCode = defaultCode;
+        let initialLang = SHARECODE_DEFAULT_LANG;
+        let initialTheme = SHARECODE_DEFAULT_THEME;
+
+        if (cacheData && typeof cacheData.theme === "string" && cacheData.theme) {
+            initialTheme = cacheData.theme;
+        }
+
+        if (isSharedCodePage) {
+            initialCode = typeof server_pre_code === "string" ? server_pre_code : defaultCode;
+            if (typeof server_pre_lang === "string" && server_pre_lang) {
+                initialLang = server_pre_lang;
+            }
+        } else if (hasServerPreCode) {
+            initialCode = server_pre_code;
+            if (typeof server_pre_lang === "string" && server_pre_lang) {
+                initialLang = server_pre_lang;
+            }
+        } else if (cacheData) {
+            if (typeof cacheData.code === "string") {
+                initialCode = cacheData.code;
+            }
+            if (typeof cacheData.language === "string" && cacheData.language) {
+                initialLang = cacheData.language;
+            } else if (typeof server_pre_lang === "string" && server_pre_lang) {
+                initialLang = server_pre_lang;
+            }
+        } else if (typeof server_pre_lang === "string" && server_pre_lang) {
+            initialLang = server_pre_lang;
+        }
+
+        return {
+            code: initialCode,
+            language: initialLang,
+            theme: initialTheme
+        };
+    }
+
+    window.addEventListener("beforeunload", function () {
+        saveSharecodeDraftCache();
+    });
+
     // 初始化 Ace 编辑器
     window.addEventListener("load", function () {
         ace.config.set("basePath", "static/js/ace/");
@@ -302,34 +409,32 @@
             size: 10
         });
 
-        // 如果后端传来了 pre_lang，就用它来设置语言
-        if (typeof server_pre_lang !== "undefined" && server_pre_lang) {
-            $('#lang-selector').selectpicker('val', server_pre_lang);
-            setEditorLang(server_pre_lang);
-        } else {
-            $('#lang-selector').selectpicker('val', 'python');
-            updatePythonRunButtonVisibility('python');
-        }
+        let defaultCode = "# -*- coding: utf-8 -*-\n";
+        defaultCode += "# 欢迎使用 CodeMark（移动端版）\n";
+        defaultCode += "# 你可以在此处编写并分享代码\n";
+        defaultCode += "# 点击右侧按钮可打开更多功能\n";
+        let initialState = resolveSharecodeInitialState(defaultCode);
+        initialState.language = normalizeSelectValue("lang-selector", initialState.language, SHARECODE_DEFAULT_LANG);
+        initialState.theme = normalizeSelectValue("theme-selector", initialState.theme, SHARECODE_DEFAULT_THEME);
 
-        // 如果后端传来了 pre_code，则填充到编辑器
-        if (typeof server_pre_code !== "undefined" && server_pre_code) {
-            editor.setValue(server_pre_code, -1);
-        } else {
-            let msg = "# -*- coding: utf-8 -*-\n";
-            msg += "# 欢迎使用 CodeMark（移动端版）\n";
-            msg += "# 你可以在此处编写并分享代码\n";
-            msg += "# 点击右侧按钮可打开更多功能\n";
-            editor.setValue(msg, -1);
-        }
+        $('#lang-selector').selectpicker('val', initialState.language);
+        setEditorLang(initialState.language);
+
+        $('#theme-selector').selectpicker('val', initialState.theme);
+        editor.setTheme("ace/theme/" + initialState.theme);
+
+        editor.setValue(initialState.code, -1);
 
         // 监听语言切换
         $('#lang-selector').on('changed.bs.select', function () {
             setEditorLang($(this).val());
+            scheduleSharecodeDraftCacheSave();
         });
 
         // 监听主题切换
         $('#theme-selector').on('changed.bs.select', function () {
             editor.setTheme("ace/theme/" + $(this).val());
+            scheduleSharecodeDraftCacheSave();
         });
 
         // 复制链接按钮
@@ -338,8 +443,8 @@
             copyLinkToClipboard(shareLink);
         });
 
-        // 设置默认选择
-        $('#theme-selector').selectpicker('val', 'monokai');
+        editor.session.on("change", scheduleSharecodeDraftCacheSave);
+        saveSharecodeDraftCache();
 
         // Ctrl-D/Command-D: 复制当前行
         editor.commands.addCommand({
@@ -407,6 +512,7 @@
             let autoLang = detectLanguageFromFilename(file.name);
             $('#lang-selector').selectpicker('val', autoLang);
             setEditorLang(autoLang);
+            scheduleSharecodeDraftCacheSave();
         };
         reader.readAsText(file);
     }
@@ -896,6 +1002,113 @@
         }
     });
 
+    const SHARECODE_DRAFT_CACHE_KEY = "codemark:sharecode:draft:v1";
+    const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
+    const SHARECODE_DEFAULT_LANG = "python";
+    const SHARECODE_DEFAULT_THEME = "monokai";
+    let sharecodeDraftSaveTimer = null;
+
+    function loadSharecodeDraftCache() {
+        try {
+            let cacheRaw = localStorage.getItem(SHARECODE_DRAFT_CACHE_KEY);
+            if (!cacheRaw) {
+                return null;
+            }
+            let cacheData = JSON.parse(cacheRaw);
+            if (!cacheData || typeof cacheData !== "object") {
+                return null;
+            }
+            return cacheData;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveSharecodeDraftCache() {
+        if (!window.editor) {
+            return;
+        }
+        let langElement = document.getElementById("lang-selector");
+        let themeElement = document.getElementById("theme-selector");
+        try {
+            localStorage.setItem(SHARECODE_DRAFT_CACHE_KEY, JSON.stringify({
+                code: window.editor.getValue(),
+                language: langElement ? (langElement.value || SHARECODE_DEFAULT_LANG) : SHARECODE_DEFAULT_LANG,
+                theme: themeElement ? (themeElement.value || SHARECODE_DEFAULT_THEME) : SHARECODE_DEFAULT_THEME,
+                updatedAt: Date.now()
+            }));
+        } catch (e) {
+        }
+    }
+
+    function scheduleSharecodeDraftCacheSave() {
+        if (sharecodeDraftSaveTimer) {
+            clearTimeout(sharecodeDraftSaveTimer);
+        }
+        sharecodeDraftSaveTimer = setTimeout(function () {
+            saveSharecodeDraftCache();
+        }, SHARECODE_DRAFT_SAVE_DEBOUNCE_MS);
+    }
+
+    function normalizeSelectValue(selectId, value, fallbackValue) {
+        let selectElement = document.getElementById(selectId);
+        if (!selectElement) {
+            return fallbackValue;
+        }
+        for (let i = 0; i < selectElement.options.length; i++) {
+            if (selectElement.options[i].value === value) {
+                return value;
+            }
+        }
+        return fallbackValue;
+    }
+
+    function resolveSharecodeInitialState(defaultCode) {
+        let cacheData = loadSharecodeDraftCache();
+        let isSharedCodePage = window.location.pathname.indexOf("/share/") === 0;
+        let hasServerPreCode = typeof server_pre_code !== "undefined" && server_pre_code;
+        let initialCode = defaultCode;
+        let initialLang = SHARECODE_DEFAULT_LANG;
+        let initialTheme = SHARECODE_DEFAULT_THEME;
+
+        if (cacheData && typeof cacheData.theme === "string" && cacheData.theme) {
+            initialTheme = cacheData.theme;
+        }
+
+        if (isSharedCodePage) {
+            initialCode = typeof server_pre_code === "string" ? server_pre_code : defaultCode;
+            if (typeof server_pre_lang === "string" && server_pre_lang) {
+                initialLang = server_pre_lang;
+            }
+        } else if (hasServerPreCode) {
+            initialCode = server_pre_code;
+            if (typeof server_pre_lang === "string" && server_pre_lang) {
+                initialLang = server_pre_lang;
+            }
+        } else if (cacheData) {
+            if (typeof cacheData.code === "string") {
+                initialCode = cacheData.code;
+            }
+            if (typeof cacheData.language === "string" && cacheData.language) {
+                initialLang = cacheData.language;
+            } else if (typeof server_pre_lang === "string" && server_pre_lang) {
+                initialLang = server_pre_lang;
+            }
+        } else if (typeof server_pre_lang === "string" && server_pre_lang) {
+            initialLang = server_pre_lang;
+        }
+
+        return {
+            code: initialCode,
+            language: initialLang,
+            theme: initialTheme
+        };
+    }
+
+    window.addEventListener("beforeunload", function () {
+        saveSharecodeDraftCache();
+    });
+
     // 2. 页面加载时，初始化 Ace 编辑器
     window.addEventListener("load", async function () {
         ace.config.set("basePath", "static/js/ace/");
@@ -915,28 +1128,25 @@
             size: 10
         });
 
-        // Set initial theme
-        $('#theme-selector').selectpicker('val', 'monokai');
-        $('#lang-selector').selectpicker('val', 'python');
+        let defaultCode = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n";
+        let initialState = resolveSharecodeInitialState(
+            defaultCode + '# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n'
+        );
+        initialState.language = normalizeSelectValue("lang-selector", initialState.language, SHARECODE_DEFAULT_LANG);
+        initialState.theme = normalizeSelectValue("theme-selector", initialState.theme, SHARECODE_DEFAULT_THEME);
 
-        // 如果后端传来了 pre_lang，就用它来设置语言
-        if (server_pre_lang) {
-            $('#lang-selector').selectpicker('val', server_pre_lang);
-            if (server_pre_lang === 'python') {
-                editor.session.setMode("ace/mode/python");
-            } else {
-                editor.session.setMode("ace/mode/" + server_pre_lang);
-            }
-        }
-        updatePythonRunButtonVisibility($('#lang-selector').val());
+        $('#theme-selector').selectpicker('val', initialState.theme);
+        window.editor.setTheme("ace/theme/" + initialState.theme);
 
-        // 如果后端传来了 pre_code，则用它来填充编辑器
-        if (server_pre_code) {
-            editor.setValue(server_pre_code, -1);
+        $('#lang-selector').selectpicker('val', initialState.language);
+        if (initialState.language === 'python') {
+            editor.session.setMode("ace/mode/python");
         } else {
-            let message = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n"
-            editor.setValue(message + '# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n', -1);
+            editor.session.setMode("ace/mode/" + initialState.language);
         }
+        updatePythonRunButtonVisibility(initialState.language);
+
+        editor.setValue(initialState.code, -1);
 
         // 语言选择器事件
         $('#lang-selector').on('changed.bs.select', function () {
@@ -950,12 +1160,14 @@
                 editor.session.setMode("ace/mode/" + selectedLang);
             }
             updatePythonRunButtonVisibility(selectedLang);
+            scheduleSharecodeDraftCacheSave();
         });
 
         // 主题选择器事件
         $('#theme-selector').on('changed.bs.select', function () {
             let selectedTheme = $(this).val();
             window.editor.setTheme("ace/theme/" + selectedTheme);
+            scheduleSharecodeDraftCacheSave();
         });
 
         // Ctrl-D / Command-D：复制当前行
@@ -972,6 +1184,9 @@
             let shareLink = $('#share-link-text').text();
             copyLinkToClipboard(shareLink);
         });
+
+        editor.session.on("change", scheduleSharecodeDraftCacheSave);
+        saveSharecodeDraftCache();
     });
 
     // 打开文件
@@ -996,6 +1211,7 @@
             $('#lang-selector').selectpicker('val', autoLang);
             editor.session.setMode("ace/mode/" + autoLang);
             updatePythonRunButtonVisibility(autoLang);
+            scheduleSharecodeDraftCacheSave();
         };
         reader.readAsText(file);
     }
