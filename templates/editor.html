@@ -969,6 +969,16 @@ except KeyboardInterrupt as _codemark_interrupt:
         window.addEventListener("resize", handleDesktopConsoleAutoCollapse);
     }
 
+    function showDesktopConsoleForRun() {
+        // 仅桌面端存在该容器；移动端不受影响。
+        if (!document.getElementById("console-column")) {
+            return;
+        }
+        if (isConsolePanelCollapsed()) {
+            setConsolePanelCollapsed(false, {auto: true});
+        }
+    }
+
     function getConsoleElement() {
         return document.getElementById("console");
     }
@@ -1154,6 +1164,8 @@ await micropip.install("autopep8")
 
     // 执行 Python 代码
     async function run() {
+        showDesktopConsoleForRun();
+
         if (isPythonRunning) {
             if (!rerunRequested) {
                 appendConsoleText("\n[检测到重新运行请求，将在当前执行结束后自动运行最新代码]\n");
