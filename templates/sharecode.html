@@ -1,82 +1,422 @@
-{% if is_mobile %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>AI悦创代码分享 - 移动端</title>
-    <!-- 设置移动端适配 -->
+    <title>{% if is_mobile %}AI悦创代码分享 - 移动端{% else %}AI悦创代码分享小工具｜便捷分享代码{% endif %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <meta name="keywords"
           content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
-    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码链接，方便分享。">
+    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码链接，支持项目化多文件分享。">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-
-    <!-- 如果想使用 Bootstrap & bootstrap-select，可以保留以下链接，否则可去除 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
-          rel="stylesheet">
 
-    <style type="text/css">
-        /* 基础设置 */
+    {% if pre_code %}
+        <script>let server_pre_code = {{ pre_code|tojson }};</script>
+    {% else %}
+        <script>let server_pre_code = "";</script>
+    {% endif %}
+    {% if pre_lang %}
+        <script>let server_pre_lang = "{{ pre_lang }}";</script>
+    {% else %}
+        <script>let server_pre_lang = "python";</script>
+    {% endif %}
+    {% if pre_project %}
+        <script>let server_pre_project = {{ pre_project|tojson }};</script>
+    {% else %}
+        <script>let server_pre_project = null;</script>
+    {% endif %}
+    {% if share_project_id %}
+        <script>let server_share_project_id = "{{ share_project_id }}";</script>
+    {% else %}
+        <script>let server_share_project_id = "";</script>
+    {% endif %}
+
+    <style>
+        :root {
+            --page-bg: #2f3129;
+            --panel-bg: #1f221b;
+            --panel-border: #3f4437;
+            --text-main: #f4f5f0;
+            --text-muted: #b7beaa;
+            --sidebar-width: 280px;
+            --toolbar-height: 56px;
+            --accent-save: #6dddf2;
+            --accent-open: #f53855;
+            --accent-share: #a7c336;
+            --accent-run: #3b82f6;
+            --accent-home: #ef7d62;
+        }
+
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
-            background-color: #2f3129;
-            overflow: hidden; /* 禁止整体滚动，Ace编辑器自己可滚动 */
+            background-color: var(--page-bg);
+            color: var(--text-main);
+            overflow: hidden;
         }
 
-        /* Ace Editor 区域 */
-        #editor {
-            width: 100%;
-            height: 100%;
+        * {
+            box-sizing: border-box;
         }
-        /* Ace Editor 字体设置 */
+
         .ace_editor .ace_content span,
         .ace_editor .ace_content .ace_line {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
         }
 
-        /* 浮动切换按钮（右侧小按钮） */
+        #appRoot {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #projectSidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.26s ease, width 0.26s ease, min-width 0.26s ease;
+            z-index: 30;
+        }
+
+        #appRoot.sidebar-collapsed #projectSidebar {
+            width: 0;
+            min-width: 0;
+            transform: translateX(-100%);
+            border-right: none;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 0 10px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .sidebar-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-close,
+        .sidebar-action,
+        .sidebar-top-toggle,
+        .sidebar-floating-toggle {
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .sidebar-top-toggle,
+        .sidebar-close,
+        .sidebar-floating-toggle {
+            width: 34px;
+            height: 34px;
+            background: #364030;
+            font-size: 18px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .sidebar-action {
+            height: 34px;
+            font-size: 13px;
+            background: #44503b;
+        }
+
+        .sidebar-action.upload {
+            background: #4e4a32;
+        }
+
+        .sidebar-action.folder {
+            grid-column: span 2;
+            background: #4d3f30;
+        }
+
+        #projectFileTree {
+            flex: 1;
+            overflow: auto;
+            padding: 8px;
+        }
+
+        .tree-group {
+            margin: 0;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .tree-node {
+            margin: 2px 0;
+        }
+
+        .tree-folder {
+            color: #d7ddca;
+            font-size: 13px;
+            margin: 6px 0 2px;
+            opacity: 0.9;
+        }
+
+        .tree-folder-title {
+            display: block;
+            padding: 3px 6px;
+        }
+
+        .tree-file-button {
+            width: 100%;
+            border: none;
+            text-align: left;
+            background: transparent;
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .tree-file-button:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tree-file-button.active {
+            background: rgba(109, 221, 242, 0.2);
+            color: #eaffff;
+        }
+
+        .tree-file-icon {
+            margin-right: 6px;
+            opacity: 0.86;
+        }
+
+        .sidebar-empty {
+            padding: 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        #workspaceMain {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: transform 0.26s ease;
+            position: relative;
+            background: var(--page-bg);
+        }
+
+        #editorArea {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #editor {
+            position: absolute;
+            inset: 0;
+        }
+
+        #assetViewer {
+            position: absolute;
+            inset: 0;
+            padding: 20px;
+            overflow: auto;
+            background: #1a1d17;
+            color: var(--text-main);
+            display: none;
+        }
+
+        #assetViewer img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .asset-meta {
+            margin-top: 14px;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .asset-open-link {
+            display: inline-block;
+            margin-top: 14px;
+            color: #8fd4ff;
+            text-decoration: none;
+            border: 1px solid #8fd4ff;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .toolbar {
+            height: var(--toolbar-height);
+            background: var(--page-bg);
+            border-top: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            gap: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+        }
+
+        .toolbar::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .toolbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+        }
+
+        .toolbar button,
+        .toolbar select {
+            height: 100%;
+            border: none;
+        }
+
+        .toolbar-btn {
+            color: #fff;
+            border-radius: 0;
+            border-width: 0;
+            width: 88px;
+            min-width: 88px;
+            transition: transform 0.14s ease, filter 0.14s ease;
+            font-size: 14px;
+        }
+
+        .toolbar-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+            cursor: pointer;
+        }
+
+        .toolbar-btn:active {
+            transform: translateY(0);
+            filter: brightness(0.92);
+        }
+
+        .toolbar-btn.save { background-color: var(--accent-save); }
+        .toolbar-btn.open { background-color: var(--accent-open); }
+        .toolbar-btn.share { background-color: var(--accent-share); }
+        .toolbar-btn.run { background-color: var(--accent-run); }
+        .toolbar-btn.home { background-color: var(--accent-home); }
+
+        .toolbar-select-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 10px;
+            color: #fff;
+            font-size: 13px;
+            border-left: 1px solid rgba(255, 255, 255, 0.12);
+            height: 100%;
+        }
+
+        .toolbar-select {
+            height: 36px !important;
+            border-radius: 6px;
+            border: 1px solid #4a5342 !important;
+            background: #252920;
+            color: #fff;
+            padding: 0 8px;
+            min-width: 126px;
+        }
+
+        .toolbar-link {
+            color: #d8dfca;
+            text-decoration: none;
+            margin: 0 12px;
+            font-size: 13px;
+        }
+
+        .toolbar-link:hover {
+            color: #fff;
+        }
+
+        #topSidebarToggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 35;
+        }
+
+        #sidebarBackdrop {
+            display: none;
+        }
+
         #floatingToggle {
             position: fixed;
             top: 50%;
             right: 0;
             transform: translateY(-50%);
-            z-index: 10000;
+            z-index: 105;
             width: 40px;
             height: 40px;
-            background-color: #ef7d62;
+            background-color: var(--accent-home);
             border-radius: 6px 0 0 6px;
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
             color: #fff;
             cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
         }
 
-        /* 浮动菜单（隐藏时右移、显示时贴边） */
         #floatingMenu {
             position: fixed;
             top: 50%;
             right: 0;
-            transform: translateY(-50%);
+            transform: translate(100%, -50%);
             background-color: #2f3129;
             padding: 10px;
             border-radius: 8px 0 0 8px;
-            transition: all 0.3s ease;
-            z-index: 9999;
-            /* 默认隐藏在右侧可视区外 */
-            transform: translate(100%, -50%);
+            transition: transform 0.3s ease;
+            z-index: 104;
             box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.5);
+            width: 220px;
+            display: none;
         }
+
         #floatingMenu.show-menu {
             transform: translate(0, -50%);
         }
 
-        /* 浮动菜单内的按钮统一样式 */
         #floatingMenu button {
             display: block;
             width: 100%;
@@ -85,23 +425,155 @@
             border-width: 0;
             border-radius: 4px;
             height: 40px;
+            cursor: pointer;
         }
-        /* 不同按钮不同背景色 */
-        #save { background-color: #6dddf2; }
-        #open { background-color: #f53855; }
-        #share { background-color: #a7c336; }
-        #python-run { background-color: #3b82f6; display: none; }
-        #home { background-color: #ef7d62; }
 
-        /* 下拉选择器(语言/主题)容器 */
-        .selector-container {
+        #floatingMenu .mobile-select-wrap {
             margin-top: 8px;
         }
-        .selector-container > select {
-            width: 100%;
+
+        #floatingMenu .mobile-select-wrap label {
+            font-size: 12px;
+            color: #fff;
+            margin-bottom: 4px;
+            display: block;
         }
 
-        /* 复制成功提示 */
+        #floatingMenu .mobile-select {
+            width: 100%;
+            height: 36px;
+            border-radius: 4px;
+            border: 1px solid #4a5342;
+            background: #252920;
+            color: #fff;
+            padding: 0 8px;
+        }
+
+        #shareOverlay,
+        #fileCreateOverlay,
+        #aboutOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.64);
+            display: none;
+            z-index: 200;
+        }
+
+        .overlay-dialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 560px;
+            background: #fff;
+            border-radius: 12px;
+            color: #222;
+            max-height: 82vh;
+            overflow: auto;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+        }
+
+        .overlay-dialog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid #ececec;
+        }
+
+        .overlay-dialog-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .overlay-dialog-close {
+            border: none;
+            background: none;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .overlay-dialog-body {
+            padding: 18px;
+        }
+
+        .overlay-field {
+            margin-bottom: 14px;
+        }
+
+        .overlay-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #444;
+        }
+
+        .overlay-field input,
+        .overlay-field select {
+            width: 100%;
+            height: 38px;
+            border-radius: 6px;
+            border: 1px solid #d5d8dd;
+            padding: 0 10px;
+            font-size: 14px;
+        }
+
+        .overlay-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .overlay-actions button {
+            border: none;
+            border-radius: 6px;
+            height: 36px;
+            padding: 0 14px;
+            cursor: pointer;
+        }
+
+        .btn-secondary-lite {
+            background: #eaedf2;
+            color: #333;
+        }
+
+        .btn-primary-lite {
+            background: #3a7cff;
+            color: #fff;
+        }
+
+        #qrcode {
+            margin: 8px auto 16px;
+            text-align: center;
+        }
+
+        #share-link-div {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        #share-link-text {
+            color: #000;
+            font-weight: 700;
+            word-break: break-all;
+            font-size: 13px;
+            max-width: 100%;
+        }
+
+        #final-image-container img {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid #e3e5e8;
+        }
+
         .copy-alert {
             display: none;
             background-color: #28a745;
@@ -111,94 +583,192 @@
             border-radius: 4px;
             animation: fadeOut 2s forwards;
         }
+
         @keyframes fadeOut {
-            0%   { opacity: 1; }
-            70%  { opacity: 1; }
+            0% { opacity: 1; }
+            70% { opacity: 1; }
             100% { opacity: 0; }
         }
 
-        /* ============= 自定义分享弹窗（非 Bootstrap Modal） ============= */
-        /* 全屏覆盖的半透明背景层 */
-        #shareOverlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            display: none; /* 默认隐藏，JS控制显示 */
-            z-index: 20000; /* 在浮动菜单之上 */
+        .about-content {
+            line-height: 1.75;
+            font-size: 14px;
         }
-        /* 弹窗主体 */
-        #shareDialog {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 85%;
-            max-width: 400px;
-            background: #fff;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
+
+        .about-content img {
+            max-width: 160px;
+            border-radius: 8px;
+            margin-top: 8px;
         }
-        #shareDialog h5 {
-            margin-bottom: 1rem;
+
+        @media (max-width: 992px) {
+            :root {
+                --sidebar-width: 250px;
+            }
         }
-        /* 关闭按钮 */
-        .close-share-dialog {
-            float: right;
-            font-size: 1.2rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        /* 弹窗里的二维码、链接等 */
-        #qrcode {
-            margin: 10px auto 20px;
-        }
-        #share-link-text {
-            display: inline-block;
-            margin-right: 10px;
-            color: #000;
-            font-weight: bold;
-            word-break: break-all; /* 移动端链接太长可换行 */
-        }
-        .share-dialog-header {
-            margin-bottom: 10px;
+
+        @media (max-width: 768px) {
+            #topSidebarToggle {
+                left: 10px;
+                top: 10px;
+                z-index: 115;
+            }
+
+            #projectSidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                height: 100vh;
+                transform: translateX(-100%);
+                width: var(--sidebar-width);
+                min-width: var(--sidebar-width);
+                z-index: 130;
+                border-right: 1px solid var(--panel-border);
+            }
+
+            #appRoot.sidebar-open #projectSidebar {
+                transform: translateX(0);
+            }
+
+            #appRoot.sidebar-collapsed #projectSidebar {
+                width: var(--sidebar-width);
+                min-width: var(--sidebar-width);
+                transform: translateX(-100%);
+            }
+
+            #sidebarBackdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.46);
+                z-index: 120;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.22s ease;
+                display: block;
+            }
+
+            #appRoot.sidebar-open #sidebarBackdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            #workspaceMain {
+                transform: translateX(0);
+            }
+
+            #appRoot.sidebar-open #workspaceMain {
+                transform: translateX(0);
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            #floatingToggle,
+            #floatingMenu {
+                display: flex;
+            }
+
+            #floatingMenu {
+                display: block;
+            }
+
+            .overlay-dialog {
+                width: 92%;
+                max-height: 88vh;
+            }
         }
     </style>
-
-    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值 -->
-    {% if pre_code %}
-        <script>let server_pre_code = {{ pre_code|tojson }};</script>
-    {% else %}
-        <script>let server_pre_code = "";</script>
-    {% endif %}
-
-    <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器 -->
-    {% if pre_lang %}
-        <script>let server_pre_lang = "{{ pre_lang }}";</script>
-    {% else %}
-        <script>let server_pre_lang = "python";</script>
-    {% endif %}
 </head>
-
 <body>
+<div id="appRoot" class="sidebar-collapsed">
+    <aside id="projectSidebar">
+        <div class="sidebar-header">
+            <button class="sidebar-top-toggle" onclick="toggleProjectSidebar()">☰</button>
+            <div class="sidebar-title">Project Files</div>
+            <button class="sidebar-close" onclick="collapseProjectSidebar()">×</button>
+        </div>
+        <div class="sidebar-actions">
+            <button class="sidebar-action" onclick="openCreateFileDialog()">new file</button>
+            <button class="sidebar-action upload" onclick="performClick('file-input')">upload</button>
+            <button class="sidebar-action folder" onclick="performClick('folder-input')">upload folder</button>
+        </div>
+        <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
+        <div id="projectFileTree"></div>
+    </aside>
 
-<!-- ========== 代码编辑器区域 ========== -->
-<div id="editor" onclick="hideFloatingMenuIfOpen()"></div>
+    <div id="sidebarBackdrop" onclick="closeSidebarFromBackdrop()"></div>
 
-<!-- ========== 右侧浮动切换按钮 ========== -->
+    <main id="workspaceMain">
+        <button id="topSidebarToggle" class="sidebar-floating-toggle" onclick="toggleProjectSidebar()">☰</button>
+
+        <div id="editorArea" onclick="hideFloatingMenuIfOpen()">
+            <div id="editor"></div>
+            <div id="assetViewer"></div>
+        </div>
+
+        <div class="toolbar" id="desktopToolbar">
+            <button class="toolbar-btn save" onclick="save()">save</button>
+            <button class="toolbar-btn open" onclick="performClick('file-input')">open</button>
+            <button class="toolbar-btn open" onclick="performClick('folder-input')">folder</button>
+            <button class="toolbar-btn share" onclick="share()">share</button>
+            <button class="toolbar-btn run python-run-btn" onclick="goPythonRunPage()">py-run</button>
+            <button class="toolbar-btn home" onclick="home()">home</button>
+
+            <div class="toolbar-select-group">
+                <span>Language</span>
+                <select id="lang-selector-desktop" class="toolbar-select">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="c_cpp">C/C++</option>
+                    <option value="java">Java</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="golang">Go</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+            </div>
+
+            <div class="toolbar-select-group">
+                <span>Theme</span>
+                <select id="theme-selector-desktop" class="toolbar-select">
+                    <option value="monokai">monokai</option>
+                    <option value="github">github</option>
+                    <option value="tomorrow">tomorrow</option>
+                    <option value="kuroir">kuroir</option>
+                    <option value="twilight">twilight</option>
+                    <option value="vibrant_ink">vibrant_ink</option>
+                    <option value="xcode">xcode</option>
+                    <option value="textmate">textmate</option>
+                    <option value="terminal">terminal</option>
+                    <option value="solarized_dark">solarized_dark</option>
+                    <option value="solarized_light">solarized_light</option>
+                </select>
+            </div>
+
+            <a class="toolbar-link" href="#" onclick="openAboutDialog(); return false;">About</a>
+        </div>
+    </main>
+</div>
+
 <div id="floatingToggle" onclick="toggleFloatingMenu()">≡</div>
 
-<!-- ========== 浮动菜单（包含按钮与语言/主题选择） ========== -->
 <div id="floatingMenu">
-    <button id="save" onclick="save()">save</button>
-    <button id="open" onclick="performClick('file-input')">open</button>
-    <button id="share" onclick="share()">share</button>
-    <button id="python-run" onclick="goPythonRunPage()">py-run</button>
-    <button id="home" onclick="home()">home</button>
+    <button id="mobile-toggle-files" onclick="toggleProjectSidebar()" style="background:#56634a;">files</button>
+    <button id="mobile-new-file" onclick="openCreateFileDialog()" style="background:#657056;">new file</button>
+    <button id="mobile-save" onclick="save()" style="background:#6dddf2;">save</button>
+    <button id="mobile-open" onclick="performClick('file-input')" style="background:#f53855;">open</button>
+    <button id="mobile-folder" onclick="performClick('folder-input')" style="background:#ca6a4a;">folder</button>
+    <button id="mobile-share" onclick="share()" style="background:#a7c336;">share</button>
+    <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()" style="background:#3b82f6;">py-run</button>
+    <button id="mobile-home" onclick="home()" style="background:#ef7d62;">home</button>
 
-    <div class="selector-container">
-        <label for="lang-selector" style="color:#fff;">Language:</label>
-        <select id="lang-selector" class="selectpicker" data-style="btn-dark">
+    <div class="mobile-select-wrap">
+        <label for="lang-selector-mobile">Language</label>
+        <select id="lang-selector-mobile" class="mobile-select">
             <option value="python">Python</option>
             <option value="javascript">JavaScript</option>
             <option value="c_cpp">C/C++</option>
@@ -212,9 +782,9 @@
         </select>
     </div>
 
-    <div class="selector-container">
-        <label for="theme-selector" style="color:#fff;">Theme:</label>
-        <select id="theme-selector" class="selectpicker" data-style="btn-dark">
+    <div class="mobile-select-wrap">
+        <label for="theme-selector-mobile">Theme</label>
+        <select id="theme-selector-mobile" class="mobile-select">
             <option value="monokai">monokai</option>
             <option value="github">github</option>
             <option value="tomorrow">tomorrow</option>
@@ -224,35 +794,88 @@
             <option value="xcode">xcode</option>
             <option value="textmate">textmate</option>
             <option value="terminal">terminal</option>
-            <option value="solarized_dark">solarized dark</option>
-            <option value="solarized_light">solarized light</option>
+            <option value="solarized_dark">solarized_dark</option>
+            <option value="solarized_light">solarized_light</option>
         </select>
     </div>
-
-    <input id="file-input" type="file" style="display: none;"/>
 </div>
 
-<!-- 复制提示 -->
-<div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
+<input id="file-input" type="file" multiple style="display: none;"/>
+<input id="folder-input" type="file" webkitdirectory directory multiple style="display: none;"/>
 
-<!-- ========== 自定义分享弹窗 ========== -->
 <div id="shareOverlay">
-    <div id="shareDialog">
-        <div class="share-dialog-header">
-            <button class="close-share-dialog" onclick="closeShare()">×</button>
-            <h5>分享你的代码</h5>
+    <div class="overlay-dialog" id="shareDialog">
+        <div class="overlay-dialog-header">
+            <h5 class="overlay-dialog-title">分享你的代码</h5>
+            <button class="overlay-dialog-close" onclick="closeShare()">×</button>
         </div>
-        <!-- 生成的二维码 -->
-        <div id="qrcode"></div>
-        <!-- 展示分享链接 + 复制按钮 -->
-        <div id="share-link-div" class="text-center mb-2">
-            <span id="share-link-text"></span>
-            <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制</button>
+        <div class="overlay-dialog-body">
+            <div id="qrcode"></div>
+            <div id="share-link-div">
+                <span id="share-link-text"></span>
+                <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制链接</button>
+            </div>
+            <div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
+            <p style="margin-top: 10px;">You can save this picture or scan the QR code to share it.</p>
+            <div id="final-image-container" style="margin-top: 14px;"></div>
         </div>
     </div>
 </div>
 
-<!-- ================== 代码编辑器相关 ================== -->
+<div id="fileCreateOverlay">
+    <div class="overlay-dialog" id="fileCreateDialog">
+        <div class="overlay-dialog-header">
+            <h5 class="overlay-dialog-title">新建文件</h5>
+            <button class="overlay-dialog-close" onclick="closeCreateFileDialog()">×</button>
+        </div>
+        <div class="overlay-dialog-body">
+            <div class="overlay-field">
+                <label for="new-file-path">文件路径（支持目录层级，如 src/main.py）</label>
+                <input id="new-file-path" type="text" placeholder="src/main.py" autocomplete="off" />
+            </div>
+            <div class="overlay-field">
+                <label for="new-file-language">语言</label>
+                <select id="new-file-language">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="c_cpp">C/C++</option>
+                    <option value="java">Java</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="golang">Go</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+            </div>
+            <div class="overlay-actions">
+                <button class="btn-secondary-lite" onclick="closeCreateFileDialog()">取消</button>
+                <button class="btn-primary-lite" onclick="createNewProjectFileFromDialog()">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="aboutOverlay">
+    <div class="overlay-dialog" id="aboutDialog">
+        <div class="overlay-dialog-header">
+            <h5 class="overlay-dialog-title">About</h5>
+            <button class="overlay-dialog-close" onclick="closeAboutDialog()">×</button>
+        </div>
+        <div class="overlay-dialog-body about-content text-center">
+            <h4>关于 CodeMark</h4>
+            <hr>
+            <p>你可以在此页面进行 Python 编写和代码分享。</p>
+            <p>当前版本支持项目化多文件分享，包含代码文件与资源文件。</p>
+            <p>祝你探索 CodeMark 愉快！</p>
+            <p>如需定制化或高校合作，可添加微信：Jiabcdefh</p>
+            <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh">
+            <br>
+            <a href="https://github.com/AndersonHJB/" target="_blank" rel="noreferrer">Github</a>
+        </div>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
@@ -265,60 +888,111 @@
 <script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
-
 <script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
 
-<!-- 第三方库（保留是为了支持下拉选择器、二维码生成等功能） -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<script type="text/javascript">
-    // 防止浏览器前进/后退的缓存
+<script>
     window.addEventListener("pageshow", function (event) {
-        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
+        if (event.persisted || (typeof window.performance !== "undefined" && window.performance.navigation.type === 2)) {
             window.location.reload();
         }
     });
 
-    const SHARECODE_DRAFT_CACHE_KEY = "codemark:sharecode:draft:v1";
+    const SHARECODE_DRAFT_CACHE_KEY = "codemark:sharecode:draft:v2";
     const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
     const SHARECODE_DEFAULT_LANG = "python";
     const SHARECODE_DEFAULT_THEME = "monokai";
+    const LANGUAGE_TO_EXTENSION = {
+        python: "py",
+        javascript: "js",
+        c_cpp: "cpp",
+        java: "java",
+        php: "php",
+        ruby: "rb",
+        golang: "go",
+        html: "html",
+        css: "css",
+        markdown: "md"
+    };
+    const TEXT_EXTENSIONS = new Set([
+        "py", "js", "ts", "tsx", "jsx", "java", "cpp", "cc", "c", "h", "hpp",
+        "php", "rb", "go", "html", "htm", "css", "scss", "less", "md", "txt", "json",
+        "yaml", "yml", "xml", "sh", "ini", "toml", "sql", "rs", "swift", "kt", "dart"
+    ]);
+
     let sharecodeDraftSaveTimer = null;
+    let projectFiles = [];
+    let activeFilePath = "";
+    let sidebarOpen = false;
+    let editorReady = false;
+
+    function isMobileViewport() {
+        return window.matchMedia("(max-width: 768px)").matches;
+    }
+
+    function safeNormalizePath(rawPath) {
+        if (typeof rawPath !== "string") {
+            return "";
+        }
+        let normalized = rawPath.replace(/\\/g, "/").trim();
+        if (!normalized) {
+            return "";
+        }
+        normalized = normalized.replace(/^\/+/, "").replace(/\/{2,}/g, "/");
+        let parts = normalized.split("/").filter(Boolean);
+        if (!parts.length) {
+            return "";
+        }
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i] === "." || parts[i] === "..") {
+                return "";
+            }
+        }
+        return parts.join("/");
+    }
+
+    function ensureAssetsPath(path) {
+        let safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return "";
+        }
+        if (safePath.startsWith("assets/")) {
+            return safePath;
+        }
+        return "assets/" + safePath;
+    }
+
+    function detectLanguageFromFilename(filename) {
+        let safePath = safeNormalizePath(filename).toLowerCase();
+        if (safePath.endsWith(".py")) return "python";
+        if (safePath.endsWith(".js")) return "javascript";
+        if (safePath.endsWith(".c") || safePath.endsWith(".cpp") || safePath.endsWith(".cc") || safePath.endsWith(".h") || safePath.endsWith(".hpp")) return "c_cpp";
+        if (safePath.endsWith(".java")) return "java";
+        if (safePath.endsWith(".php")) return "php";
+        if (safePath.endsWith(".rb")) return "ruby";
+        if (safePath.endsWith(".go")) return "golang";
+        if (safePath.endsWith(".html") || safePath.endsWith(".htm")) return "html";
+        if (safePath.endsWith(".css")) return "css";
+        if (safePath.endsWith(".md") || safePath.endsWith(".markdown")) return "markdown";
+        return SHARECODE_DEFAULT_LANG;
+    }
+
+    function defaultFilenameForLanguage(lang) {
+        const ext = LANGUAGE_TO_EXTENSION[lang] || "txt";
+        return "main." + ext;
+    }
 
     function loadSharecodeDraftCache() {
         try {
-            let cacheRaw = localStorage.getItem(SHARECODE_DRAFT_CACHE_KEY);
-            if (!cacheRaw) {
-                return null;
-            }
-            let cacheData = JSON.parse(cacheRaw);
-            if (!cacheData || typeof cacheData !== "object") {
-                return null;
-            }
-            return cacheData;
+            const raw = localStorage.getItem(SHARECODE_DRAFT_CACHE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return data && typeof data === "object" ? data : null;
         } catch (e) {
             return null;
-        }
-    }
-
-    function saveSharecodeDraftCache() {
-        if (!window.editor) {
-            return;
-        }
-        let langElement = document.getElementById("lang-selector");
-        let themeElement = document.getElementById("theme-selector");
-        try {
-            localStorage.setItem(SHARECODE_DRAFT_CACHE_KEY, JSON.stringify({
-                code: window.editor.getValue(),
-                language: langElement ? (langElement.value || SHARECODE_DEFAULT_LANG) : SHARECODE_DEFAULT_LANG,
-                theme: themeElement ? (themeElement.value || SHARECODE_DEFAULT_THEME) : SHARECODE_DEFAULT_THEME,
-                updatedAt: Date.now()
-            }));
-        } catch (e) {
         }
     }
 
@@ -331,865 +1005,651 @@
         }, SHARECODE_DRAFT_SAVE_DEBOUNCE_MS);
     }
 
-    function normalizeSelectValue(selectId, value, fallbackValue) {
-        let selectElement = document.getElementById(selectId);
-        if (!selectElement) {
-            return fallbackValue;
+    function saveSharecodeDraftCache() {
+        if (!window.editor || !editorReady) {
+            return;
         }
-        for (let i = 0; i < selectElement.options.length; i++) {
-            if (selectElement.options[i].value === value) {
-                return value;
-            }
+        syncActiveEditorToProject();
+        try {
+            const textFiles = projectFiles
+                .filter(f => f.kind === "text")
+                .map(f => ({
+                    path: f.path,
+                    content: f.content,
+                    language: f.language || detectLanguageFromFilename(f.path)
+                }));
+
+            localStorage.setItem(SHARECODE_DRAFT_CACHE_KEY, JSON.stringify({
+                project: {
+                    text_files: textFiles,
+                    assets: [],
+                    active_file: activeFilePath
+                },
+                language: getCurrentLanguageValue(),
+                theme: getCurrentThemeValue(),
+                updatedAt: Date.now()
+            }));
+        } catch (e) {
         }
-        return fallbackValue;
     }
 
-    function resolveSharecodeInitialState(defaultCode) {
-        let cacheData = loadSharecodeDraftCache();
-        let isSharedCodePage = window.location.pathname.indexOf("/share/") === 0;
-        let hasServerPreCode = typeof server_pre_code !== "undefined" && server_pre_code;
-        let initialCode = defaultCode;
-        let initialLang = SHARECODE_DEFAULT_LANG;
-        let initialTheme = SHARECODE_DEFAULT_THEME;
+    function getCurrentLanguageValue() {
+        const desktop = document.getElementById("lang-selector-desktop");
+        const mobile = document.getElementById("lang-selector-mobile");
+        return (desktop && desktop.value) || (mobile && mobile.value) || SHARECODE_DEFAULT_LANG;
+    }
 
-        if (cacheData && typeof cacheData.theme === "string" && cacheData.theme) {
-            initialTheme = cacheData.theme;
+    function getCurrentThemeValue() {
+        const desktop = document.getElementById("theme-selector-desktop");
+        const mobile = document.getElementById("theme-selector-mobile");
+        return (desktop && desktop.value) || (mobile && mobile.value) || SHARECODE_DEFAULT_THEME;
+    }
+
+    function setLanguageSelectors(lang) {
+        const language = lang || SHARECODE_DEFAULT_LANG;
+        const desktop = document.getElementById("lang-selector-desktop");
+        const mobile = document.getElementById("lang-selector-mobile");
+        if (desktop) {
+            desktop.value = language;
+        }
+        if (mobile) {
+            mobile.value = language;
+        }
+    }
+
+    function setThemeSelectors(theme) {
+        const nextTheme = theme || SHARECODE_DEFAULT_THEME;
+        const desktop = document.getElementById("theme-selector-desktop");
+        const mobile = document.getElementById("theme-selector-mobile");
+        if (desktop) {
+            desktop.value = nextTheme;
+        }
+        if (mobile) {
+            mobile.value = nextTheme;
+        }
+    }
+
+    function applyEditorTheme(theme) {
+        const selected = theme || SHARECODE_DEFAULT_THEME;
+        if (window.editor) {
+            window.editor.setTheme("ace/theme/" + selected);
+        }
+        setThemeSelectors(selected);
+    }
+
+    function setEditorLang(lang) {
+        if (!window.editor) {
+            return;
+        }
+        if (lang === "python") {
+            window.editor.session.setMode("ace/mode/python");
+        } else {
+            window.editor.session.setMode("ace/mode/" + lang);
+        }
+    }
+
+    function upsertProjectFile(fileObj, activate) {
+        const safePath = safeNormalizePath(fileObj.path);
+        if (!safePath) {
+            return;
+        }
+        const nextFile = Object.assign({}, fileObj, {path: safePath});
+        const existingIndex = projectFiles.findIndex(f => f.path === safePath);
+        if (existingIndex >= 0) {
+            projectFiles[existingIndex] = Object.assign({}, projectFiles[existingIndex], nextFile);
+        } else {
+            projectFiles.push(nextFile);
+        }
+        if (activate) {
+            openProjectFile(safePath);
+        } else {
+            renderProjectFileTree();
+            updateSidebarVisibilityByFileCount(false);
+        }
+    }
+
+    function ensureUniquePath(path) {
+        let safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return "";
+        }
+        if (!projectFiles.some(f => f.path === safePath)) {
+            return safePath;
+        }
+        let base = safePath;
+        let suffix = "";
+        const dotIndex = safePath.lastIndexOf(".");
+        if (dotIndex > 0 && dotIndex < safePath.length - 1) {
+            base = safePath.slice(0, dotIndex);
+            suffix = safePath.slice(dotIndex);
+        }
+        let index = 1;
+        while (projectFiles.some(f => f.path === `${base}_${index}${suffix}`)) {
+            index += 1;
+        }
+        return `${base}_${index}${suffix}`;
+    }
+
+    function getActiveProjectFile() {
+        return projectFiles.find(f => f.path === activeFilePath) || null;
+    }
+
+    function syncActiveEditorToProject() {
+        if (!editorReady) {
+            return;
+        }
+        const currentFile = getActiveProjectFile();
+        if (currentFile && currentFile.kind === "text") {
+            currentFile.content = window.editor.getValue();
+            currentFile.language = currentFile.language || detectLanguageFromFilename(currentFile.path);
+        }
+    }
+
+    function openProjectFile(path) {
+        const safePath = safeNormalizePath(path);
+        const targetFile = projectFiles.find(f => f.path === safePath);
+        if (!targetFile) {
+            return;
+        }
+        syncActiveEditorToProject();
+        activeFilePath = safePath;
+
+        if (targetFile.kind === "text") {
+            document.getElementById("assetViewer").style.display = "none";
+            document.getElementById("editor").style.display = "block";
+            window.editor.setValue(targetFile.content || "", -1);
+            const lang = targetFile.language || detectLanguageFromFilename(targetFile.path);
+            targetFile.language = lang;
+            setLanguageSelectors(lang);
+            setEditorLang(lang);
+        } else {
+            showAssetPreview(targetFile);
+        }
+
+        renderProjectFileTree();
+        updatePythonRunButtonVisibility();
+        scheduleSharecodeDraftCacheSave();
+        setTimeout(function () {
+            if (window.editor) {
+                window.editor.resize();
+            }
+        }, 30);
+    }
+
+    function buildAssetUrl(projectId, storedPath) {
+        if (!projectId || !storedPath) {
+            return "";
+        }
+        const encodedPath = safeNormalizePath(storedPath).split("/").map(encodeURIComponent).join("/");
+        return `/share_asset/${encodeURIComponent(projectId)}/${encodedPath}`;
+    }
+
+    function resolveAssetPreviewSource(assetFile) {
+        if (assetFile.data_base64) {
+            return assetFile.data_base64;
+        }
+        if (assetFile.url) {
+            return assetFile.url;
+        }
+        if (assetFile.source_project_id && assetFile.source_stored_path) {
+            return buildAssetUrl(assetFile.source_project_id, assetFile.source_stored_path);
+        }
+        return "";
+    }
+
+    function showAssetPreview(assetFile) {
+        const viewer = document.getElementById("assetViewer");
+        const editorElement = document.getElementById("editor");
+        editorElement.style.display = "none";
+        viewer.style.display = "block";
+
+        const source = resolveAssetPreviewSource(assetFile);
+        const mimeType = assetFile.mime_type || "application/octet-stream";
+        const sizeText = typeof assetFile.size === "number" ? `${assetFile.size} bytes` : "unknown";
+
+        let html = `<div><strong>${escapeHtml(assetFile.path)}</strong></div>`;
+        if (mimeType.startsWith("image/") && source) {
+            html += `<div style="margin-top: 12px;"><img src="${escapeHtml(source)}" alt="${escapeHtml(assetFile.path)}"></div>`;
+        }
+        html += `<div class="asset-meta">`;
+        html += `<div>MIME: ${escapeHtml(mimeType)}</div>`;
+        html += `<div>Size: ${escapeHtml(sizeText)}</div>`;
+        html += `</div>`;
+        if (source) {
+            html += `<a class="asset-open-link" href="${escapeHtml(source)}" target="_blank" rel="noreferrer">Open / Download</a>`;
+        }
+        viewer.innerHTML = html;
+    }
+
+    function escapeHtml(raw) {
+        return String(raw || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function renderProjectFileTree() {
+        const treeEl = document.getElementById("projectFileTree");
+        const emptyEl = document.getElementById("projectTreeEmpty");
+        treeEl.innerHTML = "";
+
+        if (!projectFiles.length) {
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        const root = {dirs: {}, files: []};
+        const sortedFiles = projectFiles.slice().sort((a, b) => a.path.localeCompare(b.path));
+        for (const file of sortedFiles) {
+            const parts = file.path.split("/");
+            let node = root;
+            for (let i = 0; i < parts.length - 1; i++) {
+                const segment = parts[i];
+                if (!node.dirs[segment]) {
+                    node.dirs[segment] = {dirs: {}, files: []};
+                }
+                node = node.dirs[segment];
+            }
+            node.files.push({name: parts[parts.length - 1], file: file});
+        }
+
+        const rootList = document.createElement("ul");
+        rootList.className = "tree-group";
+        buildTreeDom(root, rootList, "");
+        treeEl.appendChild(rootList);
+    }
+
+    function buildTreeDom(node, parent, prefix) {
+        const folderNames = Object.keys(node.dirs).sort((a, b) => a.localeCompare(b));
+        for (const folder of folderNames) {
+            const li = document.createElement("li");
+            li.className = "tree-node";
+            const title = document.createElement("div");
+            title.className = "tree-folder";
+            const span = document.createElement("span");
+            span.className = "tree-folder-title";
+            span.textContent = "📁 " + folder;
+            title.appendChild(span);
+            li.appendChild(title);
+
+            const child = document.createElement("ul");
+            child.className = "tree-group";
+            child.style.paddingLeft = "14px";
+            buildTreeDom(node.dirs[folder], child, prefix ? `${prefix}/${folder}` : folder);
+            li.appendChild(child);
+            parent.appendChild(li);
+        }
+
+        const fileItems = node.files.slice().sort((a, b) => a.name.localeCompare(b.name));
+        for (const item of fileItems) {
+            const li = document.createElement("li");
+            li.className = "tree-node";
+            const button = document.createElement("button");
+            button.className = "tree-file-button";
+            if (item.file.path === activeFilePath) {
+                button.classList.add("active");
+            }
+            const icon = item.file.kind === "text" ? "📄" : "🧩";
+            button.innerHTML = `<span class="tree-file-icon">${icon}</span>${escapeHtml(item.name)}`;
+            button.addEventListener("click", function () {
+                openProjectFile(item.file.path);
+                if (isMobileViewport()) {
+                    setSidebarOpen(false);
+                }
+            });
+            li.appendChild(button);
+            parent.appendChild(li);
+        }
+    }
+
+    function shouldTreatAsText(file, path) {
+        const safePath = safeNormalizePath(path).toLowerCase();
+        const ext = safePath.includes(".") ? safePath.split(".").pop() : "";
+        if (TEXT_EXTENSIONS.has(ext)) {
+            return true;
+        }
+        if (file && typeof file.type === "string") {
+            return file.type.startsWith("text/") || file.type.includes("json") || file.type.includes("xml");
+        }
+        return false;
+    }
+
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function (e) { resolve(String(e.target.result || "")); };
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    }
+
+    function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function (e) { resolve(String(e.target.result || "")); };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function importFilesFromInput(fileList) {
+        if (!fileList || !fileList.length) {
+            return;
+        }
+
+        syncActiveEditorToProject();
+        let firstAddedPath = "";
+
+        for (const file of fileList) {
+            const incomingPath = safeNormalizePath(file.webkitRelativePath || file.name);
+            if (!incomingPath) {
+                continue;
+            }
+
+            if (shouldTreatAsText(file, incomingPath)) {
+                const textContent = await readFileAsText(file);
+                const filePath = ensureUniquePath(incomingPath);
+                upsertProjectFile({
+                    kind: "text",
+                    path: filePath,
+                    content: textContent,
+                    language: detectLanguageFromFilename(filePath)
+                }, false);
+                if (!firstAddedPath) {
+                    firstAddedPath = filePath;
+                }
+            } else {
+                const dataUrl = await readFileAsDataURL(file);
+                const assetPath = ensureUniquePath(ensureAssetsPath(incomingPath));
+                upsertProjectFile({
+                    kind: "asset",
+                    path: assetPath,
+                    mime_type: file.type || "application/octet-stream",
+                    size: file.size,
+                    data_base64: dataUrl,
+                    source_project_id: "",
+                    source_stored_path: "",
+                    url: ""
+                }, false);
+                if (!firstAddedPath) {
+                    firstAddedPath = assetPath;
+                }
+            }
+        }
+
+        renderProjectFileTree();
+        updateSidebarVisibilityByFileCount(false);
+        if (firstAddedPath) {
+            openProjectFile(firstAddedPath);
+        }
+        scheduleSharecodeDraftCacheSave();
+    }
+
+    function normalizeServerProject(rawProject) {
+        const normalized = {
+            files: [],
+            activeFile: ""
+        };
+        if (!rawProject || typeof rawProject !== "object") {
+            return normalized;
+        }
+
+        const textFiles = Array.isArray(rawProject.text_files) ? rawProject.text_files : [];
+        const assets = Array.isArray(rawProject.assets) ? rawProject.assets : [];
+
+        for (const item of textFiles) {
+            if (!item || typeof item !== "object") {
+                continue;
+            }
+            const path = safeNormalizePath(item.path || item.name || "");
+            if (!path) {
+                continue;
+            }
+            const content = typeof item.content === "string" ? item.content : "";
+            const language = item.language || detectLanguageFromFilename(path);
+            normalized.files.push({
+                kind: "text",
+                path,
+                content,
+                language
+            });
+        }
+
+        for (const item of assets) {
+            if (!item || typeof item !== "object") {
+                continue;
+            }
+            const safePath = ensureAssetsPath(item.path || item.name || "");
+            if (!safePath) {
+                continue;
+            }
+            normalized.files.push({
+                kind: "asset",
+                path: safePath,
+                mime_type: item.mime_type || "application/octet-stream",
+                size: typeof item.size === "number" ? item.size : 0,
+                data_base64: typeof item.data_base64 === "string" ? item.data_base64 : "",
+                url: item.url || "",
+                source_project_id: item.source_project_id || server_share_project_id || "",
+                source_stored_path: item.source_stored_path || item.stored_path || ""
+            });
+        }
+
+        if (typeof rawProject.active_file === "string") {
+            normalized.activeFile = safeNormalizePath(rawProject.active_file);
+        }
+
+        return normalized;
+    }
+
+    function buildDefaultCode() {
+        let defaultCode = "# -*- coding: utf-8 -*-\n";
+        defaultCode += "# 欢迎使用 CodeMark\n";
+        defaultCode += "# 支持多文件与项目化分享\n";
+        defaultCode += "# 你可以在左侧创建文件，或上传文件夹\n";
+        return defaultCode;
+    }
+
+    function resolveInitialState() {
+        const isSharedCodePage = window.location.pathname.indexOf("/share/") === 0;
+        const cache = loadSharecodeDraftCache();
+        let project = {files: [], activeFile: ""};
+        let theme = SHARECODE_DEFAULT_THEME;
+
+        if (cache && typeof cache.theme === "string" && cache.theme) {
+            theme = cache.theme;
         }
 
         if (isSharedCodePage) {
-            initialCode = typeof server_pre_code === "string" ? server_pre_code : defaultCode;
-            if (typeof server_pre_lang === "string" && server_pre_lang) {
-                initialLang = server_pre_lang;
+            project = normalizeServerProject(server_pre_project);
+            if (!project.files.length) {
+                const fallbackLang = server_pre_lang || SHARECODE_DEFAULT_LANG;
+                const fallbackPath = defaultFilenameForLanguage(fallbackLang);
+                project.files.push({
+                    kind: "text",
+                    path: fallbackPath,
+                    content: typeof server_pre_code === "string" ? server_pre_code : "",
+                    language: fallbackLang
+                });
+                project.activeFile = fallbackPath;
             }
-        } else if (hasServerPreCode) {
-            initialCode = server_pre_code;
-            if (typeof server_pre_lang === "string" && server_pre_lang) {
-                initialLang = server_pre_lang;
-            }
-        } else if (cacheData) {
-            if (typeof cacheData.code === "string") {
-                initialCode = cacheData.code;
-            }
-            if (typeof cacheData.language === "string" && cacheData.language) {
-                initialLang = cacheData.language;
-            } else if (typeof server_pre_lang === "string" && server_pre_lang) {
-                initialLang = server_pre_lang;
-            }
-        } else if (typeof server_pre_lang === "string" && server_pre_lang) {
-            initialLang = server_pre_lang;
-        }
-
-        return {
-            code: initialCode,
-            language: initialLang,
-            theme: initialTheme
-        };
-    }
-
-    window.addEventListener("beforeunload", function () {
-        saveSharecodeDraftCache();
-    });
-
-    // 初始化 Ace 编辑器
-    window.addEventListener("load", function () {
-        ace.config.set("basePath", "static/js/ace/");
-        window.editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");  // 默认主题
-        editor.session.setMode("ace/mode/python"); // 默认python
-        editor.setOptions({
-            fontSize: "16pt",
-            enableLiveAutocompletion: true,
-            enableBasicAutocompletion: true,
-            enableSnippets: true,
-        });
-
-        // 初始化 bootstrap-select
-        $('.selectpicker').selectpicker({
-            style: 'btn-dark',
-            size: 10
-        });
-
-        let defaultCode = "# -*- coding: utf-8 -*-\n";
-        defaultCode += "# 欢迎使用 CodeMark（移动端版）\n";
-        defaultCode += "# 你可以在此处编写并分享代码\n";
-        defaultCode += "# 点击右侧按钮可打开更多功能\n";
-        let initialState = resolveSharecodeInitialState(defaultCode);
-        initialState.language = normalizeSelectValue("lang-selector", initialState.language, SHARECODE_DEFAULT_LANG);
-        initialState.theme = normalizeSelectValue("theme-selector", initialState.theme, SHARECODE_DEFAULT_THEME);
-
-        $('#lang-selector').selectpicker('val', initialState.language);
-        setEditorLang(initialState.language);
-
-        $('#theme-selector').selectpicker('val', initialState.theme);
-        editor.setTheme("ace/theme/" + initialState.theme);
-
-        editor.setValue(initialState.code, -1);
-
-        // 监听语言切换
-        $('#lang-selector').on('changed.bs.select', function () {
-            setEditorLang($(this).val());
-            scheduleSharecodeDraftCacheSave();
-        });
-
-        // 监听主题切换
-        $('#theme-selector').on('changed.bs.select', function () {
-            editor.setTheme("ace/theme/" + $(this).val());
-            scheduleSharecodeDraftCacheSave();
-        });
-
-        // 复制链接按钮
-        $('#copy-share-link-btn').on('click', function () {
-            let shareLink = $('#share-link-text').text();
-            copyLinkToClipboard(shareLink);
-        });
-
-        editor.session.on("change", scheduleSharecodeDraftCacheSave);
-        saveSharecodeDraftCache();
-
-        // Ctrl-D/Command-D: 复制当前行
-        editor.commands.addCommand({
-            name: 'duplicateLine',
-            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
-            exec: function (editor) {
-                editor.execCommand("copylinesdown");
-            }
-        });
-
-        // ===== 点击遮罩层时，若点击在 #shareOverlay 上，就关闭分享弹窗 =====
-        const shareOverlay = document.getElementById("shareOverlay");
-        shareOverlay.addEventListener("click", function(e) {
-            // 判断点击目标是否为 shareOverlay 本身
-            if(e.target === shareOverlay) {
-                closeShare();
-            }
-        });
-    });
-
-    // 设置编辑器语言
-    function setEditorLang(lang) {
-        if (lang === 'python') {
-            editor.session.setMode("ace/mode/python");
         } else {
-            editor.session.setMode("ace/mode/" + lang);
+            if (cache && cache.project) {
+                project = normalizeServerProject(cache.project);
+            }
+            if (!project.files.length && server_pre_project) {
+                project = normalizeServerProject(server_pre_project);
+            }
+            if (!project.files.length && typeof server_pre_code === "string" && server_pre_code) {
+                const lang = server_pre_lang || SHARECODE_DEFAULT_LANG;
+                const filePath = defaultFilenameForLanguage(lang);
+                project.files.push({
+                    kind: "text",
+                    path: filePath,
+                    content: server_pre_code,
+                    language: lang
+                });
+                project.activeFile = filePath;
+            }
+            if (!project.files.length) {
+                const lang = SHARECODE_DEFAULT_LANG;
+                const filePath = defaultFilenameForLanguage(lang);
+                project.files.push({
+                    kind: "text",
+                    path: filePath,
+                    content: buildDefaultCode(),
+                    language: lang
+                });
+                project.activeFile = filePath;
+            }
         }
-        updatePythonRunButtonVisibility(lang);
+
+        if (!project.activeFile || !project.files.some(f => f.path === project.activeFile)) {
+            const firstText = project.files.find(f => f.kind === "text");
+            project.activeFile = firstText ? firstText.path : (project.files[0] ? project.files[0].path : "");
+        }
+
+        return {project, theme};
     }
 
-    function updatePythonRunButtonVisibility(lang) {
-        const runButton = document.getElementById("python-run");
-        if (!runButton) {
+    function updatePythonRunButtonVisibility() {
+        const active = getActiveProjectFile();
+        const visible = !!(active && active.kind === "text" && (active.language || detectLanguageFromFilename(active.path)) === "python");
+        document.querySelectorAll(".python-run-btn").forEach(btn => {
+            btn.style.display = visible ? "" : "none";
+        });
+    }
+
+    function setSidebarOpen(open) {
+        const appRoot = document.getElementById("appRoot");
+        sidebarOpen = !!open;
+        if (isMobileViewport()) {
+            appRoot.classList.toggle("sidebar-open", sidebarOpen);
+            appRoot.classList.toggle("sidebar-collapsed", !sidebarOpen);
+        } else {
+            appRoot.classList.remove("sidebar-open");
+            appRoot.classList.toggle("sidebar-collapsed", !sidebarOpen);
+        }
+        setTimeout(function () {
+            if (window.editor) {
+                window.editor.resize();
+            }
+        }, 280);
+    }
+
+    function updateSidebarVisibilityByFileCount(firstLoad) {
+        const textCount = projectFiles.filter(f => f.kind === "text").length;
+        const assetCount = projectFiles.filter(f => f.kind === "asset").length;
+        const shouldAutoHide = textCount <= 1 && assetCount === 0;
+
+        if (firstLoad && shouldAutoHide) {
+            setSidebarOpen(false);
             return;
         }
-        runButton.style.display = lang === 'python' ? 'block' : 'none';
+
+        if (firstLoad) {
+            setSidebarOpen(!isMobileViewport());
+            return;
+        }
+
+        if (shouldAutoHide) {
+            setSidebarOpen(false);
+        }
     }
 
-    // 切换浮动菜单
+    function toggleProjectSidebar() {
+        setSidebarOpen(!sidebarOpen);
+    }
+
+    function collapseProjectSidebar() {
+        setSidebarOpen(false);
+    }
+
+    function closeSidebarFromBackdrop() {
+        if (isMobileViewport()) {
+            setSidebarOpen(false);
+        }
+    }
+
     function toggleFloatingMenu() {
-        let menu = document.getElementById("floatingMenu");
+        const menu = document.getElementById("floatingMenu");
         menu.classList.toggle("show-menu");
     }
-    // 如果菜单展开，点击编辑器时隐藏
+
     function hideFloatingMenuIfOpen() {
-        let menu = document.getElementById("floatingMenu");
+        const menu = document.getElementById("floatingMenu");
         if (menu.classList.contains("show-menu")) {
             menu.classList.remove("show-menu");
         }
     }
 
-    // 打开文件
-    function performClick(elemId) {
-        const elem = document.getElementById(elemId);
-        if (elem) elem.click();
-    }
-    // 读取文件并显示到编辑器
-    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
-    function readSingleFile(e) {
-        let file = e.target.files[0];
-        if (!file) return;
-        let reader = new FileReader();
-        reader.onload = function (e) {
-            editor.setValue(e.target.result, -1);
-            let autoLang = detectLanguageFromFilename(file.name);
-            $('#lang-selector').selectpicker('val', autoLang);
-            setEditorLang(autoLang);
-            scheduleSharecodeDraftCacheSave();
-        };
-        reader.readAsText(file);
-    }
-    // 根据文件后缀判断语言
-    function detectLanguageFromFilename(filename) {
-        let lower = filename.toLowerCase();
-        if (lower.endsWith(".py")) return "python";
-        if (lower.endsWith(".js")) return "javascript";
-        if (lower.endsWith(".c") || lower.endsWith(".cpp") || lower.endsWith(".h")) return "c_cpp";
-        if (lower.endsWith(".java")) return "java";
-        if (lower.endsWith(".php")) return "php";
-        if (lower.endsWith(".rb")) return "ruby";
-        if (lower.endsWith(".go")) return "golang";
-        if (lower.endsWith(".html")) return "html";
-        if (lower.endsWith(".css")) return "css";
-        if (lower.endsWith(".md")) return "markdown";
-        return "python";
+    function openOverlay(overlayId) {
+        document.getElementById(overlayId).style.display = "block";
     }
 
-    // 跳转首页
-    function home() {
-        window.location.href = "/";
+    function closeOverlay(overlayId) {
+        document.getElementById(overlayId).style.display = "none";
     }
 
-    // 保存文件
-    function save() {
-        let code = editor.getValue();
-        let langVal = $('#lang-selector').val();
-        let fileExt = ".txt";
-        switch (langVal) {
-            case "python": fileExt = ".py"; break;
-            case "javascript": fileExt = ".js"; break;
-            case "c_cpp": fileExt = ".cpp"; break;
-            case "java": fileExt = ".java"; break;
-            case "php": fileExt = ".php"; break;
-            case "ruby": fileExt = ".rb"; break;
-            case "golang": fileExt = ".go"; break;
-            case "html": fileExt = ".html"; break;
-            case "css": fileExt = ".css"; break;
-            case "markdown": fileExt = ".md"; break;
+    function openCreateFileDialog() {
+        const active = getActiveProjectFile();
+        const lang = active && active.kind === "text" ? (active.language || detectLanguageFromFilename(active.path)) : SHARECODE_DEFAULT_LANG;
+        document.getElementById("new-file-language").value = lang;
+        document.getElementById("new-file-path").value = "";
+        openOverlay("fileCreateOverlay");
+        setTimeout(() => {
+            document.getElementById("new-file-path").focus();
+        }, 40);
+    }
+
+    function closeCreateFileDialog() {
+        closeOverlay("fileCreateOverlay");
+    }
+
+    function createNewProjectFileFromDialog() {
+        const language = document.getElementById("new-file-language").value || SHARECODE_DEFAULT_LANG;
+        let inputPath = document.getElementById("new-file-path").value || "";
+        inputPath = safeNormalizePath(inputPath);
+
+        if (!inputPath) {
+            inputPath = defaultFilenameForLanguage(language);
         }
-        let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
-        saveAs(blob, "bornforthis_code" + fileExt);
-    }
+        if (!inputPath.includes(".")) {
+            inputPath += "." + (LANGUAGE_TO_EXTENSION[language] || "txt");
+        }
 
-    // 分享代码
-    function share() {
-        // 分享前先隐藏浮动菜单
-        hideFloatingMenuIfOpen();
-
-        let code = editor.getValue();
-        let langVal = $('#lang-selector').val();
-        $.ajax({
-            type: 'POST',
-            url: '/upload_code',
-            dataType: 'json',
-            data: {
-                code: code,
-                language: langVal,
-                template: 'sharecode'
-            },
-            success: function (d) {
-                let shareLink = d.share_link;
-                // 1. 生成二维码
-                $('#qrcode').empty();
-                $('#qrcode').qrcode({
-                    text: shareLink,
-                    width: 150,
-                    height: 150
-                });
-                // 2. 显示分享链接
-                $('#share-link-text').text(shareLink);
-
-                // 3. 自动复制链接
-                copyLinkToClipboard(shareLink);
-
-                // 4. 显示自定义分享弹窗
-                document.getElementById("shareOverlay").style.display = "block";
-            }
-        });
-    }
-
-    function goPythonRunPage() {
-        hideFloatingMenuIfOpen();
-        const langVal = $('#lang-selector').val();
-        if (langVal !== 'python') {
+        inputPath = ensureUniquePath(inputPath);
+        if (!inputPath) {
             return;
         }
-        const code = editor.getValue();
-        $.ajax({
-            type: 'POST',
-            url: '/upload_code',
-            dataType: 'json',
-            data: {
-                code: code,
-                language: 'python',
-                template: 'editor'
-            },
-            success: function (d) {
-                window.location.href = d.share_link;
-            }
-        });
+
+        upsertProjectFile({
+            kind: "text",
+            path: inputPath,
+            content: "",
+            language
+        }, true);
+
+        closeCreateFileDialog();
+        updateSidebarVisibilityByFileCount(false);
+        scheduleSharecodeDraftCacheSave();
     }
 
-    // 关闭分享弹窗
+    function openAboutDialog() {
+        openOverlay("aboutOverlay");
+    }
+
+    function closeAboutDialog() {
+        closeOverlay("aboutOverlay");
+    }
+
     function closeShare() {
-        document.getElementById("shareOverlay").style.display = "none";
+        closeOverlay("shareOverlay");
     }
 
-    // 复制到剪贴板 + 动画提示
-    function copyLinkToClipboard(link) {
-        navigator.clipboard.writeText(link).then(() => {
-            let alertBox = document.getElementById("copy-alert");
-            alertBox.style.display = "block";
-            alertBox.style.animation = "none";
-            void alertBox.offsetWidth; // 触发回流
-            alertBox.style.animation = null;
-        });
-    }
-</script>
-</body>
-</html>
-{% else %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>AI悦创代码分享小工具｜便捷分享代码</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta property="og:site_name" content="Python在线代码编写｜AI悦创编程一对一辅导">
-    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
-    <meta name="keywords"
-          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
-    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码截图，方便分享。">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
-          rel="stylesheet">
-    <style type="text/css" media="screen">
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: #2f3129;
-            overflow: hidden;
-        }
-
-        .container-fluid {
-            margin: 0;
-            padding: 0;
-        }
-
-        /* 2. 让 row 使用 no-gutters，去掉默认的左右内间距 */
-        .row.no-gutters {
-            margin-right: 0;
-            margin-left: 0;
-        }
-
-        /* 也可再覆盖 col 默认的padding */
-        .col-sm-8, .col-md-4 {
-            padding: 0 !important;
-        }
-
-        .ace_editor .ace_content span,
-        .ace_editor .ace_content .ace_line {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
-        }
-
-        img {
-            max-width: 100%;
-        }
-
-        .btn-area {
-            position: relative;
-            z-index: 1000;
-            height: 56px;
-            background-color: #2f3129;
-        }
-
-        .btn-area > button {
-            float: left;
-            color: #fff;
-            border-radius: 0;
-            border-width: 0;
-            height: 100%;
-            width: 80px;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-            will-change: transform;
-        }
-
-        /* 悬停时微微抬起并加阴影、变亮 */
-        .btn-area > button:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            filter: brightness(1.1);
-            cursor: pointer;
-        }
-
-        /* 点击时按下效果 */
-        .btn-area > button:active {
-            transform: translateY(0) scale(0.95);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            filter: brightness(0.9);
-        }
-
-        /* 原 run 按钮已移除，仅保留 save / open / share */
-        #save {
-            background-color: #6dddf2;
-        }
-
-        #open {
-            background-color: #f53855;
-        }
-
-        #share {
-            background-color: #a7c336;
-        }
-
-        #python-run {
-            background-color: #3b82f6;
-            display: none;
-        }
-
-        #home {
-            background-color: #ef7d62;
-        }
-
-        .help-link-container a {
-            color: #fff;
-        }
-
-        .choose-container {
-            color: #fff;
-            padding-left: 5px;
-            padding-right: 5px;
-            display: flex;
-            -webkit-display: -webkit-flex;
-            align-items: center;
-        }
-
-        .theme-choose {
-            color: #fff;
-            padding-left: 5px;
-            padding-right: 5px;
-            display: flex;
-            -webkit-display: -webkit-flex;
-            align-items: center;
-        }
-
-        .code-container {
-            padding-left: 0;
-            padding-right: 0;
-            /* 让编辑器所在列可伸缩，占满剩余空间 */
-            height: calc(100vh - 56px);
-            overflow: hidden;
-        }
-
-        #editor {
-            /* 让 Ace Editor 占满父容器的高度 */
-            height: 100%;
-            width: 100%;
-        }
-
-        /* ========== 下面是对分享弹窗的样式适配改动 ========== */
-        /* 保持整体宽度在 90%，最大宽度 900px，保证在大屏时不会过宽，小屏可自适应 */
-        .modal-dialog {
-            width: 90%;
-            max-width: 900px;
-            margin: 1.75rem auto;
-        }
-
-        /* 在小于 768px 的屏幕下再微调，使其更适配移动端 */
-        @media (max-width: 768px) {
-            .modal-dialog {
-                width: 95%;
-            }
-        }
-
-        /* 弹窗内容最大高度 80vh，超出部分可滚动 */
-        .modal-content {
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        /* 复制提示的动画样式 */
-        .copy-alert {
-            display: none; /* 默认隐藏，通过JS控制显示/隐藏 */
-            background-color: #28a745;
-            color: #fff;
-            padding: 8px;
-            margin-top: 5px;
-            border-radius: 4px;
-            animation: fadeOut 2s forwards; /* 2s后自动淡出 */
-        }
-
-        @keyframes fadeOut {
-            0% {
-                opacity: 1;
-            }
-            70% {
-                opacity: 1;
-            }
-            100% {
-                opacity: 0;
-            }
-        }
-    </style>
-
-    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
-    {% if pre_code %}
-        <script>
-            let server_pre_code = {{ pre_code|tojson }};
-        </script>
-    {% else %}
-        <script>
-            let server_pre_code = "";
-        </script>
-    {% endif %}
-
-    <!-- 如果后端传来了 pre_lang，就用它来设置语言选择器。否则默认是 "python" -->
-    {% if pre_lang %}
-        <script>
-            let server_pre_lang = "{{ pre_lang }}";
-        </script>
-    {% else %}
-        <script>
-            let server_pre_lang = "python";
-        </script>
-    {% endif %}
-</head>
-
-<body>
-<div class="container-fluid">
-    <div class="row">
-        <!-- 代码编辑区：只保留编辑器，不再展示输出框 -->
-        <div class="col-sm-12 code-container">
-            <div id="editor"></div>
-        </div>
-    </div>
-
-    <!-- 按钮区域 -->
-    <div class="row btn-area">
-        <button id="save" onclick="save()">save</button>
-        <button id="open" onclick="performClick('file-input')">open</button>
-        <button id="share" onclick="share()">share</button>
-        <button id="python-run" onclick="goPythonRunPage()">py-run</button>
-        <button id="home" onclick="home()">home</button>
-
-        <!-- ========== 语言选择器 ========== -->
-        <div class="choose-container" style="margin-left: 15px;">
-            <span class="ml-2 mr-2">Language: </span>
-            <select id="lang-selector" class="selectpicker" data-style="btn-dark" data-width="140px">
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="c_cpp">C/C++</option>
-                <option value="java">Java</option>
-                <option value="php">PHP</option>
-                <option value="ruby">Ruby</option>
-                <option value="golang">Go</option>
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-                <option value="markdown">Markdown</option>
-                <!-- 需要更多可继续添加 -->
-            </select>
-        </div>
-
-        <div class="choose-container theme-selector-container">
-            <span class="ml-2 mr-2">Theme: </span>
-            <select id="theme-selector" class="selectpicker" data-style="btn-dark" data-width="120px">
-                <option value="monokai">monokai</option>
-                <option value="github">github</option>
-                <option value="tomorrow">tomorrow</option>
-                <option value="kuroir">kuroir</option>
-                <option value="twilight">twilight</option>
-                <option value="vibrant_ink">vibrant_ink</option>
-                <option value="xcode">xcode</option>
-                <option value="textmate">textmate</option>
-                <option value="terminal">terminal</option>
-                <option value="solarized_dark">solarized dark</option>
-                <option value="solarized_light">solarized light</option>
-            </select>
-        </div>
-        <div class="help-link-container my-auto ml-3">
-            <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
-        </div>
-        <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
-    </div>
-</div>
-
-<!-- Share Modal -->
-<div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-dialog-centered"><!-- 可选：让弹窗在垂直居中 -->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Share your code</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <!-- 这里会动态生成二维码+最终合成图 -->
-                <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
-
-                <!-- 分享链接显示 + 复制按钮区域 -->
-                <div id="share-link-div" class="text-center" style="margin-bottom:10px;">
-                    <!-- 下面的 span 用于动态填充分享链接 -->
-                    <span id="share-link-text"
-                          style="display:inline-block; margin-right:10px; color: #000; font-weight: bold;"></span>
-                    <button id="copy-share-link-btn" class="btn btn-outline-primary btn-sm">复制链接</button>
-                </div>
-
-                <!-- 提示复制成功的动画区域 -->
-                <div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
-
-                <p>You can save this picture or scan the QR code to share it.</p>
-                <!-- 合成图容器 -->
-                <div id="final-image-container" style="margin-top: 20px;"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- About Modal -->
-<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-dialog-centered"><!-- 同样可以使用 modal-dialog-centered 居中 -->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">About</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <h3>关于 CodeMark </h3>
-                <hr>
-                <p>你可以在此页面进行 Python 编写和代码分享</p>
-                <p>我们添加了对 micropip、NumPy 和 Pandas 的支持。</p>
-                <p>祝您探索 CodeMark 愉快！</p>
-                <p>对于想要制定化或高校合作，可以添加此微信：Jiabcdefh</p>
-                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh"
-                     style="zoom:25%;">
-                <br>
-                <a href="https://github.com/AndersonHJB/">Github</a>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ================== 代码编辑器相关 ================== -->
-<script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-javascript.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-c_cpp.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-java.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-php.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-ruby.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-golang.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
-
-<script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
-
-<!-- 第三方库 -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<script type="text/javascript">
-    // 防止浏览器前进/后退的缓存
-    window.addEventListener("pageshow", function (event) {
-        // 方式1：检测 event.persisted（命中 bfcache 时为 true）
-        // 方式2：检测 performance.navigation.type === 2
-        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
-            window.location.reload();
-        }
-    });
-
-    const SHARECODE_DRAFT_CACHE_KEY = "codemark:sharecode:draft:v1";
-    const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
-    const SHARECODE_DEFAULT_LANG = "python";
-    const SHARECODE_DEFAULT_THEME = "monokai";
-    let sharecodeDraftSaveTimer = null;
-
-    function loadSharecodeDraftCache() {
-        try {
-            let cacheRaw = localStorage.getItem(SHARECODE_DRAFT_CACHE_KEY);
-            if (!cacheRaw) {
-                return null;
-            }
-            let cacheData = JSON.parse(cacheRaw);
-            if (!cacheData || typeof cacheData !== "object") {
-                return null;
-            }
-            return cacheData;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    function saveSharecodeDraftCache() {
-        if (!window.editor) {
-            return;
-        }
-        let langElement = document.getElementById("lang-selector");
-        let themeElement = document.getElementById("theme-selector");
-        try {
-            localStorage.setItem(SHARECODE_DRAFT_CACHE_KEY, JSON.stringify({
-                code: window.editor.getValue(),
-                language: langElement ? (langElement.value || SHARECODE_DEFAULT_LANG) : SHARECODE_DEFAULT_LANG,
-                theme: themeElement ? (themeElement.value || SHARECODE_DEFAULT_THEME) : SHARECODE_DEFAULT_THEME,
-                updatedAt: Date.now()
-            }));
-        } catch (e) {
-        }
-    }
-
-    function scheduleSharecodeDraftCacheSave() {
-        if (sharecodeDraftSaveTimer) {
-            clearTimeout(sharecodeDraftSaveTimer);
-        }
-        sharecodeDraftSaveTimer = setTimeout(function () {
-            saveSharecodeDraftCache();
-        }, SHARECODE_DRAFT_SAVE_DEBOUNCE_MS);
-    }
-
-    function normalizeSelectValue(selectId, value, fallbackValue) {
-        let selectElement = document.getElementById(selectId);
-        if (!selectElement) {
-            return fallbackValue;
-        }
-        for (let i = 0; i < selectElement.options.length; i++) {
-            if (selectElement.options[i].value === value) {
-                return value;
-            }
-        }
-        return fallbackValue;
-    }
-
-    function resolveSharecodeInitialState(defaultCode) {
-        let cacheData = loadSharecodeDraftCache();
-        let isSharedCodePage = window.location.pathname.indexOf("/share/") === 0;
-        let hasServerPreCode = typeof server_pre_code !== "undefined" && server_pre_code;
-        let initialCode = defaultCode;
-        let initialLang = SHARECODE_DEFAULT_LANG;
-        let initialTheme = SHARECODE_DEFAULT_THEME;
-
-        if (cacheData && typeof cacheData.theme === "string" && cacheData.theme) {
-            initialTheme = cacheData.theme;
-        }
-
-        if (isSharedCodePage) {
-            initialCode = typeof server_pre_code === "string" ? server_pre_code : defaultCode;
-            if (typeof server_pre_lang === "string" && server_pre_lang) {
-                initialLang = server_pre_lang;
-            }
-        } else if (hasServerPreCode) {
-            initialCode = server_pre_code;
-            if (typeof server_pre_lang === "string" && server_pre_lang) {
-                initialLang = server_pre_lang;
-            }
-        } else if (cacheData) {
-            if (typeof cacheData.code === "string") {
-                initialCode = cacheData.code;
-            }
-            if (typeof cacheData.language === "string" && cacheData.language) {
-                initialLang = cacheData.language;
-            } else if (typeof server_pre_lang === "string" && server_pre_lang) {
-                initialLang = server_pre_lang;
-            }
-        } else if (typeof server_pre_lang === "string" && server_pre_lang) {
-            initialLang = server_pre_lang;
-        }
-
-        return {
-            code: initialCode,
-            language: initialLang,
-            theme: initialTheme
-        };
-    }
-
-    window.addEventListener("beforeunload", function () {
-        saveSharecodeDraftCache();
-    });
-
-    // 2. 页面加载时，初始化 Ace 编辑器
-    window.addEventListener("load", async function () {
-        ace.config.set("basePath", "static/js/ace/");
-        window.editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");
-        editor.session.setMode("ace/mode/python");
-        editor.setOptions({
-            fontSize: "20pt",
-            enableLiveAutocompletion: true,
-            enableBasicAutocompletion: true,
-            enableSnippets: true,
-        });
-
-        // Initialize bootstrap-select
-        $('.selectpicker').selectpicker({
-            style: 'btn-dark',
-            size: 10
-        });
-
-        let defaultCode = "# -*- coding: utf-8 -*-\n# @Time    : 2024/11/16 09:07\n# @Author  : AI悦创\n# @FileName: app.py\n# @Software: CodeMark\n# @Blog    ：https://bornforthis.cn/\n";
-        let initialState = resolveSharecodeInitialState(
-            defaultCode + '# 欢迎👏使用 CodeMark✨✨✨\n# 此编辑器你可以编辑和分享代码!\n# PS:注释部分你可以保留或者删除\n'
-        );
-        initialState.language = normalizeSelectValue("lang-selector", initialState.language, SHARECODE_DEFAULT_LANG);
-        initialState.theme = normalizeSelectValue("theme-selector", initialState.theme, SHARECODE_DEFAULT_THEME);
-
-        $('#theme-selector').selectpicker('val', initialState.theme);
-        window.editor.setTheme("ace/theme/" + initialState.theme);
-
-        $('#lang-selector').selectpicker('val', initialState.language);
-        if (initialState.language === 'python') {
-            editor.session.setMode("ace/mode/python");
-        } else {
-            editor.session.setMode("ace/mode/" + initialState.language);
-        }
-        updatePythonRunButtonVisibility(initialState.language);
-
-        editor.setValue(initialState.code, -1);
-
-        // 语言选择器事件
-        $('#lang-selector').on('changed.bs.select', function () {
-            let selectedLang = $(this).val();
-            // 注意：对于 python3 在 Ace 中一般是 "python" 这个 mode
-            // 如果使用外部 python3 模式文件，可能是 "-python3"
-            // 这里为了兼容，你可以做一个映射。这里简单处理：
-            if (selectedLang === 'python') {
-                editor.session.setMode("ace/mode/python");
-            } else {
-                editor.session.setMode("ace/mode/" + selectedLang);
-            }
-            updatePythonRunButtonVisibility(selectedLang);
-            scheduleSharecodeDraftCacheSave();
-        });
-
-        // 主题选择器事件
-        $('#theme-selector').on('changed.bs.select', function () {
-            let selectedTheme = $(this).val();
-            window.editor.setTheme("ace/theme/" + selectedTheme);
-            scheduleSharecodeDraftCacheSave();
-        });
-
-        // Ctrl-D / Command-D：复制当前行
-        editor.commands.addCommand({
-            name: 'duplicateLine',
-            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
-            exec: function (editor) {
-                editor.execCommand("copylinesdown");
-            }
-        });
-
-        // 监听「复制链接」按钮点击事件
-        $('#copy-share-link-btn').on('click', function () {
-            let shareLink = $('#share-link-text').text();
-            copyLinkToClipboard(shareLink);
-        });
-
-        editor.session.on("change", scheduleSharecodeDraftCacheSave);
-        saveSharecodeDraftCache();
-    });
-
-    // 打开文件
     function performClick(elemId) {
         const elem = document.getElementById(elemId);
         if (elem) {
@@ -1197,180 +1657,149 @@
         }
     }
 
-    // 读取文件
-    function readSingleFile(e) {
-        let file = e.target.files[0];
-        if (!file) {
+    function save() {
+        syncActiveEditorToProject();
+        const active = getActiveProjectFile();
+        if (!active) {
             return;
         }
-        let reader = new FileReader();
-        reader.onload = function (e) {
-            window.editor.setValue(e.target.result, -1);
-            // 简单用后缀判断语言
-            let autoLang = detectLanguageFromFilename(file.name);
-            $('#lang-selector').selectpicker('val', autoLang);
-            editor.session.setMode("ace/mode/" + autoLang);
-            updatePythonRunButtonVisibility(autoLang);
-            scheduleSharecodeDraftCacheSave();
-        };
-        reader.readAsText(file);
+
+        if (active.kind === "text") {
+            const filename = active.path.split("/").pop() || "code.txt";
+            const blob = new Blob([active.content || ""], {type: "text/plain;charset=utf-8"});
+            saveAs(blob, filename);
+            return;
+        }
+
+        const source = resolveAssetPreviewSource(active);
+        if (!source) {
+            return;
+        }
+
+        if (source.startsWith("data:")) {
+            const parts = source.split(",");
+            const mimeMatch = parts[0].match(/data:(.*?);base64/);
+            const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+            const binary = atob(parts[1] || "");
+            const buffer = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                buffer[i] = binary.charCodeAt(i);
+            }
+            const filename = active.path.split("/").pop() || "asset.bin";
+            saveAs(new Blob([buffer], {type: mime}), filename);
+            return;
+        }
+
+        const link = document.createElement("a");
+        link.href = source;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.click();
     }
 
-    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
-
-    function detectLanguageFromFilename(filename) {
-        let lowerName = filename.toLowerCase();
-        if (lowerName.endsWith(".py")) return "python";
-        if (lowerName.endsWith(".js")) return "javascript";
-        if (lowerName.endsWith(".c") || lowerName.endsWith(".cpp") || lowerName.endsWith(".h")) return "c_cpp";
-        if (lowerName.endsWith(".java")) return "java";
-        if (lowerName.endsWith(".php")) return "php";
-        if (lowerName.endsWith(".rb")) return "ruby";
-        if (lowerName.endsWith(".go")) return "golang";
-        if (lowerName.endsWith(".html")) return "html";
-        if (lowerName.endsWith(".css")) return "css";
-        if (lowerName.endsWith(".md")) return "markdown";
-        // 都不符合时，默认返回 python
-        return "python";
-    }
-
-    // 回到首页
     function home() {
         window.location.href = "/";
     }
 
-    function updatePythonRunButtonVisibility(lang) {
-        const runButton = document.getElementById("python-run");
-        if (!runButton) {
-            return;
-        }
-        runButton.style.display = lang === 'python' ? 'inline-block' : 'none';
+    function buildSharePayload() {
+        syncActiveEditorToProject();
+        const textFiles = projectFiles.filter(f => f.kind === "text").map(f => ({
+            path: f.path,
+            content: f.content || "",
+            language: f.language || detectLanguageFromFilename(f.path)
+        }));
+
+        const assets = projectFiles.filter(f => f.kind === "asset").map(f => ({
+            path: f.path,
+            mime_type: f.mime_type || "application/octet-stream",
+            size: typeof f.size === "number" ? f.size : 0,
+            data_base64: f.data_base64 || "",
+            source_project_id: f.data_base64 ? "" : (f.source_project_id || server_share_project_id || ""),
+            source_stored_path: f.data_base64 ? "" : (f.source_stored_path || "")
+        }));
+
+        return {
+            text_files: textFiles,
+            assets: assets,
+            active_file: activeFilePath
+        };
     }
 
-    // 保存为文件
-    function save() {
-        let code = window.editor.getValue();
-        // 这里可以根据当前 mode 来决定后缀，示例里简单判断
-        let langVal = $('#lang-selector').val();
-        let fileExt = ".txt";
-        switch (langVal) {
-            case "python":
-                fileExt = ".py";
-                break;
-            case "javascript":
-                fileExt = ".js";
-                break;
-            case "c_cpp":
-                fileExt = ".cpp";
-                break;
-            case "java":
-                fileExt = ".java";
-                break;
-            case "php":
-                fileExt = ".php";
-                break;
-            case "ruby":
-                fileExt = ".rb";
-                break;
-            case "golang":
-                fileExt = ".go";
-                break;
-            case "html":
-                fileExt = ".html";
-                break;
-            case "css":
-                fileExt = ".css";
-                break;
-            case "markdown":
-                fileExt = ".md";
-                break;
-        }
-        let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
-        saveAs(blob, "bornforthis_code" + fileExt);
-    }
-
-    // 分享功能：上传代码到后端，返回一个可分享的链接
     function share() {
-        let code = window.editor.getValue();
-        // 这里多传一个 language，方便后端存储
-        let langVal = $('#lang-selector').val();
+        hideFloatingMenuIfOpen();
+        const payload = buildSharePayload();
+        const active = getActiveProjectFile();
+        const language = active && active.kind === "text"
+            ? (active.language || detectLanguageFromFilename(active.path))
+            : SHARECODE_DEFAULT_LANG;
+        const code = active && active.kind === "text" ? (active.content || "") : "";
+
         $.ajax({
-            type: 'post',
+            type: 'POST',
             url: '/upload_code',
             dataType: 'json',
             data: {
                 code: code,
-                language: langVal,
-                template: 'sharecode'   // 告诉后端此分享来自 sharecode 模板
+                language: language,
+                template: 'sharecode',
+                project_payload: JSON.stringify(payload)
             },
             success: function (d) {
-                // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
-
-                // 1. 生成二维码
                 $('#qrcode').empty();
                 $('#qrcode').qrcode({
                     text: shareLink,
-                    width: 200,
-                    height: 200
+                    width: 180,
+                    height: 180
                 });
-
-                // 2. 更新弹窗标题中的可点击链接
-                $('.modal-title').html(
-                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
-                );
-
-                // 2.1 将分享链接填入 span 文本，供手动复制
                 $('#share-link-text').text(shareLink);
 
-                // 3. 合成二维码与编辑器截图
-                let qrcodeCanvas = $('#qrcode canvas')[0];
-                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
-
-                let existingFinalImageContainer = document.getElementById("final-image-container");
-                if (existingFinalImageContainer) {
-                    existingFinalImageContainer.innerHTML = "";
+                const finalImageContainer = document.getElementById("final-image-container");
+                if (finalImageContainer) {
+                    finalImageContainer.innerHTML = "";
                 }
 
-                // 截取编辑器区域，并将二维码绘制到截图右上角
-                html2canvas(document.querySelector("#editor")).then(canvas => {
-                    let ctx = canvas.getContext('2d');
-                    let img = new Image();
-                    img.src = qrcode_src;
-                    img.onload = function () {
-                        // 在编辑器截图上叠加二维码，缩小到 120x120
-                        let qrSize = 120;
-                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
-
-                        // 显示合成后的最终图片
-                        let finalImgElement = document.createElement("img");
-                        finalImgElement.src = canvas.toDataURL('image/png');
-                        finalImgElement.style.maxWidth = "90%";
-                        existingFinalImageContainer.appendChild(finalImgElement);
+                html2canvas(document.querySelector("#editorArea")).then(canvas => {
+                    const qrcodeCanvas = $('#qrcode canvas')[0];
+                    if (!qrcodeCanvas) {
+                        return;
+                    }
+                    const ctx = canvas.getContext('2d');
+                    const qrImg = new Image();
+                    qrImg.src = qrcodeCanvas.toDataURL('image/png');
+                    qrImg.onload = function () {
+                        const qrSize = 120;
+                        ctx.drawImage(qrImg, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+                        const finalImg = document.createElement("img");
+                        finalImg.src = canvas.toDataURL('image/png');
+                        finalImageContainer.appendChild(finalImg);
                     };
                 });
 
-                // 4. 自动复制分享链接并显示提示
                 copyLinkToClipboard(shareLink);
-
-                // 5. 显示分享弹窗
-                $('#share-modal').modal('show');
+                openOverlay("shareOverlay");
             }
         });
     }
 
     function goPythonRunPage() {
-        const langVal = $('#lang-selector').val();
-        if (langVal !== 'python') {
+        hideFloatingMenuIfOpen();
+        syncActiveEditorToProject();
+        const active = getActiveProjectFile();
+        if (!active || active.kind !== "text") {
             return;
         }
-        const code = window.editor.getValue();
+        const lang = active.language || detectLanguageFromFilename(active.path);
+        if (lang !== 'python') {
+            return;
+        }
+
         $.ajax({
-            type: 'post',
+            type: 'POST',
             url: '/upload_code',
             dataType: 'json',
             data: {
-                code: code,
+                code: active.content || "",
                 language: 'python',
                 template: 'editor'
             },
@@ -1380,20 +1809,159 @@
         });
     }
 
-    // 将链接复制到剪贴板并显示动画提示
-    function copyLinkToClipboard(link) {
-        // 调用浏览器的 Clipboard API
-        navigator.clipboard.writeText(link).then(() => {
+    async function copyLinkToClipboard(link) {
+        if (!link) {
+            return;
+        }
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(link);
+            } else {
+                const temp = document.createElement("textarea");
+                temp.value = link;
+                temp.style.position = "fixed";
+                temp.style.left = "-9999px";
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand("copy");
+                document.body.removeChild(temp);
+            }
             let alertBox = document.getElementById("copy-alert");
-            // 每次复制时都重置一下动画
             alertBox.style.display = "block";
             alertBox.style.animation = "none";
-            // 触发回流，让上一次动画被移除后重新开始
             void alertBox.offsetWidth;
             alertBox.style.animation = null;
+        } catch (e) {
+        }
+    }
+
+    function bindOverlayDismiss(overlayId, dialogId) {
+        const overlay = document.getElementById(overlayId);
+        const dialog = document.getElementById(dialogId);
+        overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) {
+                overlay.style.display = "none";
+            }
+        });
+        dialog.addEventListener("click", function (e) {
+            e.stopPropagation();
         });
     }
+
+    function bindSelectorSync() {
+        const langDesktop = document.getElementById("lang-selector-desktop");
+        const langMobile = document.getElementById("lang-selector-mobile");
+        const themeDesktop = document.getElementById("theme-selector-desktop");
+        const themeMobile = document.getElementById("theme-selector-mobile");
+
+        function onLanguageChange(nextLang) {
+            const active = getActiveProjectFile();
+            if (!active || active.kind !== "text") {
+                return;
+            }
+            const lang = nextLang || SHARECODE_DEFAULT_LANG;
+            active.language = lang;
+            setLanguageSelectors(lang);
+            setEditorLang(lang);
+            updatePythonRunButtonVisibility();
+            scheduleSharecodeDraftCacheSave();
+        }
+
+        function onThemeChange(nextTheme) {
+            applyEditorTheme(nextTheme || SHARECODE_DEFAULT_THEME);
+            scheduleSharecodeDraftCacheSave();
+        }
+
+        langDesktop.addEventListener("change", function () {
+            onLanguageChange(langDesktop.value);
+        });
+        langMobile.addEventListener("change", function () {
+            onLanguageChange(langMobile.value);
+        });
+
+        themeDesktop.addEventListener("change", function () {
+            onThemeChange(themeDesktop.value);
+        });
+        themeMobile.addEventListener("change", function () {
+            onThemeChange(themeMobile.value);
+        });
+    }
+
+    window.addEventListener("beforeunload", function () {
+        saveSharecodeDraftCache();
+    });
+
+    window.addEventListener("resize", function () {
+        if (window.editor) {
+            window.editor.resize();
+        }
+        if (!isMobileViewport()) {
+            const appRoot = document.getElementById("appRoot");
+            appRoot.classList.remove("sidebar-open");
+        } else if (sidebarOpen) {
+            const appRoot = document.getElementById("appRoot");
+            appRoot.classList.add("sidebar-open");
+            appRoot.classList.remove("sidebar-collapsed");
+        }
+    });
+
+    window.addEventListener("load", async function () {
+        ace.config.set("basePath", "static/js/ace/");
+        window.editor = ace.edit("editor");
+        editor.setOptions({
+            fontSize: isMobileViewport() ? "16pt" : "20pt",
+            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+        });
+
+        bindSelectorSync();
+
+        const initialState = resolveInitialState();
+        projectFiles = initialState.project.files;
+        activeFilePath = initialState.project.activeFile;
+
+        applyEditorTheme(initialState.theme);
+
+        renderProjectFileTree();
+        updateSidebarVisibilityByFileCount(true);
+
+        if (activeFilePath) {
+            openProjectFile(activeFilePath);
+        } else if (projectFiles.length > 0) {
+            openProjectFile(projectFiles[0].path);
+        }
+
+        editor.session.on("change", scheduleSharecodeDraftCacheSave);
+        editor.commands.addCommand({
+            name: 'duplicateLine',
+            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
+            exec: function (editorRef) {
+                editorRef.execCommand("copylinesdown");
+            }
+        });
+
+        document.getElementById("file-input").addEventListener("change", async function (e) {
+            await importFilesFromInput(Array.from(e.target.files || []));
+            e.target.value = "";
+        });
+
+        document.getElementById("folder-input").addEventListener("change", async function (e) {
+            await importFilesFromInput(Array.from(e.target.files || []));
+            e.target.value = "";
+        });
+
+        document.getElementById("copy-share-link-btn").addEventListener("click", function () {
+            copyLinkToClipboard(document.getElementById("share-link-text").textContent || "");
+        });
+
+        bindOverlayDismiss("shareOverlay", "shareDialog");
+        bindOverlayDismiss("fileCreateOverlay", "fileCreateDialog");
+        bindOverlayDismiss("aboutOverlay", "aboutDialog");
+
+        editorReady = true;
+        saveSharecodeDraftCache();
+    });
 </script>
 </body>
 </html>
-{% endif %}

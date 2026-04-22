@@ -6,9 +6,12 @@
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-from flask import Flask, render_template, request, jsonify, url_for
+from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
 import markdown
+import base64
+import json
 import os, re, random
+import shutil
 import uuid
 import datetime
 import qrcode  # pip install qrcode[pil]
@@ -18,6 +21,300 @@ app = Flask(__name__)
 
 # app.config['SERVER_NAME'] = 'codemark.bornforthis.cn'  # 用于生成绝对 URL，可根据实际情况修改
 # app.config['PREFERRED_URL_SCHEME'] = 'https' # 强制使用 https
+
+FILENAME_MARKER = "__FILENAME___="
+ASSET_MARKER = "__ASSET___="
+
+LANGUAGE_FILE_EXTENSIONS = {
+    "python": "py",
+    "javascript": "js",
+    "c_cpp": "cpp",
+    "java": "java",
+    "php": "php",
+    "ruby": "rb",
+    "golang": "go",
+    "html": "html",
+    "css": "css",
+    "markdown": "md",
+}
+
+EXTENSION_LANGUAGE_MAP = {
+    "py": "python",
+    "js": "javascript",
+    "c": "c_cpp",
+    "cc": "c_cpp",
+    "cpp": "c_cpp",
+    "cxx": "c_cpp",
+    "h": "c_cpp",
+    "hpp": "c_cpp",
+    "java": "java",
+    "php": "php",
+    "rb": "ruby",
+    "go": "golang",
+    "html": "html",
+    "htm": "html",
+    "css": "css",
+    "md": "markdown",
+}
+
+
+def normalize_project_relative_path(raw_path: str) -> str:
+    """将项目内相对路径规范化，过滤非法层级。"""
+    if not isinstance(raw_path, str):
+        return ""
+    normalized = raw_path.replace("\\", "/").strip()
+    if not normalized:
+        return ""
+    normalized = normalized.lstrip("/")
+    normalized = re.sub(r"/{2,}", "/", normalized)
+    parts = []
+    for part in normalized.split("/"):
+        part = part.strip()
+        if not part or part == ".":
+            continue
+        if part == "..":
+            return ""
+        parts.append(part)
+    return "/".join(parts)
+
+
+def ensure_assets_prefix(path: str) -> str:
+    """统一将非代码文件放入 assets/ 前缀目录。"""
+    safe_path = normalize_project_relative_path(path)
+    if not safe_path:
+        return ""
+    if safe_path.startswith("assets/"):
+        return safe_path
+    return f"assets/{safe_path}"
+
+
+def detect_language_from_filename(filename: str) -> str:
+    safe_name = normalize_project_relative_path(filename)
+    if not safe_name:
+        return "python"
+    basename = os.path.basename(safe_name)
+    if "." not in basename:
+        return "python"
+    ext = basename.rsplit(".", 1)[1].lower()
+    return EXTENSION_LANGUAGE_MAP.get(ext, "python")
+
+
+def default_filename_for_language(language: str) -> str:
+    ext = LANGUAGE_FILE_EXTENSIONS.get((language or "").lower(), "txt")
+    if ext == "txt":
+        return "main.txt"
+    return f"main.{ext}"
+
+
+def decode_base64_payload(raw_payload: str):
+    if not isinstance(raw_payload, str):
+        return None
+    payload = raw_payload.strip()
+    if not payload:
+        return None
+    if payload.startswith("data:"):
+        comma_index = payload.find(",")
+        if comma_index != -1:
+            payload = payload[comma_index + 1:]
+    try:
+        return base64.b64decode(payload)
+    except Exception:
+        return None
+
+
+def parse_project_sections(body_lines, project_id=None):
+    """
+    解析 sharecode 文本中的多文件标记。
+    若不存在标记，则 has_markers=False，raw_content 为原文本。
+    """
+    has_markers = any(
+        line.startswith(FILENAME_MARKER) or line.startswith(ASSET_MARKER)
+        for line in body_lines
+    )
+    raw_content = "".join(body_lines)
+    if not has_markers:
+        return {
+            "has_markers": False,
+            "raw_content": raw_content,
+            "text_files": [],
+            "assets": [],
+        }
+
+    text_files = []
+    assets = []
+    current_path = None
+    current_language = "python"
+    current_content_lines = []
+
+    def flush_current_file():
+        nonlocal current_path, current_language, current_content_lines
+        if not current_path:
+            current_content_lines = []
+            return
+        text_files.append({
+            "path": current_path,
+            "content": "".join(current_content_lines),
+            "language": current_language,
+        })
+        current_path = None
+        current_language = "python"
+        current_content_lines = []
+
+    for line in body_lines:
+        if line.startswith(FILENAME_MARKER):
+            flush_current_file()
+            raw_path = line.split("=", 1)[1].strip()
+            safe_path = normalize_project_relative_path(raw_path)
+            if not safe_path:
+                safe_path = default_filename_for_language("python")
+            current_path = safe_path
+            current_language = detect_language_from_filename(safe_path)
+            continue
+
+        if line.startswith(ASSET_MARKER):
+            flush_current_file()
+            raw_payload = line.split("=", 1)[1].strip()
+            payload_parts = raw_payload.split("|")
+            logical_path = normalize_project_relative_path(payload_parts[0] if len(payload_parts) > 0 else "")
+            stored_path = normalize_project_relative_path(payload_parts[1] if len(payload_parts) > 1 else logical_path)
+            mime_type = (payload_parts[2].strip() if len(payload_parts) > 2 else "") or "application/octet-stream"
+            size_raw = payload_parts[3].strip() if len(payload_parts) > 3 else ""
+            size = int(size_raw) if size_raw.isdigit() else 0
+            if logical_path and stored_path:
+                asset_data = {
+                    "path": logical_path,
+                    "stored_path": stored_path,
+                    "mime_type": mime_type,
+                    "size": size,
+                }
+                if project_id:
+                    asset_data["source_project_id"] = project_id
+                    asset_data["source_stored_path"] = stored_path
+                    asset_data["url"] = url_for(
+                        "get_shared_asset",
+                        project_id=project_id,
+                        asset_path=stored_path,
+                        _external=True
+                    )
+                assets.append(asset_data)
+            continue
+
+        if current_path is not None:
+            current_content_lines.append(line)
+
+    flush_current_file()
+
+    return {
+        "has_markers": True,
+        "raw_content": raw_content,
+        "text_files": text_files,
+        "assets": assets,
+    }
+
+
+def persist_project_payload(code_file_path, template_type, language, code, project_payload, project_id):
+    """将单文件或多文件项目写入 sharecode 文本，并持久化资源文件。"""
+    project_data = project_payload if isinstance(project_payload, dict) else {}
+
+    text_files = []
+    incoming_text_files = project_data.get("text_files", [])
+    if isinstance(incoming_text_files, list):
+        for idx, file_item in enumerate(incoming_text_files):
+            if not isinstance(file_item, dict):
+                continue
+            safe_path = normalize_project_relative_path(
+                file_item.get("path") or file_item.get("name") or f"file_{idx + 1}.txt"
+            )
+            if not safe_path:
+                continue
+            raw_content = file_item.get("content", "")
+            content = raw_content if isinstance(raw_content, str) else str(raw_content)
+            text_files.append({
+                "path": safe_path,
+                "content": content,
+                "language": detect_language_from_filename(safe_path),
+            })
+
+    if not text_files:
+        fallback_path = default_filename_for_language(language)
+        text_files.append({
+            "path": fallback_path,
+            "content": code or "",
+            "language": detect_language_from_filename(fallback_path),
+        })
+
+    asset_folder = os.path.join("sharecode", "assets", project_id)
+    os.makedirs(asset_folder, exist_ok=True)
+
+    assets_meta = []
+    incoming_assets = project_data.get("assets", [])
+    if isinstance(incoming_assets, list):
+        for idx, asset_item in enumerate(incoming_assets):
+            if not isinstance(asset_item, dict):
+                continue
+
+            safe_logical_path = ensure_assets_prefix(
+                asset_item.get("path") or asset_item.get("name") or f"asset_{idx + 1}"
+            )
+            if not safe_logical_path:
+                continue
+
+            stored_path = safe_logical_path
+            abs_stored_path = os.path.join(asset_folder, stored_path)
+            os.makedirs(os.path.dirname(abs_stored_path), exist_ok=True)
+
+            written = False
+
+            data_base64 = asset_item.get("data_base64")
+            if isinstance(data_base64, str) and data_base64.strip():
+                decoded_bytes = decode_base64_payload(data_base64)
+                if decoded_bytes is not None:
+                    with open(abs_stored_path, "wb") as af:
+                        af.write(decoded_bytes)
+                    written = True
+
+            if not written:
+                source_project_id = asset_item.get("source_project_id")
+                source_stored_path = normalize_project_relative_path(asset_item.get("source_stored_path", ""))
+                if source_project_id and source_stored_path:
+                    source_abs_path = os.path.join("sharecode", "assets", source_project_id, source_stored_path)
+                    if os.path.isfile(source_abs_path):
+                        shutil.copy2(source_abs_path, abs_stored_path)
+                        written = True
+
+            if not written and os.path.isfile(abs_stored_path):
+                written = True
+
+            if not written:
+                continue
+
+            mime_type = asset_item.get("mime_type")
+            if not isinstance(mime_type, str) or not mime_type.strip():
+                mime_type = "application/octet-stream"
+            file_size = os.path.getsize(abs_stored_path) if os.path.isfile(abs_stored_path) else 0
+
+            assets_meta.append({
+                "path": safe_logical_path,
+                "stored_path": stored_path,
+                "mime_type": mime_type,
+                "size": file_size,
+            })
+
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(f"__TEMPLATE__={template_type}\n")
+        f.write(f"__LANG__={language}\n")
+        for text_file in text_files:
+            f.write(f"{FILENAME_MARKER}{text_file['path']}\n")
+            f.write(text_file["content"])
+            if not text_file["content"].endswith("\n"):
+                f.write("\n")
+        for asset_item in assets_meta:
+            f.write(
+                f"{ASSET_MARKER}{asset_item['path']}|{asset_item['stored_path']}|"
+                f"{asset_item['mime_type']}|{asset_item['size']}\n"
+            )
+
+    return text_files, assets_meta
 
 def parse_sort_key(filename):
     """
@@ -190,6 +487,8 @@ def sharecode():
         'sharecode.html',
         pre_code="",
         pre_lang="python",
+        pre_project=None,
+        share_project_id="",
         is_mobile=is_mobile_request()
     )
 
@@ -206,9 +505,16 @@ def upload_code():
     # 从前端获取代码
     code = request.form.get('code', '')
     # 也可以取一下语言信息
-    language = request.form.get('language', '')
+    language = (request.form.get('language', '') or "python").strip().lower()
     # 新增获取模板类型（默认用 editor）
     template_type = request.form.get('template', 'editor')
+    project_payload_raw = request.form.get('project_payload', '')
+    project_payload = None
+    if project_payload_raw:
+        try:
+            project_payload = json.loads(project_payload_raw)
+        except Exception:
+            project_payload = None
 
     # 生成一个唯一 ID
     unique_id = str(uuid.uuid4())
@@ -222,15 +528,22 @@ def upload_code():
     month_folder = os.path.join('sharecode', yearmonth)
     os.makedirs(month_folder, exist_ok=True)
 
-    # 2. 将代码写入本地 txt 文件
-    #   文件第一行写入 "__TEMPLATE__=<template_type>"
-    #   第二行写入 "__LANG__=<language>"
-    #   第三行开始写实际的 code 内容
     code_file_path = os.path.join(month_folder, project_id + ".txt")
-    with open(code_file_path, 'w', encoding='utf-8') as f:
-        f.write(f"__TEMPLATE__={template_type}\n")
-        f.write(f"__LANG__={language}\n")
-        f.write(code)
+    if template_type == "sharecode" and isinstance(project_payload, dict):
+        persist_project_payload(
+            code_file_path=code_file_path,
+            template_type=template_type,
+            language=language,
+            code=code,
+            project_payload=project_payload,
+            project_id=project_id,
+        )
+    else:
+        # 兼容原单文件存储格式
+        with open(code_file_path, 'w', encoding='utf-8') as f:
+            f.write(f"__TEMPLATE__={template_type}\n")
+            f.write(f"__LANG__={language}\n")
+            f.write(code)
 
     # 3. 生成二维码并保存在 sharecode/images 文件夹
     images_folder = os.path.join('sharecode', 'images')
@@ -255,6 +568,18 @@ def upload_code():
     })
 
 
+@app.route('/share_asset/<project_id>/<path:asset_path>')
+def get_shared_asset(project_id, asset_path):
+    safe_asset_path = normalize_project_relative_path(asset_path)
+    if not safe_asset_path:
+        return "File not found", 404
+    asset_root = os.path.join("sharecode", "assets", project_id)
+    abs_asset_path = os.path.join(asset_root, safe_asset_path)
+    if not os.path.isfile(abs_asset_path):
+        return "File not found", 404
+    return send_from_directory(asset_root, safe_asset_path)
+
+
 @app.route('/share/<project_id>')
 def show_shared_code(project_id):
     """
@@ -264,6 +589,7 @@ def show_shared_code(project_id):
     code_content = "File not found or removed."
     template_type = "editor"  # 默认使用 editor
     lang = "python"  # 默认 python
+    pre_project = None
     sharecode_root = "sharecode"
     found = False
 
@@ -284,8 +610,34 @@ def show_shared_code(project_id):
                 if len(lines) > 1 and lines[1].startswith("__LANG__="):
                     lang = lines[1].split("=", 1)[1].strip()
 
-                # 从第三行起才是代码
-                code_content = "".join(lines[2:])
+                body_lines = lines[2:]
+                parsed_project = parse_project_sections(body_lines, project_id=project_id)
+                if parsed_project["has_markers"]:
+                    text_files = parsed_project["text_files"]
+                    assets = parsed_project["assets"]
+                    if text_files:
+                        code_content = text_files[0]["content"]
+                        lang = text_files[0].get("language", lang) or lang
+                    else:
+                        code_content = ""
+                    pre_project = {
+                        "text_files": text_files,
+                        "assets": assets,
+                        "active_file": text_files[0]["path"] if text_files else "",
+                    }
+                else:
+                    code_content = parsed_project["raw_content"]
+                    if template_type == "sharecode":
+                        fallback_path = default_filename_for_language(lang)
+                        pre_project = {
+                            "text_files": [{
+                                "path": fallback_path,
+                                "content": code_content,
+                                "language": detect_language_from_filename(fallback_path),
+                            }],
+                            "assets": [],
+                            "active_file": fallback_path,
+                        }
                 break
 
     if not found:
@@ -293,6 +645,16 @@ def show_shared_code(project_id):
 
     # 根据 template_type 来渲染不同的模板，并将 lang 也传过去
     target_template = 'sharecode.html' if template_type == "sharecode" else 'editor.html'
+    if target_template == "sharecode.html":
+        return render_template(
+            target_template,
+            pre_code=code_content,
+            pre_lang=lang,
+            pre_project=pre_project,
+            share_project_id=project_id,
+            is_mobile=is_mobile_request()
+        )
+
     return render_template(
         target_template,
         pre_code=code_content,
