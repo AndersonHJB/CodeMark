@@ -41,6 +41,7 @@
             --text-main: #f4f5f0;
             --text-muted: #b7beaa;
             --sidebar-width: 280px;
+            --sidebar-collapsed-width: 86px;
             --toolbar-height: 56px;
             --accent-save: #6dddf2;
             --accent-open: #f53855;
@@ -84,34 +85,42 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.26s ease, width 0.26s ease, min-width 0.26s ease;
-            z-index: 30;
+            z-index: 140;
         }
 
         #appRoot.sidebar-collapsed #projectSidebar {
-            width: 0;
-            min-width: 0;
-            transform: translateX(-100%);
-            border-right: none;
+            width: var(--sidebar-collapsed-width);
+            min-width: var(--sidebar-collapsed-width);
+            transform: translateX(0);
+            border-right: 1px solid var(--panel-border);
             overflow: hidden;
         }
 
         .sidebar-header {
-            height: 56px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 8px;
-            padding: 0 10px;
+            min-height: 56px;
+            padding: 10px;
             border-bottom: 1px solid var(--panel-border);
         }
 
         .sidebar-title {
+            flex: 1;
             font-size: 14px;
             font-weight: 700;
             letter-spacing: 0.2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            transition: opacity 0.22s ease, width 0.22s ease;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-title {
+            opacity: 0;
+            width: 0;
+            pointer-events: none;
         }
 
         .sidebar-action,
@@ -133,6 +142,8 @@
             align-items: center;
             justify-content: center;
             transition: background 0.16s ease, color 0.16s ease, transform 0.14s ease;
+            margin-left: auto;
+            flex-shrink: 0;
         }
 
         .sidebar-floating-toggle:hover {
@@ -150,35 +161,110 @@
             transition: transform 0.22s ease;
         }
 
-        .sidebar-floating-toggle .icon-mobile {
-            display: none;
-        }
-
         #appRoot.sidebar-collapsed .sidebar-floating-toggle svg {
             transform: rotate(180deg);
         }
 
         .sidebar-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             padding: 10px;
             border-bottom: 1px solid var(--panel-border);
         }
 
         .sidebar-action {
-            height: 34px;
-            font-size: 13px;
-            background: #44503b;
+            width: 100%;
+            height: 52px;
+            padding: 0 14px;
+            font-size: 16px;
+            font-weight: 600;
+            background: transparent;
+            color: #dce2cf;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: flex-start;
+            border-radius: 16px;
+            transition: background 0.16s ease, color 0.16s ease;
+        }
+
+        .sidebar-action:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-action .sidebar-action-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-action .sidebar-action-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .sidebar-action .sidebar-action-text {
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .sidebar-action.primary {
+            background: #d7dbcf;
+            color: #1f231b;
         }
 
         .sidebar-action.upload {
-            background: #4e4a32;
+            color: #d7ddca;
         }
 
         .sidebar-action.folder {
-            grid-column: span 2;
-            background: #654333;
+            background: rgba(202, 106, 74, 0.2);
+            color: #ffd6ca;
+        }
+
+        .sidebar-action.folder:hover {
+            background: rgba(202, 106, 74, 0.28);
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-actions {
+            padding: 12px 8px;
+            gap: 14px;
+            border-bottom: none;
+            align-items: center;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action {
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            justify-content: center;
+            border-radius: 16px;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action .sidebar-action-text {
+            display: none;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action.primary {
+            background: rgba(215, 219, 207, 0.24);
+            color: #edf2e0;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action.upload {
+            background: transparent;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action.folder {
+            background: rgba(202, 106, 74, 0.24);
+        }
+
+        #appRoot.sidebar-collapsed #projectTreeEmpty,
+        #appRoot.sidebar-collapsed #projectFileTree {
+            display: none;
         }
 
         #projectFileTree {
@@ -389,13 +475,6 @@
 
         .toolbar-link:hover {
             color: #fff;
-        }
-
-        #topSidebarToggle {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 135;
         }
 
         #sidebarBackdrop {
@@ -640,20 +719,6 @@
         }
 
         @media (max-width: 768px) {
-            #topSidebarToggle {
-                left: 10px;
-                top: 10px;
-                z-index: 135;
-            }
-
-            .sidebar-floating-toggle .icon-desktop {
-                display: none;
-            }
-
-            .sidebar-floating-toggle .icon-mobile {
-                display: block;
-            }
-
             #projectSidebar {
                 position: fixed;
                 left: 0;
@@ -675,6 +740,11 @@
                 width: var(--sidebar-width);
                 min-width: var(--sidebar-width);
                 transform: translateX(-100%);
+            }
+
+            #appRoot.sidebar-collapsed #projectTreeEmpty,
+            #appRoot.sidebar-collapsed #projectFileTree {
+                display: block;
             }
 
             #sidebarBackdrop {
@@ -726,11 +796,37 @@
     <aside id="projectSidebar">
         <div class="sidebar-header">
             <div class="sidebar-title">Project Files</div>
+            <button id="sidebarHeaderToggle" class="sidebar-floating-toggle" type="button" aria-label="切换边栏" aria-controls="projectSidebar" aria-expanded="false" onclick="toggleProjectSidebar()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
+                    <path fill="currentColor" d="M14.53 3.47a.75.75 0 0 1 0 1.06L9.06 10l5.47 5.47a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"></path>
+                </svg>
+            </button>
         </div>
         <div class="sidebar-actions">
-            <button class="sidebar-action" onclick="openCreateFileDialog()">new file</button>
-            <button class="sidebar-action upload" onclick="performClick('file-input')">upload</button>
-            <button class="sidebar-action folder" onclick="performClick('folder-input')">upload folder</button>
+            <button class="sidebar-action primary" onclick="openCreateFileDialog()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M5.5 3A2.5 2.5 0 0 0 3 5.5v9A2.5 2.5 0 0 0 5.5 17h9a2.5 2.5 0 0 0 2.5-2.5v-5.25a.75.75 0 0 0-1.5 0v5.25a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h5.25a.75.75 0 0 0 0-1.5H5.5Zm10.78.22a.75.75 0 0 0-1.06 0L9.44 9a.75.75 0 0 0-.19.33l-.7 2.45a.75.75 0 0 0 .93.93l2.45-.7a.75.75 0 0 0 .33-.19l5.78-5.78a.75.75 0 0 0 0-1.06l-1.75-1.75Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">new file</span>
+            </button>
+            <button class="sidebar-action upload" onclick="performClick('file-input')">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M3.5 13.5a.75.75 0 0 1 .75.75v1.25A1.5 1.5 0 0 0 5.75 17h8.5a1.5 1.5 0 0 0 1.5-1.5v-1.25a.75.75 0 0 1 1.5 0v1.25a3 3 0 0 1-3 3h-8.5a3 3 0 0 1-3-3v-1.25a.75.75 0 0 1 .75-.75Zm6.5-10a.75.75 0 0 1 .75.75v6.44l1.97-1.97a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L6.22 9.78a.75.75 0 1 1 1.06-1.06l1.97 1.97V4.25A.75.75 0 0 1 10 3.5Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">upload</span>
+            </button>
+            <button class="sidebar-action folder" onclick="performClick('folder-input')">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M2.75 5A2.25 2.25 0 0 1 5 2.75h3.35c.6 0 1.17.24 1.59.66l.84.84c.14.14.33.22.53.22H15A2.25 2.25 0 0 1 17.25 6.7v6.55A2.25 2.25 0 0 1 15 15.5H5a2.25 2.25 0 0 1-2.25-2.25V5Zm9 4a.75.75 0 0 0-1.5 0v1h-1a.75.75 0 0 0 0 1.5h1v1a.75.75 0 0 0 1.5 0v-1h1a.75.75 0 0 0 0-1.5h-1V9Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">upload folder</span>
+            </button>
         </div>
         <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
         <div id="projectFileTree"></div>
@@ -739,15 +835,6 @@
     <div id="sidebarBackdrop" onclick="closeSidebarFromBackdrop()"></div>
 
     <main id="workspaceMain">
-        <button id="topSidebarToggle" class="sidebar-floating-toggle" type="button" aria-label="切换边栏" aria-controls="projectSidebar" onclick="toggleProjectSidebar()">
-            <svg class="icon-desktop" xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
-                <path fill="currentColor" d="M14.53 3.47a.75.75 0 0 1 0 1.06L9.06 10l5.47 5.47a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"></path>
-            </svg>
-            <svg class="icon-mobile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
-                <path fill="currentColor" d="M13.78 5.22a.75.75 0 0 1 0 1.06L10.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"></path>
-            </svg>
-        </button>
-
         <div id="editorArea" onclick="hideFloatingMenuIfOpen()">
             <div id="editor"></div>
             <div id="assetViewer"></div>
@@ -1570,6 +1657,7 @@
 
     function setSidebarOpen(open) {
         const appRoot = document.getElementById("appRoot");
+        const sidebarToggleButton = document.getElementById("sidebarHeaderToggle");
         sidebarOpen = !!open;
         if (isMobileViewport()) {
             appRoot.classList.toggle("sidebar-open", sidebarOpen);
@@ -1577,6 +1665,9 @@
         } else {
             appRoot.classList.remove("sidebar-open");
             appRoot.classList.toggle("sidebar-collapsed", !sidebarOpen);
+        }
+        if (sidebarToggleButton) {
+            sidebarToggleButton.setAttribute("aria-expanded", sidebarOpen ? "true" : "false");
         }
         setTimeout(function () {
             if (window.editor) {
