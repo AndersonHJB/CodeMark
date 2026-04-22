@@ -44,6 +44,7 @@
             --toolbar-height: 56px;
             --accent-save: #6dddf2;
             --accent-open: #f53855;
+            --accent-folder: #ca6a4a;
             --accent-share: #a7c336;
             --accent-run: #3b82f6;
             --accent-home: #ef7d62;
@@ -113,9 +114,7 @@
             text-overflow: ellipsis;
         }
 
-        .sidebar-close,
         .sidebar-action,
-        .sidebar-top-toggle,
         .sidebar-floating-toggle {
             border: none;
             color: #fff;
@@ -123,17 +122,40 @@
             border-radius: 6px;
         }
 
-        .sidebar-top-toggle,
-        .sidebar-close,
         .sidebar-floating-toggle {
-            width: 34px;
-            height: 34px;
-            background: #364030;
-            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            background: rgba(31, 34, 27, 0.9);
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
             line-height: 1;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            transition: background 0.16s ease, color 0.16s ease, transform 0.14s ease;
+        }
+
+        .sidebar-floating-toggle:hover {
+            background: #364030;
+            color: var(--text-main);
+        }
+
+        .sidebar-floating-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .sidebar-floating-toggle svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.22s ease;
+        }
+
+        .sidebar-floating-toggle .icon-mobile {
+            display: none;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-floating-toggle svg {
+            transform: rotate(180deg);
         }
 
         .sidebar-actions {
@@ -156,7 +178,7 @@
 
         .sidebar-action.folder {
             grid-column: span 2;
-            background: #4d3f30;
+            background: #654333;
         }
 
         #projectFileTree {
@@ -332,6 +354,7 @@
 
         .toolbar-btn.save { background-color: var(--accent-save); }
         .toolbar-btn.open { background-color: var(--accent-open); }
+        .toolbar-btn.folder { background-color: var(--accent-folder); }
         .toolbar-btn.share { background-color: var(--accent-share); }
         .toolbar-btn.run { background-color: var(--accent-run); }
         .toolbar-btn.home { background-color: var(--accent-home); }
@@ -372,7 +395,7 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            z-index: 35;
+            z-index: 135;
         }
 
         #sidebarBackdrop {
@@ -427,6 +450,15 @@
             height: 40px;
             cursor: pointer;
         }
+
+        #mobile-toggle-files { background: #56634a; }
+        #mobile-new-file { background: #657056; }
+        #mobile-save { background: var(--accent-save); }
+        #mobile-open { background: var(--accent-open); }
+        #mobile-folder { background: var(--accent-folder); }
+        #mobile-share { background: var(--accent-share); }
+        #mobile-python-run { background: var(--accent-run); }
+        #mobile-home { background: var(--accent-home); }
 
         #floatingMenu .mobile-select-wrap {
             margin-top: 8px;
@@ -611,7 +643,15 @@
             #topSidebarToggle {
                 left: 10px;
                 top: 10px;
-                z-index: 115;
+                z-index: 135;
+            }
+
+            .sidebar-floating-toggle .icon-desktop {
+                display: none;
+            }
+
+            .sidebar-floating-toggle .icon-mobile {
+                display: block;
             }
 
             #projectSidebar {
@@ -685,9 +725,7 @@
 <div id="appRoot" class="sidebar-collapsed">
     <aside id="projectSidebar">
         <div class="sidebar-header">
-            <button class="sidebar-top-toggle" onclick="toggleProjectSidebar()">☰</button>
             <div class="sidebar-title">Project Files</div>
-            <button class="sidebar-close" onclick="collapseProjectSidebar()">×</button>
         </div>
         <div class="sidebar-actions">
             <button class="sidebar-action" onclick="openCreateFileDialog()">new file</button>
@@ -701,7 +739,14 @@
     <div id="sidebarBackdrop" onclick="closeSidebarFromBackdrop()"></div>
 
     <main id="workspaceMain">
-        <button id="topSidebarToggle" class="sidebar-floating-toggle" onclick="toggleProjectSidebar()">☰</button>
+        <button id="topSidebarToggle" class="sidebar-floating-toggle" type="button" aria-label="切换边栏" aria-controls="projectSidebar" onclick="toggleProjectSidebar()">
+            <svg class="icon-desktop" xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
+                <path fill="currentColor" d="M14.53 3.47a.75.75 0 0 1 0 1.06L9.06 10l5.47 5.47a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"></path>
+            </svg>
+            <svg class="icon-mobile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
+                <path fill="currentColor" d="M13.78 5.22a.75.75 0 0 1 0 1.06L10.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"></path>
+            </svg>
+        </button>
 
         <div id="editorArea" onclick="hideFloatingMenuIfOpen()">
             <div id="editor"></div>
@@ -711,7 +756,7 @@
         <div class="toolbar" id="desktopToolbar">
             <button class="toolbar-btn save" onclick="save()">save</button>
             <button class="toolbar-btn open" onclick="performClick('file-input')">open</button>
-            <button class="toolbar-btn open" onclick="performClick('folder-input')">folder</button>
+            <button class="toolbar-btn folder" onclick="performClick('folder-input')">folder</button>
             <button class="toolbar-btn share" onclick="share()">share</button>
             <button class="toolbar-btn run python-run-btn" onclick="goPythonRunPage()">py-run</button>
             <button class="toolbar-btn home" onclick="home()">home</button>
@@ -757,14 +802,14 @@
 <div id="floatingToggle" onclick="toggleFloatingMenu()">≡</div>
 
 <div id="floatingMenu">
-    <button id="mobile-toggle-files" onclick="toggleProjectSidebar()" style="background:#56634a;">files</button>
-    <button id="mobile-new-file" onclick="openCreateFileDialog()" style="background:#657056;">new file</button>
-    <button id="mobile-save" onclick="save()" style="background:#6dddf2;">save</button>
-    <button id="mobile-open" onclick="performClick('file-input')" style="background:#f53855;">open</button>
-    <button id="mobile-folder" onclick="performClick('folder-input')" style="background:#ca6a4a;">folder</button>
-    <button id="mobile-share" onclick="share()" style="background:#a7c336;">share</button>
-    <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()" style="background:#3b82f6;">py-run</button>
-    <button id="mobile-home" onclick="home()" style="background:#ef7d62;">home</button>
+    <button id="mobile-toggle-files" onclick="toggleProjectSidebar()">files</button>
+    <button id="mobile-new-file" onclick="openCreateFileDialog()">new file</button>
+    <button id="mobile-save" onclick="save()">save</button>
+    <button id="mobile-open" onclick="performClick('file-input')">open</button>
+    <button id="mobile-folder" onclick="performClick('folder-input')">folder</button>
+    <button id="mobile-share" onclick="share()">share</button>
+    <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()">py-run</button>
+    <button id="mobile-home" onclick="home()">home</button>
 
     <div class="mobile-select-wrap">
         <label for="lang-selector-mobile">Language</label>
