@@ -84,16 +84,39 @@
             border-right: 1px solid var(--panel-border);
             display: flex;
             flex-direction: column;
-            transition: transform 0.26s ease, width 0.26s ease, min-width 0.26s ease;
+            position: relative;
+            overflow: hidden;
+            transform-origin: left center;
+            transition: transform 0.3s cubic-bezier(0.22, 0.7, 0.24, 1),
+                        width 0.3s cubic-bezier(0.22, 0.7, 0.24, 1),
+                        min-width 0.3s cubic-bezier(0.22, 0.7, 0.24, 1);
             z-index: 140;
+        }
+
+        #projectSidebar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 18px;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateX(10px);
+            background: linear-gradient(to left, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0));
+            transition: opacity 0.24s ease, transform 0.24s ease;
         }
 
         #appRoot.sidebar-collapsed #projectSidebar {
             width: var(--sidebar-collapsed-width);
             min-width: var(--sidebar-collapsed-width);
-            transform: translateX(0);
+            transform: translateX(0) scaleX(0.985);
             border-right: 1px solid var(--panel-border);
-            overflow: hidden;
+        }
+
+        #appRoot.sidebar-collapsed #projectSidebar::after {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         .sidebar-header {
@@ -104,6 +127,7 @@
             min-height: 52px;
             padding: 8px 10px;
             border-bottom: 1px solid var(--panel-border);
+            transition: padding 0.22s ease, min-height 0.22s ease;
         }
 
         .sidebar-logo-btn {
@@ -137,18 +161,24 @@
         }
 
         .sidebar-title {
-            flex: 1;
+            flex: 1 1 auto;
             font-size: 13px;
             font-weight: 700;
             letter-spacing: 0.2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            transition: opacity 0.22s ease, width 0.22s ease;
+            max-width: 180px;
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 0.2s ease, max-width 0.24s ease, transform 0.24s ease;
         }
 
         #appRoot.sidebar-collapsed .sidebar-title {
-            display: none;
+            max-width: 0;
+            opacity: 0;
+            transform: translateX(-10px);
+            margin: 0;
         }
 
         .sidebar-action,
@@ -199,6 +229,7 @@
             gap: 8px;
             padding: 8px;
             border-bottom: 1px solid var(--panel-border);
+            transition: padding 0.22s ease, gap 0.22s ease, border-color 0.22s ease;
         }
 
         .sidebar-action {
@@ -214,7 +245,7 @@
             gap: 12px;
             justify-content: flex-start;
             border-radius: 16px;
-            transition: background 0.16s ease, color 0.16s ease;
+            transition: background 0.16s ease, color 0.16s ease, padding 0.22s ease, border-radius 0.22s ease, gap 0.22s ease;
         }
 
         .sidebar-action:hover {
@@ -238,6 +269,11 @@
         .sidebar-action .sidebar-action-text {
             white-space: nowrap;
             line-height: 1;
+            overflow: hidden;
+            max-width: 128px;
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 0.16s ease, max-width 0.2s ease, transform 0.2s ease;
         }
 
         .sidebar-action.primary {
@@ -277,9 +313,26 @@
             height: 38px;
         }
 
-        #appRoot.sidebar-collapsed .sidebar-floating-toggle,
-        #appRoot.sidebar-collapsed .sidebar-actions {
+        #appRoot.sidebar-collapsed .sidebar-floating-toggle {
             display: none;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-actions {
+            padding: 6px 8px 10px;
+            gap: 6px;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action {
+            padding: 0;
+            border-radius: 12px;
+            justify-content: center;
+            gap: 0;
+        }
+
+        #appRoot.sidebar-collapsed .sidebar-action .sidebar-action-text {
+            max-width: 0;
+            opacity: 0;
+            transform: translateX(-6px);
         }
 
         #appRoot.sidebar-collapsed #projectTreeEmpty,
