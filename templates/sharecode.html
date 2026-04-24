@@ -108,6 +108,42 @@
             transition: opacity 0.24s ease, transform 0.24s ease;
         }
 
+        #sidebarResizeHandle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 12;
+            background: transparent;
+        }
+
+        #sidebarResizeHandle::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 4px;
+            width: 2px;
+            background: rgba(109, 221, 242, 0);
+            transition: background 0.14s ease;
+        }
+
+        #sidebarResizeHandle:hover::before,
+        body.sidebar-resizing #sidebarResizeHandle::before {
+            background: rgba(109, 221, 242, 0.78);
+        }
+
+        body.sidebar-resizing {
+            cursor: col-resize;
+            user-select: none;
+        }
+
+        body.sidebar-resizing #projectSidebar {
+            transition: none;
+        }
+
         #appRoot.sidebar-collapsed #projectSidebar {
             width: var(--sidebar-collapsed-width);
             min-width: var(--sidebar-collapsed-width);
@@ -118,6 +154,10 @@
         #appRoot.sidebar-collapsed #projectSidebar::after {
             opacity: 1;
             transform: translateX(0);
+        }
+
+        #appRoot.sidebar-collapsed #sidebarResizeHandle {
+            display: none;
         }
 
         .sidebar-header {
@@ -360,6 +400,13 @@
             padding: 8px;
         }
 
+        #projectFileTree.is-drop-target,
+        #projectTreeEmpty.is-drop-target {
+            outline: 1px dashed rgba(109, 221, 242, 0.72);
+            outline-offset: -4px;
+            background: rgba(109, 221, 242, 0.08);
+        }
+
         .tree-group {
             margin: 0;
             padding-left: 0;
@@ -386,6 +433,11 @@
             cursor: pointer;
             min-height: 28px;
             user-select: none;
+        }
+
+        .tree-folder-title[draggable="true"],
+        .tree-file-button[draggable="true"] {
+            -webkit-user-drag: element;
         }
 
         .tree-folder-title:hover {
@@ -429,6 +481,18 @@
         .tree-file-button.active {
             background: rgba(109, 221, 242, 0.2);
             color: #eaffff;
+        }
+
+        .tree-folder-title.is-dragging,
+        .tree-file-button.is-dragging {
+            opacity: 0.48;
+        }
+
+        .tree-folder-title.is-drop-target,
+        .tree-file-button.is-drop-target {
+            background: rgba(109, 221, 242, 0.16);
+            outline: 1px dashed rgba(109, 221, 242, 0.82);
+            outline-offset: -2px;
         }
 
         .tree-folder-toggle {
@@ -1094,6 +1158,10 @@
                 border-right: 1px solid var(--panel-border);
             }
 
+            #sidebarResizeHandle {
+                display: none;
+            }
+
             #appRoot.sidebar-open #projectSidebar {
                 transform: translateX(0);
             }
@@ -1221,6 +1289,7 @@
         </div>
         <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
         <div id="projectFileTree"></div>
+        <div id="sidebarResizeHandle" role="separator" aria-orientation="vertical" aria-label="调整侧边栏宽度"></div>
     </aside>
 
     <div id="sidebarBackdrop" onclick="closeSidebarFromBackdrop()"></div>
@@ -1470,9 +1539,13 @@
     });
 
     const SHARECODE_DRAFT_CACHE_KEY = "codemark:sharecode:draft:v2";
+    const SHARECODE_SIDEBAR_WIDTH_CACHE_KEY = "codemark:sharecode:sidebar-width:v1";
     const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
     const SHARECODE_DEFAULT_LANG = "python";
     const SHARECODE_DEFAULT_THEME = "monokai";
+    const SIDEBAR_DEFAULT_WIDTH = 236;
+    const SIDEBAR_MIN_WIDTH = 184;
+    const SIDEBAR_MAX_WIDTH = 520;
     const LANGUAGE_TO_EXTENSION = {
         python: "py",
         javascript: "js",
@@ -1545,9 +1618,118 @@
     let projectTreeCreateParentPath = "";
     let pendingProjectConfirmAction = null;
     let projectNoticeTimer = null;
+    let sidebarResizeState = null;
+    let sidebarResizeFrame = null;
+    let projectTreeDragState = null;
+    let projectTreeCurrentDropTarget = null;
 
     function isMobileViewport() {
         return window.matchMedia("(max-width: 768px)").matches;
+    }
+
+    function clampSidebarWidth(width) {
+        const numericWidth = Number(width);
+        if (!Number.isFinite(numericWidth)) {
+            return SIDEBAR_DEFAULT_WIDTH;
+        }
+        const viewportMax = Math.max(SIDEBAR_MIN_WIDTH, window.innerWidth - 360);
+        const maxWidth = Math.min(SIDEBAR_MAX_WIDTH, viewportMax);
+        return Math.round(Math.max(SIDEBAR_MIN_WIDTH, Math.min(numericWidth, maxWidth)));
+    }
+
+    function readCachedSidebarWidth() {
+        try {
+            const raw = localStorage.getItem(SHARECODE_SIDEBAR_WIDTH_CACHE_KEY);
+            const width = Number(raw);
+            return Number.isFinite(width) && width > 0 ? width : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function writeCachedSidebarWidth(width) {
+        try {
+            localStorage.setItem(SHARECODE_SIDEBAR_WIDTH_CACHE_KEY, String(clampSidebarWidth(width)));
+        } catch (e) {
+        }
+    }
+
+    function applySidebarWidth(width, persist) {
+        if (isMobileViewport()) {
+            document.documentElement.style.removeProperty("--sidebar-width");
+            return;
+        }
+        const nextWidth = clampSidebarWidth(width);
+        document.documentElement.style.setProperty("--sidebar-width", nextWidth + "px");
+        if (persist) {
+            writeCachedSidebarWidth(nextWidth);
+        }
+        if (window.editor) {
+            if (sidebarResizeFrame) {
+                cancelAnimationFrame(sidebarResizeFrame);
+            }
+            sidebarResizeFrame = requestAnimationFrame(function () {
+                sidebarResizeFrame = null;
+                window.editor.resize();
+            });
+        }
+    }
+
+    function applyCachedSidebarWidth() {
+        if (isMobileViewport()) {
+            document.documentElement.style.removeProperty("--sidebar-width");
+            return;
+        }
+        const cachedWidth = readCachedSidebarWidth();
+        if (cachedWidth) {
+            applySidebarWidth(cachedWidth, false);
+        }
+    }
+
+    function bindSidebarResize() {
+        const handle = document.getElementById("sidebarResizeHandle");
+        const sidebar = document.getElementById("projectSidebar");
+        if (!handle || !sidebar) {
+            return;
+        }
+        handle.addEventListener("pointerdown", function (e) {
+            if (isMobileViewport() || !sidebarOpen) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = sidebar.getBoundingClientRect();
+            sidebarResizeState = {
+                pointerId: e.pointerId,
+                left: rect.left,
+                width: rect.width
+            };
+            document.body.classList.add("sidebar-resizing");
+            handle.setPointerCapture(e.pointerId);
+        });
+        handle.addEventListener("pointermove", function (e) {
+            if (!sidebarResizeState || sidebarResizeState.pointerId !== e.pointerId) {
+                return;
+            }
+            e.preventDefault();
+            applySidebarWidth(e.clientX - sidebarResizeState.left, false);
+        });
+        function finishResize(e) {
+            if (!sidebarResizeState || sidebarResizeState.pointerId !== e.pointerId) {
+                return;
+            }
+            e.preventDefault();
+            const nextWidth = e.clientX - sidebarResizeState.left;
+            sidebarResizeState = null;
+            document.body.classList.remove("sidebar-resizing");
+            applySidebarWidth(nextWidth, true);
+            try {
+                handle.releasePointerCapture(e.pointerId);
+            } catch (err) {
+            }
+        }
+        handle.addEventListener("pointerup", finishResize);
+        handle.addEventListener("pointercancel", finishResize);
     }
 
     function safeNormalizePath(rawPath) {
@@ -2335,6 +2517,311 @@
         return true;
     }
 
+    function getProjectPathName(path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return "";
+        }
+        const parts = safePath.split("/");
+        return parts[parts.length - 1] || "";
+    }
+
+    function getDropTargetParentPath(targetKind, targetPath) {
+        if (targetKind === "folder") {
+            return safeNormalizePath(targetPath);
+        }
+        if (targetKind === "file") {
+            return getPathParent(targetPath);
+        }
+        return "";
+    }
+
+    function canMoveProjectTreeItemToParent(kind, path, targetParentPath) {
+        const safePath = safeNormalizePath(path);
+        const safeTargetParentPath = safeNormalizePath(targetParentPath || "");
+        if (!safePath || (kind !== "file" && kind !== "folder")) {
+            return false;
+        }
+
+        const itemName = getProjectPathName(safePath);
+        if (!itemName) {
+            return false;
+        }
+        const nextPath = safeNormalizePath(joinProjectPath(safeTargetParentPath, itemName));
+
+        if (kind === "file") {
+            if (!projectFiles.some(f => f.path === safePath) || !nextPath || nextPath === safePath) {
+                return false;
+            }
+            return !projectFiles.some(f => f.path === nextPath && f.path !== safePath);
+        }
+
+        if (!projectFolderExists(safePath) || !nextPath || nextPath === safePath) {
+            return false;
+        }
+        if (safeTargetParentPath === safePath || safeTargetParentPath.startsWith(safePath + "/")) {
+            return false;
+        }
+        return !projectPathConflictsWithFile(nextPath) && !projectFolderExists(nextPath);
+    }
+
+    function moveProjectFileToParent(oldPath, targetParentPath) {
+        const safeOldPath = safeNormalizePath(oldPath);
+        const targetFile = projectFiles.find(f => f.path === safeOldPath);
+        if (!targetFile) {
+            return false;
+        }
+
+        const safeTargetParentPath = safeNormalizePath(targetParentPath || "");
+        const newPath = safeNormalizePath(joinProjectPath(safeTargetParentPath, getProjectPathName(safeOldPath)));
+        if (!newPath || newPath === safeOldPath) {
+            return true;
+        }
+        if (projectFiles.some(f => f.path === newPath && f.path !== safeOldPath)) {
+            showProjectNotice("目标位置已存在同名文件。");
+            return false;
+        }
+
+        syncActiveEditorToProject();
+        if (safeTargetParentPath) {
+            addProjectFolder(safeTargetParentPath);
+        }
+        targetFile.path = newPath;
+        const nextActivePath = activeFilePath === safeOldPath ? newPath : activeFilePath;
+        activeFilePath = nextActivePath;
+        expandProjectTreeAncestors(newPath);
+        refreshProjectAfterMutation(nextActivePath, {preserveSidebar: true});
+        showProjectNotice(safeTargetParentPath ? `已移动到 "${safeTargetParentPath}"。` : "已移动到根目录。");
+        return true;
+    }
+
+    function moveProjectFolderToParent(oldFolderPath, targetParentPath) {
+        const safeOldFolderPath = safeNormalizePath(oldFolderPath);
+        const safeTargetParentPath = safeNormalizePath(targetParentPath || "");
+        const folderName = getProjectPathName(safeOldFolderPath);
+        const newFolderPath = safeNormalizePath(joinProjectPath(safeTargetParentPath, folderName));
+        if (!safeOldFolderPath || !folderName || !newFolderPath || newFolderPath === safeOldFolderPath) {
+            return true;
+        }
+        if (safeTargetParentPath === safeOldFolderPath || safeTargetParentPath.startsWith(safeOldFolderPath + "/")) {
+            showProjectNotice("不能把文件夹移动到自身或其子文件夹中。");
+            return false;
+        }
+
+        const affectedFiles = projectFiles.filter(f => isPathInsideFolder(f.path, safeOldFolderPath));
+        const affectedFolders = projectFolders.filter(path => isSameOrInsideFolder(path, safeOldFolderPath));
+        if (!affectedFiles.length && !affectedFolders.length) {
+            return false;
+        }
+        if (projectPathConflictsWithFile(newFolderPath) || projectFolderExists(newFolderPath)) {
+            showProjectNotice("目标位置已存在同名文件或文件夹。");
+            return false;
+        }
+
+        const outsidePaths = new Set(projectFiles
+            .filter(f => !isPathInsideFolder(f.path, safeOldFolderPath))
+            .map(f => f.path));
+        const outsideFolders = new Set(projectFolders
+            .filter(path => !isSameOrInsideFolder(path, safeOldFolderPath)));
+        const nextPaths = new Set();
+        for (const file of affectedFiles) {
+            const nextPath = safeNormalizePath(newFolderPath + file.path.slice(safeOldFolderPath.length));
+            if (!nextPath || outsidePaths.has(nextPath) || nextPaths.has(nextPath)) {
+                showProjectNotice("移动后会产生同名文件，请换一个目标位置。");
+                return false;
+            }
+            nextPaths.add(nextPath);
+        }
+        const nextFolders = new Set();
+        for (const folderPath of affectedFolders) {
+            const nextFolderPath = safeNormalizePath(newFolderPath + folderPath.slice(safeOldFolderPath.length));
+            if (!nextFolderPath || outsidePaths.has(nextFolderPath) || outsideFolders.has(nextFolderPath) || nextFolders.has(nextFolderPath)) {
+                showProjectNotice("移动后会产生同名文件夹，请换一个目标位置。");
+                return false;
+            }
+            nextFolders.add(nextFolderPath);
+        }
+
+        syncActiveEditorToProject();
+        let nextActivePath = activeFilePath;
+        for (const file of affectedFiles) {
+            const previousPath = file.path;
+            const nextPath = safeNormalizePath(newFolderPath + previousPath.slice(safeOldFolderPath.length));
+            file.path = nextPath;
+            if (activeFilePath === previousPath) {
+                nextActivePath = nextPath;
+            }
+        }
+        if (safeTargetParentPath) {
+            addProjectFolder(safeTargetParentPath);
+        }
+        projectFolders = Array.from(new Set(projectFolders.map(path => {
+            if (isSameOrInsideFolder(path, safeOldFolderPath)) {
+                return safeNormalizePath(newFolderPath + path.slice(safeOldFolderPath.length));
+            }
+            return path;
+        }).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+        moveCollapsedFolderState(safeOldFolderPath, newFolderPath);
+        expandProjectTreeAncestors(joinProjectPath(newFolderPath, "_placeholder"));
+        collapsedFolderPaths.delete(newFolderPath);
+        activeFilePath = nextActivePath;
+        refreshProjectAfterMutation(nextActivePath, {preserveSidebar: true});
+        showProjectNotice(safeTargetParentPath ? `已移动到 "${safeTargetParentPath}"。` : "已移动到根目录。");
+        return true;
+    }
+
+    function moveProjectTreeItemToParent(kind, path, targetParentPath) {
+        const safePath = safeNormalizePath(path);
+        const safeTargetParentPath = safeNormalizePath(targetParentPath || "");
+        hideProjectTreeContextMenu();
+        projectTreeRenameTarget = null;
+        projectTreeInlineDeleteTarget = null;
+        if (!canMoveProjectTreeItemToParent(kind, safePath, safeTargetParentPath)) {
+            return false;
+        }
+        return kind === "folder"
+            ? moveProjectFolderToParent(safePath, safeTargetParentPath)
+            : moveProjectFileToParent(safePath, safeTargetParentPath);
+    }
+
+    function clearProjectTreeDropTarget() {
+        projectTreeCurrentDropTarget = null;
+        document.querySelectorAll(".is-drop-target").forEach(el => {
+            el.classList.remove("is-drop-target");
+        });
+    }
+
+    function setProjectTreeDropTarget(element) {
+        if (projectTreeCurrentDropTarget === element) {
+            return;
+        }
+        clearProjectTreeDropTarget();
+        projectTreeCurrentDropTarget = element;
+        if (element) {
+            element.classList.add("is-drop-target");
+        }
+    }
+
+    function clearProjectTreeDragState() {
+        projectTreeDragState = null;
+        clearProjectTreeDropTarget();
+        document.querySelectorAll(".is-dragging").forEach(el => {
+            el.classList.remove("is-dragging");
+        });
+    }
+
+    function shouldIgnoreProjectTreeDrag(e) {
+        return !!e.target.closest(".tree-rename-input, .tree-delete-btn, .tree-delete-confirm-btn");
+    }
+
+    function bindProjectTreeDragSource(element, kind, path) {
+        const safePath = safeNormalizePath(path);
+        if (!element || !safePath) {
+            return;
+        }
+        element.draggable = true;
+        element.addEventListener("dragstart", function (e) {
+            if (shouldIgnoreProjectTreeDrag(e)) {
+                e.preventDefault();
+                return;
+            }
+            hideProjectTreeContextMenu();
+            projectTreeInlineDeleteTarget = null;
+            projectTreeDragState = {kind: kind, path: safePath};
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", safePath);
+            e.dataTransfer.setData("application/x-codemark-project-tree", JSON.stringify(projectTreeDragState));
+            setTimeout(function () {
+                element.classList.add("is-dragging");
+            }, 0);
+        });
+        element.addEventListener("dragend", function () {
+            clearProjectTreeDragState();
+        });
+    }
+
+    function bindProjectTreeDropTarget(element, targetKind, targetPath) {
+        if (!element) {
+            return;
+        }
+        element.addEventListener("dragover", function (e) {
+            if (!projectTreeDragState) {
+                return;
+            }
+            const targetParentPath = getDropTargetParentPath(targetKind, targetPath);
+            if (!canMoveProjectTreeItemToParent(projectTreeDragState.kind, projectTreeDragState.path, targetParentPath)) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = "move";
+            setProjectTreeDropTarget(element);
+        });
+        element.addEventListener("dragleave", function (e) {
+            if (element.contains(e.relatedTarget)) {
+                return;
+            }
+            if (projectTreeCurrentDropTarget === element) {
+                clearProjectTreeDropTarget();
+            }
+        });
+        element.addEventListener("drop", function (e) {
+            if (!projectTreeDragState) {
+                return;
+            }
+            const targetParentPath = getDropTargetParentPath(targetKind, targetPath);
+            if (!canMoveProjectTreeItemToParent(projectTreeDragState.kind, projectTreeDragState.path, targetParentPath)) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            const dragState = Object.assign({}, projectTreeDragState);
+            clearProjectTreeDragState();
+            moveProjectTreeItemToParent(dragState.kind, dragState.path, targetParentPath);
+        });
+    }
+
+    function isProjectTreeRootDropEvent(e) {
+        return !e.target.closest(".tree-folder-title, .tree-file-button, .tree-rename-input, .tree-delete-btn, .tree-delete-confirm-btn");
+    }
+
+    function bindProjectTreeRootDropTarget(element) {
+        if (!element) {
+            return;
+        }
+        element.addEventListener("dragover", function (e) {
+            if (!projectTreeDragState || !isProjectTreeRootDropEvent(e)) {
+                return;
+            }
+            if (!canMoveProjectTreeItemToParent(projectTreeDragState.kind, projectTreeDragState.path, "")) {
+                return;
+            }
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setProjectTreeDropTarget(element);
+        });
+        element.addEventListener("dragleave", function (e) {
+            if (element.contains(e.relatedTarget)) {
+                return;
+            }
+            if (projectTreeCurrentDropTarget === element) {
+                clearProjectTreeDropTarget();
+            }
+        });
+        element.addEventListener("drop", function (e) {
+            if (!projectTreeDragState || !isProjectTreeRootDropEvent(e)) {
+                return;
+            }
+            if (!canMoveProjectTreeItemToParent(projectTreeDragState.kind, projectTreeDragState.path, "")) {
+                return;
+            }
+            e.preventDefault();
+            const dragState = Object.assign({}, projectTreeDragState);
+            clearProjectTreeDragState();
+            moveProjectTreeItemToParent(dragState.kind, dragState.path, "");
+        });
+    }
+
     function commitProjectTreeRename(kind, oldPath, rawName) {
         const newName = normalizeProjectTreeItemName(rawName);
         if (!newName) {
@@ -2505,6 +2992,7 @@
             e.preventDefault();
             e.stopPropagation();
         });
+        button.draggable = false;
         button.addEventListener("contextmenu", function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -2653,6 +3141,7 @@
             }
         });
         if (treeEl) {
+            bindProjectTreeRootDropTarget(treeEl);
             treeEl.addEventListener("contextmenu", function (e) {
                 if (e.target.closest(".tree-folder-title, .tree-file-button, .tree-rename-input, .tree-delete-btn, .tree-delete-confirm-btn")) {
                     return;
@@ -2663,6 +3152,7 @@
             });
         }
         if (emptyEl) {
+            bindProjectTreeRootDropTarget(emptyEl);
             emptyEl.addEventListener("contextmenu", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -2761,6 +3251,8 @@
                 span.tabIndex = 0;
                 span.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
                 span.title = isCollapsed ? "展开文件夹" : "折叠文件夹";
+                bindProjectTreeDragSource(span, "folder", folderPath);
+                bindProjectTreeDropTarget(span, "folder", folderPath);
                 const toggleIcon = createBootstrapIcon(
                     isCollapsed ? "bi-chevron-right" : "bi-chevron-down",
                     "tree-folder-toggle",
@@ -2830,6 +3322,8 @@
                 if (item.file.path === activeFilePath) {
                     button.classList.add("active");
                 }
+                bindProjectTreeDragSource(button, "file", item.file.path);
+                bindProjectTreeDropTarget(button, "file", item.file.path);
                 const icon = createTreeFileIcon(item.file);
                 const label = document.createElement("span");
                 label.className = "tree-entry-label";
@@ -3557,6 +4051,7 @@
     });
 
     window.addEventListener("resize", function () {
+        applyCachedSidebarWidth();
         if (window.editor) {
             window.editor.resize();
         }
@@ -3571,6 +4066,9 @@
     });
 
     window.addEventListener("load", async function () {
+        applyCachedSidebarWidth();
+        bindSidebarResize();
+
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
         editor.setOptions({
