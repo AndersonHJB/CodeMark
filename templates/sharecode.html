@@ -377,17 +377,24 @@
         }
 
         .tree-folder-title {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 6px;
             padding: 3px 6px;
             border-radius: 6px;
             cursor: default;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .tree-folder-title:hover {
             background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tree-entry-label {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .tree-file-button {
@@ -399,9 +406,9 @@
             border-radius: 6px;
             padding: 7px 8px;
             font-size: 13px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 0;
             cursor: pointer;
             transition: background 0.15s ease;
         }
@@ -418,6 +425,47 @@
         .tree-file-icon {
             margin-right: 6px;
             opacity: 0.86;
+            flex: 0 0 auto;
+        }
+
+        .tree-delete-btn,
+        .tree-delete-confirm-btn {
+            flex: 0 0 auto;
+            border: none;
+            border-radius: 5px;
+            height: 22px;
+            min-width: 24px;
+            padding: 0 6px;
+            margin-left: 6px;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .tree-delete-btn {
+            background: transparent;
+            color: #ffb4a8;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.12s ease, background 0.12s ease;
+        }
+
+        .tree-folder-title:hover .tree-delete-btn,
+        .tree-file-button:hover .tree-delete-btn,
+        .tree-delete-btn:focus,
+        .tree-delete-confirm-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .tree-delete-btn:hover {
+            background: rgba(245, 56, 85, 0.16);
+        }
+
+        .tree-delete-confirm-btn {
+            background: #e5484d;
+            color: #fff;
+            font-weight: 700;
         }
 
         .tree-rename-input {
@@ -1302,6 +1350,7 @@
     let editorReady = false;
     let projectTreeContextTarget = null;
     let projectTreeRenameTarget = null;
+    let projectTreeInlineDeleteTarget = null;
     let pendingProjectConfirmAction = null;
     let projectNoticeTimer = null;
 
@@ -1643,8 +1692,10 @@
         return projectFiles.find(f => f.kind === "text") || projectFiles[0] || null;
     }
 
-    function resetWorkspaceForEmptyProject(language) {
+    function resetWorkspaceForEmptyProject(language, options) {
+        const opts = options || {};
         projectTreeRenameTarget = null;
+        projectTreeInlineDeleteTarget = null;
         activeFilePath = "";
         const emptyLanguage = language || getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
         const viewer = document.getElementById("assetViewer");
@@ -1664,7 +1715,9 @@
         }
         renderProjectFileTree();
         updatePythonRunButtonVisibility();
-        updateSidebarVisibilityByFileCount(false);
+        if (!opts.preserveSidebar) {
+            updateSidebarVisibilityByFileCount(false);
+        }
         scheduleSharecodeDraftCacheSave();
     }
 
@@ -1701,10 +1754,12 @@
         scheduleSharecodeDraftCacheSave();
     }
 
-    function refreshProjectAfterMutation(preferredActivePath) {
+    function refreshProjectAfterMutation(preferredActivePath, options) {
+        const opts = options || {};
         projectTreeRenameTarget = null;
+        projectTreeInlineDeleteTarget = null;
         if (!projectFiles.length) {
-            resetWorkspaceForEmptyProject();
+            resetWorkspaceForEmptyProject(null, opts);
             return;
         }
 
@@ -1717,7 +1772,9 @@
             renderProjectFileTree();
             scheduleSharecodeDraftCacheSave();
         }
-        updateSidebarVisibilityByFileCount(false);
+        if (!opts.preserveSidebar) {
+            updateSidebarVisibilityByFileCount(false);
+        }
     }
 
     function focusProjectRenameInput() {
@@ -1738,6 +1795,10 @@
         renderProjectFileTree();
     }
 
+    function isSameProjectTreeTarget(target, kind, path) {
+        return !!(target && target.kind === kind && target.path === safeNormalizePath(path));
+    }
+
     function beginRenameTreeItem(kind, path) {
         const safePath = safeNormalizePath(path);
         if (!safePath) {
@@ -1751,6 +1812,7 @@
         }
         hideProjectTreeContextMenu();
         projectTreeRenameTarget = {kind: kind, path: safePath};
+        projectTreeInlineDeleteTarget = null;
         renderProjectFileTree();
         focusProjectRenameInput();
     }
@@ -1886,7 +1948,7 @@
                     syncActiveEditorToProject();
                     removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
                     projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
-                    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath);
+                    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
                     showProjectNotice("文件夹已删除。");
                 }
             );
@@ -1904,12 +1966,90 @@
                     syncActiveEditorToProject();
                     removedActiveFile = activeFilePath === safePath;
                     projectFiles = projectFiles.filter(f => f.path !== safePath);
-                    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath);
+                    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
                     showProjectNotice("文件已删除。");
                 }
             );
             return;
         }
+    }
+
+    function deleteProjectTreeItemNow(kind, path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return;
+        }
+        syncActiveEditorToProject();
+        let removedActiveFile = false;
+        if (kind === "folder") {
+            if (!projectFiles.some(f => isPathInsideFolder(f.path, safePath))) {
+                return;
+            }
+            removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
+            projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
+            refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
+            showProjectNotice("文件夹已删除。");
+            return;
+        }
+
+        if (!projectFiles.some(f => f.path === safePath)) {
+            return;
+        }
+        removedActiveFile = activeFilePath === safePath;
+        projectFiles = projectFiles.filter(f => f.path !== safePath);
+        refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
+        showProjectNotice("文件已删除。");
+    }
+
+    function requestInlineDeleteTreeItem(kind, path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return;
+        }
+        hideProjectTreeContextMenu();
+        projectTreeRenameTarget = null;
+        projectTreeInlineDeleteTarget = {kind: kind, path: safePath};
+        renderProjectFileTree();
+    }
+
+    function confirmInlineDeleteTreeItem(kind, path) {
+        projectTreeInlineDeleteTarget = null;
+        deleteProjectTreeItemNow(kind, path);
+    }
+
+    function createTreeDeleteControl(kind, path) {
+        const safePath = safeNormalizePath(path);
+        const confirming = isSameProjectTreeTarget(projectTreeInlineDeleteTarget, kind, safePath);
+        const button = document.createElement("button");
+        button.type = "button";
+        if (confirming) {
+            button.className = "tree-delete-confirm-btn";
+            button.textContent = "确认";
+            button.setAttribute("aria-label", "确认删除");
+        } else {
+            button.className = "tree-delete-btn";
+            button.textContent = "🗑";
+            button.title = "删除";
+            button.setAttribute("aria-label", "删除");
+        }
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (confirming) {
+                confirmInlineDeleteTreeItem(kind, safePath);
+            } else {
+                requestInlineDeleteTreeItem(kind, safePath);
+            }
+        });
+        button.addEventListener("dblclick", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        button.addEventListener("contextmenu", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        return button;
     }
 
     function clearAllProjectFiles() {
@@ -2094,7 +2234,11 @@
             } else {
                 const span = document.createElement("span");
                 span.className = "tree-folder-title";
-                span.textContent = "📁 " + folder;
+                const label = document.createElement("span");
+                label.className = "tree-entry-label";
+                label.textContent = "📁 " + folder;
+                span.appendChild(label);
+                span.appendChild(createTreeDeleteControl("folder", folderPath));
                 title.appendChild(span);
                 title.addEventListener("dblclick", function (e) {
                     e.preventDefault();
@@ -2129,18 +2273,37 @@
                 bindProjectTreeRenameInput(input, "file", item.file.path);
                 li.appendChild(input);
             } else {
-                const button = document.createElement("button");
-                button.type = "button";
+                const button = document.createElement("div");
+                button.setAttribute("role", "button");
+                button.tabIndex = 0;
                 button.className = "tree-file-button";
                 if (item.file.path === activeFilePath) {
                     button.classList.add("active");
                 }
-                const icon = item.file.kind === "text" ? "📄" : "🧩";
-                button.innerHTML = `<span class="tree-file-icon">${icon}</span>${escapeHtml(item.name)}`;
+                const icon = document.createElement("span");
+                icon.className = "tree-file-icon";
+                icon.textContent = item.file.kind === "text" ? "📄" : "🧩";
+                const label = document.createElement("span");
+                label.className = "tree-entry-label";
+                label.textContent = item.name;
+                button.appendChild(icon);
+                button.appendChild(label);
+                button.appendChild(createTreeDeleteControl("file", item.file.path));
                 button.addEventListener("click", function () {
+                    projectTreeInlineDeleteTarget = null;
                     openProjectFile(item.file.path);
                     if (isMobileViewport()) {
                         setSidebarOpen(false);
+                    }
+                });
+                button.addEventListener("keydown", function (e) {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        projectTreeInlineDeleteTarget = null;
+                        openProjectFile(item.file.path);
+                        if (isMobileViewport()) {
+                            setSidebarOpen(false);
+                        }
                     }
                 });
                 button.addEventListener("dblclick", function (e) {
