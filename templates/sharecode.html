@@ -712,6 +712,7 @@
 
         #shareOverlay,
         #fileCreateOverlay,
+        #projectConfirmOverlay,
         #aboutOverlay {
             position: fixed;
             inset: 0;
@@ -805,6 +806,43 @@
         .btn-primary-lite {
             background: #3a7cff;
             color: #fff;
+        }
+
+        .btn-danger-lite {
+            background: #e5484d;
+            color: #fff;
+        }
+
+        .project-confirm-message {
+            margin: 0 0 18px;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .project-notice {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 280;
+            max-width: min(360px, calc(100vw - 36px));
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #252920;
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+            font-size: 13px;
+            line-height: 1.45;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: opacity 0.16s ease, transform 0.16s ease;
+        }
+
+        .project-notice.show {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         #qrcode {
@@ -1119,6 +1157,8 @@
     <button type="button" data-action="delete" class="danger">删除</button>
 </div>
 
+<div id="projectTreeNotice" class="project-notice" aria-live="polite"></div>
+
 <div id="shareOverlay">
     <div class="overlay-dialog" id="shareDialog">
         <div class="overlay-dialog-header">
@@ -1134,6 +1174,22 @@
             <div id="copy-alert" class="copy-alert">分享链接已经复制！</div>
             <p style="margin-top: 10px;">You can save this picture or scan the QR code to share it.</p>
             <div id="final-image-container" style="margin-top: 14px;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="projectConfirmOverlay">
+    <div class="overlay-dialog" id="projectConfirmDialog">
+        <div class="overlay-dialog-header">
+            <h5 id="projectConfirmTitle" class="overlay-dialog-title">确认操作</h5>
+            <button class="overlay-dialog-close" onclick="closeProjectConfirmDialog()">×</button>
+        </div>
+        <div class="overlay-dialog-body">
+            <p id="projectConfirmMessage" class="project-confirm-message"></p>
+            <div class="overlay-actions">
+                <button class="btn-secondary-lite" onclick="closeProjectConfirmDialog()">取消</button>
+                <button id="projectConfirmActionBtn" class="btn-danger-lite" type="button" onclick="runProjectConfirmAction()">确认</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1246,6 +1302,8 @@
     let editorReady = false;
     let projectTreeContextTarget = null;
     let projectTreeRenameTarget = null;
+    let pendingProjectConfirmAction = null;
+    let projectNoticeTimer = null;
 
     function isMobileViewport() {
         return window.matchMedia("(max-width: 768px)").matches;
@@ -1327,6 +1385,7 @@
         if (!window.editor || !editorReady) {
             return;
         }
+        createProjectFileFromEditorInput();
         syncActiveEditorToProject();
         try {
             const textFiles = projectFiles
@@ -1341,7 +1400,8 @@
                 project: {
                     text_files: textFiles,
                     assets: [],
-                    active_file: activeFilePath
+                    active_file: activeFilePath,
+                    empty_project: projectFiles.length === 0
                 },
                 language: getCurrentLanguageValue(),
                 theme: getCurrentThemeValue(),
@@ -1583,9 +1643,10 @@
         return projectFiles.find(f => f.kind === "text") || projectFiles[0] || null;
     }
 
-    function resetWorkspaceForEmptyProject() {
+    function resetWorkspaceForEmptyProject(language) {
         projectTreeRenameTarget = null;
         activeFilePath = "";
+        const emptyLanguage = language || getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
         const viewer = document.getElementById("assetViewer");
         const editorElement = document.getElementById("editor");
         if (viewer) {
@@ -1597,13 +1658,46 @@
         }
         if (window.editor) {
             window.editor.setValue("", -1);
-            setLanguageSelectors(SHARECODE_DEFAULT_LANG);
-            setEditorLang(SHARECODE_DEFAULT_LANG);
+            setLanguageSelectors(emptyLanguage);
+            setEditorLang(emptyLanguage);
             window.editor.resize();
         }
         renderProjectFileTree();
         updatePythonRunButtonVisibility();
         updateSidebarVisibilityByFileCount(false);
+        scheduleSharecodeDraftCacheSave();
+    }
+
+    function createProjectFileFromEditorInput() {
+        if (!window.editor || activeFilePath || projectFiles.length) {
+            return;
+        }
+        const content = window.editor.getValue();
+        if (!content) {
+            return;
+        }
+        const language = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+        const filePath = ensureUniquePath(defaultFilenameForLanguage(language));
+        if (!filePath) {
+            return;
+        }
+
+        projectFiles.push({
+            kind: "text",
+            path: filePath,
+            content: content,
+            language: language
+        });
+        activeFilePath = filePath;
+        setLanguageSelectors(language);
+        setEditorLang(language);
+        renderProjectFileTree();
+        updateSidebarVisibilityByFileCount(false);
+        updatePythonRunButtonVisibility();
+    }
+
+    function handleEditorContentChange() {
+        createProjectFileFromEditorInput();
         scheduleSharecodeDraftCacheSave();
     }
 
@@ -1672,7 +1766,7 @@
             return true;
         }
         if (projectFiles.some(f => f.path === newPath)) {
-            alert("已存在同名文件或路径，请换一个名称。");
+            showProjectNotice("已存在同名文件或路径，请换一个名称。");
             return false;
         }
 
@@ -1703,7 +1797,7 @@
         for (const file of affectedFiles) {
             const nextPath = safeNormalizePath(newFolderPath + file.path.slice(safeOldFolderPath.length));
             if (!nextPath || outsidePaths.has(nextPath) || nextPaths.has(nextPath)) {
-                alert("重命名后会产生同名文件或路径，请换一个名称。");
+                showProjectNotice("重命名后会产生同名文件或路径，请换一个名称。");
                 return false;
             }
             nextPaths.add(nextPath);
@@ -1727,7 +1821,7 @@
     function commitProjectTreeRename(kind, oldPath, rawName) {
         const newName = normalizeProjectTreeItemName(rawName);
         if (!newName) {
-            alert("名称不能为空，不能包含 /，也不能是 . 或 ..。");
+            showProjectNotice("名称不能为空，不能包含 /，也不能是 . 或 ..。");
             focusProjectRenameInput();
             return;
         }
@@ -1784,40 +1878,53 @@
             if (!affectedFiles.length) {
                 return;
             }
-            if (!window.confirm(`确定删除文件夹 "${safePath}" 及其中 ${affectedFiles.length} 个文件吗？`)) {
-                return;
-            }
-            syncActiveEditorToProject();
-            removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
-            projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
+            openProjectConfirmDialog(
+                "删除文件夹",
+                `确定删除文件夹 "${safePath}" 及其中 ${affectedFiles.length} 个文件吗？`,
+                "删除",
+                function () {
+                    syncActiveEditorToProject();
+                    removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
+                    projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
+                    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath);
+                    showProjectNotice("文件夹已删除。");
+                }
+            );
+            return;
         } else {
             const targetFile = projectFiles.find(f => f.path === safePath);
             if (!targetFile) {
                 return;
             }
-            if (!window.confirm(`确定删除文件 "${safePath}" 吗？`)) {
-                return;
-            }
-            syncActiveEditorToProject();
-            removedActiveFile = activeFilePath === safePath;
-            projectFiles = projectFiles.filter(f => f.path !== safePath);
+            openProjectConfirmDialog(
+                "删除文件",
+                `确定删除文件 "${safePath}" 吗？`,
+                "删除",
+                function () {
+                    syncActiveEditorToProject();
+                    removedActiveFile = activeFilePath === safePath;
+                    projectFiles = projectFiles.filter(f => f.path !== safePath);
+                    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath);
+                    showProjectNotice("文件已删除。");
+                }
+            );
+            return;
         }
-
-        refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath);
     }
 
     function clearAllProjectFiles() {
         hideFloatingMenuIfOpen();
         hideProjectTreeContextMenu();
+        const emptyLanguage = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
         if (!projectFiles.length) {
-            return;
-        }
-        if (!window.confirm("确定清空所有文件和文件夹吗？")) {
+            resetWorkspaceForEmptyProject(emptyLanguage);
+            showProjectNotice(`已清空，继续输入将自动创建 ${defaultFilenameForLanguage(emptyLanguage)}。`);
             return;
         }
         syncActiveEditorToProject();
         projectFiles = [];
-        resetWorkspaceForEmptyProject();
+        resetWorkspaceForEmptyProject(emptyLanguage);
+        showProjectNotice(`已清空所有文件，继续输入将自动创建 ${defaultFilenameForLanguage(emptyLanguage)}。`);
     }
 
     function showProjectTreeContextMenu(x, y, kind, path) {
@@ -1857,6 +1964,49 @@
         menu.setAttribute("aria-hidden", "true");
     }
 
+    function showProjectNotice(message) {
+        const notice = document.getElementById("projectTreeNotice");
+        if (!notice || !message) {
+            return;
+        }
+        notice.textContent = message;
+        notice.classList.add("show");
+        if (projectNoticeTimer) {
+            clearTimeout(projectNoticeTimer);
+        }
+        projectNoticeTimer = setTimeout(function () {
+            notice.classList.remove("show");
+        }, 2600);
+    }
+
+    function openProjectConfirmDialog(title, message, confirmText, onConfirm) {
+        pendingProjectConfirmAction = typeof onConfirm === "function" ? onConfirm : null;
+        document.getElementById("projectConfirmTitle").textContent = title || "确认操作";
+        document.getElementById("projectConfirmMessage").textContent = message || "";
+        document.getElementById("projectConfirmActionBtn").textContent = confirmText || "确认";
+        openOverlay("projectConfirmOverlay");
+        setTimeout(function () {
+            const button = document.getElementById("projectConfirmActionBtn");
+            if (button) {
+                button.focus();
+            }
+        }, 40);
+    }
+
+    function closeProjectConfirmDialog() {
+        pendingProjectConfirmAction = null;
+        closeOverlay("projectConfirmOverlay");
+    }
+
+    function runProjectConfirmAction() {
+        const action = pendingProjectConfirmAction;
+        pendingProjectConfirmAction = null;
+        closeOverlay("projectConfirmOverlay");
+        if (action) {
+            action();
+        }
+    }
+
     function bindProjectTreeContextMenu() {
         const menu = document.getElementById("projectTreeContextMenu");
         if (!menu) {
@@ -1884,6 +2034,10 @@
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape") {
                 hideProjectTreeContextMenu();
+                const confirmOverlay = document.getElementById("projectConfirmOverlay");
+                if (confirmOverlay && confirmOverlay.style.display === "block") {
+                    closeProjectConfirmDialog();
+                }
             }
         });
         window.addEventListener("resize", hideProjectTreeContextMenu);
@@ -2158,9 +2312,13 @@
         const cache = loadSharecodeDraftCache();
         let project = {files: [], activeFile: ""};
         let theme = SHARECODE_DEFAULT_THEME;
+        let language = SHARECODE_DEFAULT_LANG;
 
         if (cache && typeof cache.theme === "string" && cache.theme) {
             theme = cache.theme;
+        }
+        if (cache && typeof cache.language === "string" && cache.language) {
+            language = cache.language;
         }
 
         if (isSharedCodePage) {
@@ -2177,13 +2335,14 @@
                 project.activeFile = fallbackPath;
             }
         } else {
+            const shouldKeepEmptyCacheProject = !!(cache && cache.project && cache.project.empty_project === true);
             if (cache && cache.project) {
                 project = normalizeServerProject(cache.project);
             }
-            if (!project.files.length && server_pre_project) {
+            if (!shouldKeepEmptyCacheProject && !project.files.length && server_pre_project) {
                 project = normalizeServerProject(server_pre_project);
             }
-            if (!project.files.length && typeof server_pre_code === "string" && server_pre_code) {
+            if (!shouldKeepEmptyCacheProject && !project.files.length && typeof server_pre_code === "string" && server_pre_code) {
                 const lang = server_pre_lang || SHARECODE_DEFAULT_LANG;
                 const filePath = defaultFilenameForLanguage(lang);
                 project.files.push({
@@ -2194,7 +2353,7 @@
                 });
                 project.activeFile = filePath;
             }
-            if (!project.files.length) {
+            if (!shouldKeepEmptyCacheProject && !project.files.length) {
                 const lang = SHARECODE_DEFAULT_LANG;
                 const filePath = defaultFilenameForLanguage(lang);
                 project.files.push({
@@ -2212,7 +2371,7 @@
             project.activeFile = firstText ? firstText.path : (project.files[0] ? project.files[0].path : "");
         }
 
-        return {project, theme};
+        return {project, theme, language};
     }
 
     function updatePythonRunButtonVisibility() {
@@ -2446,7 +2605,7 @@
         const active = getActiveProjectFile();
         const language = active && active.kind === "text"
             ? (active.language || detectLanguageFromFilename(active.path))
-            : SHARECODE_DEFAULT_LANG;
+            : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
         const code = active && active.kind === "text" ? (active.content || "") : "";
 
         $.ajax({
@@ -2555,7 +2714,11 @@
         const dialog = document.getElementById(dialogId);
         overlay.addEventListener("click", function (e) {
             if (e.target === overlay) {
-                overlay.style.display = "none";
+                if (overlayId === "projectConfirmOverlay") {
+                    closeProjectConfirmDialog();
+                } else {
+                    overlay.style.display = "none";
+                }
             }
         });
         dialog.addEventListener("click", function (e) {
@@ -2570,11 +2733,16 @@
         const themeMobile = document.getElementById("theme-selector-mobile");
 
         function onLanguageChange(nextLang) {
+            const lang = nextLang || SHARECODE_DEFAULT_LANG;
             const active = getActiveProjectFile();
             if (!active || active.kind !== "text") {
+                setLanguageSelectors(lang);
+                setEditorLang(lang);
+                createProjectFileFromEditorInput();
+                updatePythonRunButtonVisibility();
+                scheduleSharecodeDraftCacheSave();
                 return;
             }
-            const lang = nextLang || SHARECODE_DEFAULT_LANG;
             active.language = lang;
             setLanguageSelectors(lang);
             setEditorLang(lang);
@@ -2646,9 +2814,13 @@
             openProjectFile(activeFilePath);
         } else if (projectFiles.length > 0) {
             openProjectFile(projectFiles[0].path);
+        } else {
+            setLanguageSelectors(initialState.language);
+            setEditorLang(initialState.language);
+            updatePythonRunButtonVisibility();
         }
 
-        editor.session.on("change", scheduleSharecodeDraftCacheSave);
+        editor.session.on("change", handleEditorContentChange);
         editor.commands.addCommand({
             name: 'duplicateLine',
             bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
@@ -2673,6 +2845,7 @@
 
         bindOverlayDismiss("shareOverlay", "shareDialog");
         bindOverlayDismiss("fileCreateOverlay", "fileCreateDialog");
+        bindOverlayDismiss("projectConfirmOverlay", "projectConfirmDialog");
         bindOverlayDismiss("aboutOverlay", "aboutDialog");
 
         editorReady = true;
