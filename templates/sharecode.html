@@ -281,6 +281,10 @@
             color: #dce2cf;
         }
 
+        .sidebar-action.primary:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
         .sidebar-action.upload {
             color: #d7ddca;
         }
@@ -292,6 +296,15 @@
 
         .sidebar-action.folder:hover {
             background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-action.clear {
+            color: #ffb4a8;
+        }
+
+        .sidebar-action.clear:hover {
+            background: rgba(245, 56, 85, 0.14);
+            color: #ffd2cb;
         }
 
         #appRoot.sidebar-collapsed .sidebar-header {
@@ -366,6 +379,15 @@
         .tree-folder-title {
             display: block;
             padding: 3px 6px;
+            border-radius: 6px;
+            cursor: default;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tree-folder-title:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .tree-file-button {
@@ -396,6 +418,55 @@
         .tree-file-icon {
             margin-right: 6px;
             opacity: 0.86;
+        }
+
+        .tree-rename-input {
+            width: 100%;
+            height: 28px;
+            border: 1px solid rgba(109, 221, 242, 0.72);
+            border-radius: 6px;
+            background: #11140f;
+            color: var(--text-main);
+            padding: 0 7px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .project-context-menu {
+            position: fixed;
+            z-index: 260;
+            min-width: 132px;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+            background: #252920;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+            display: none;
+        }
+
+        .project-context-menu button {
+            width: 100%;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-main);
+            text-align: left;
+            padding: 0 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .project-context-menu button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .project-context-menu button.danger {
+            color: #ffb4a8;
+        }
+
+        .project-context-menu button.danger:hover {
+            background: rgba(245, 56, 85, 0.16);
         }
 
         .sidebar-empty {
@@ -927,6 +998,14 @@
                 </span>
                 <span class="sidebar-action-text">upload folder</span>
             </button>
+            <button class="sidebar-action clear" type="button" title="清空所有文件" onclick="clearAllProjectFiles()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M8.5 2.75a1.75 1.75 0 0 0-1.67 1.25H4.25a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5h-2.58a1.75 1.75 0 0 0-1.67-1.25h-3Zm-.08 4.5a.75.75 0 0 1 .78.72l.28 6.5a.75.75 0 0 1-1.5.06l-.28-6.5a.75.75 0 0 1 .72-.78Zm3.16 0a.75.75 0 0 1 .72.78l-.28 6.5a.75.75 0 0 1-1.5-.06l.28-6.5a.75.75 0 0 1 .78-.72ZM5.5 6.5a.75.75 0 0 1 .75.7l.57 8.04a1.25 1.25 0 0 0 1.25 1.16h3.86a1.25 1.25 0 0 0 1.25-1.16l.57-8.04a.75.75 0 1 1 1.5.1l-.57 8.05a2.75 2.75 0 0 1-2.74 2.55H8.07a2.75 2.75 0 0 1-2.74-2.55L4.75 7.3a.75.75 0 0 1 .75-.8Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">clear all</span>
+            </button>
         </div>
         <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
         <div id="projectFileTree"></div>
@@ -1034,6 +1113,11 @@
 
 <input id="file-input" type="file" multiple style="display: none;"/>
 <input id="folder-input" type="file" webkitdirectory directory multiple style="display: none;"/>
+
+<div id="projectTreeContextMenu" class="project-context-menu" role="menu" aria-hidden="true">
+    <button type="button" data-action="rename">重命名</button>
+    <button type="button" data-action="delete" class="danger">删除</button>
+</div>
 
 <div id="shareOverlay">
     <div class="overlay-dialog" id="shareDialog">
@@ -1160,6 +1244,8 @@
     let activeFilePath = "";
     let sidebarOpen = false;
     let editorReady = false;
+    let projectTreeContextTarget = null;
+    let projectTreeRenameTarget = null;
 
     function isMobileViewport() {
         return window.matchMedia("(max-width: 768px)").matches;
@@ -1462,6 +1548,348 @@
             .replace(/'/g, "&#39;");
     }
 
+    function getPathParent(path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath || safePath.indexOf("/") < 0) {
+            return "";
+        }
+        const parts = safePath.split("/");
+        parts.pop();
+        return parts.join("/");
+    }
+
+    function joinProjectPath(parentPath, name) {
+        return parentPath ? `${parentPath}/${name}` : name;
+    }
+
+    function isPathInsideFolder(filePath, folderPath) {
+        const safeFilePath = safeNormalizePath(filePath);
+        const safeFolderPath = safeNormalizePath(folderPath);
+        return !!(safeFilePath && safeFolderPath && safeFilePath.startsWith(safeFolderPath + "/"));
+    }
+
+    function normalizeProjectTreeItemName(rawName) {
+        if (typeof rawName !== "string") {
+            return "";
+        }
+        const name = rawName.replace(/\\/g, "/").trim();
+        if (!name || name.indexOf("/") >= 0 || name === "." || name === "..") {
+            return "";
+        }
+        return name;
+    }
+
+    function getDefaultActiveProjectFile() {
+        return projectFiles.find(f => f.kind === "text") || projectFiles[0] || null;
+    }
+
+    function resetWorkspaceForEmptyProject() {
+        projectTreeRenameTarget = null;
+        activeFilePath = "";
+        const viewer = document.getElementById("assetViewer");
+        const editorElement = document.getElementById("editor");
+        if (viewer) {
+            viewer.style.display = "none";
+            viewer.innerHTML = "";
+        }
+        if (editorElement) {
+            editorElement.style.display = "block";
+        }
+        if (window.editor) {
+            window.editor.setValue("", -1);
+            setLanguageSelectors(SHARECODE_DEFAULT_LANG);
+            setEditorLang(SHARECODE_DEFAULT_LANG);
+            window.editor.resize();
+        }
+        renderProjectFileTree();
+        updatePythonRunButtonVisibility();
+        updateSidebarVisibilityByFileCount(false);
+        scheduleSharecodeDraftCacheSave();
+    }
+
+    function refreshProjectAfterMutation(preferredActivePath) {
+        projectTreeRenameTarget = null;
+        if (!projectFiles.length) {
+            resetWorkspaceForEmptyProject();
+            return;
+        }
+
+        const safePreferredPath = safeNormalizePath(preferredActivePath);
+        const preferredFile = safePreferredPath ? projectFiles.find(f => f.path === safePreferredPath) : null;
+        const targetFile = preferredFile || getDefaultActiveProjectFile();
+        if (targetFile) {
+            openProjectFile(targetFile.path);
+        } else {
+            renderProjectFileTree();
+            scheduleSharecodeDraftCacheSave();
+        }
+        updateSidebarVisibilityByFileCount(false);
+    }
+
+    function focusProjectRenameInput() {
+        setTimeout(function () {
+            const input = document.querySelector('[data-tree-rename-input="true"]');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 0);
+    }
+
+    function cancelProjectTreeRename() {
+        if (!projectTreeRenameTarget) {
+            return;
+        }
+        projectTreeRenameTarget = null;
+        renderProjectFileTree();
+    }
+
+    function beginRenameTreeItem(kind, path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return;
+        }
+        if (kind === "file" && !projectFiles.some(f => f.path === safePath)) {
+            return;
+        }
+        if (kind === "folder" && !projectFiles.some(f => isPathInsideFolder(f.path, safePath))) {
+            return;
+        }
+        hideProjectTreeContextMenu();
+        projectTreeRenameTarget = {kind: kind, path: safePath};
+        renderProjectFileTree();
+        focusProjectRenameInput();
+    }
+
+    function renameProjectFile(oldPath, newName) {
+        const safeOldPath = safeNormalizePath(oldPath);
+        const targetFile = projectFiles.find(f => f.path === safeOldPath);
+        if (!targetFile) {
+            return true;
+        }
+        const newPath = safeNormalizePath(joinProjectPath(getPathParent(safeOldPath), newName));
+        if (!newPath || newPath === safeOldPath) {
+            return true;
+        }
+        if (projectFiles.some(f => f.path === newPath)) {
+            alert("已存在同名文件或路径，请换一个名称。");
+            return false;
+        }
+
+        syncActiveEditorToProject();
+        targetFile.path = newPath;
+        const nextActivePath = activeFilePath === safeOldPath ? newPath : activeFilePath;
+        activeFilePath = nextActivePath;
+        refreshProjectAfterMutation(nextActivePath);
+        return true;
+    }
+
+    function renameProjectFolder(oldFolderPath, newName) {
+        const safeOldFolderPath = safeNormalizePath(oldFolderPath);
+        const newFolderPath = safeNormalizePath(joinProjectPath(getPathParent(safeOldFolderPath), newName));
+        if (!safeOldFolderPath || !newFolderPath || newFolderPath === safeOldFolderPath) {
+            return true;
+        }
+
+        const affectedFiles = projectFiles.filter(f => isPathInsideFolder(f.path, safeOldFolderPath));
+        if (!affectedFiles.length) {
+            return true;
+        }
+
+        const outsidePaths = new Set(projectFiles
+            .filter(f => !isPathInsideFolder(f.path, safeOldFolderPath))
+            .map(f => f.path));
+        const nextPaths = new Set();
+        for (const file of affectedFiles) {
+            const nextPath = safeNormalizePath(newFolderPath + file.path.slice(safeOldFolderPath.length));
+            if (!nextPath || outsidePaths.has(nextPath) || nextPaths.has(nextPath)) {
+                alert("重命名后会产生同名文件或路径，请换一个名称。");
+                return false;
+            }
+            nextPaths.add(nextPath);
+        }
+
+        syncActiveEditorToProject();
+        let nextActivePath = activeFilePath;
+        for (const file of affectedFiles) {
+            const previousPath = file.path;
+            const nextPath = safeNormalizePath(newFolderPath + previousPath.slice(safeOldFolderPath.length));
+            file.path = nextPath;
+            if (activeFilePath === previousPath) {
+                nextActivePath = nextPath;
+            }
+        }
+        activeFilePath = nextActivePath;
+        refreshProjectAfterMutation(nextActivePath);
+        return true;
+    }
+
+    function commitProjectTreeRename(kind, oldPath, rawName) {
+        const newName = normalizeProjectTreeItemName(rawName);
+        if (!newName) {
+            alert("名称不能为空，不能包含 /，也不能是 . 或 ..。");
+            focusProjectRenameInput();
+            return;
+        }
+
+        const renamed = kind === "folder"
+            ? renameProjectFolder(oldPath, newName)
+            : renameProjectFile(oldPath, newName);
+        if (renamed) {
+            projectTreeRenameTarget = null;
+            renderProjectFileTree();
+        } else {
+            focusProjectRenameInput();
+        }
+    }
+
+    function bindProjectTreeRenameInput(input, kind, path) {
+        input.dataset.treeRenameInput = "true";
+        input.addEventListener("click", function (e) {
+            e.stopPropagation();
+        });
+        input.addEventListener("dblclick", function (e) {
+            e.stopPropagation();
+        });
+        input.addEventListener("contextmenu", function (e) {
+            e.stopPropagation();
+        });
+        input.addEventListener("keydown", function (e) {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+                e.preventDefault();
+                commitProjectTreeRename(kind, path, input.value);
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelProjectTreeRename();
+            }
+        });
+        input.addEventListener("blur", function () {
+            if (projectTreeRenameTarget && projectTreeRenameTarget.kind === kind && projectTreeRenameTarget.path === path) {
+                cancelProjectTreeRename();
+            }
+        });
+    }
+
+    function deleteProjectTreeItem(kind, path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return;
+        }
+        hideProjectTreeContextMenu();
+
+        let removedActiveFile = false;
+        if (kind === "folder") {
+            const affectedFiles = projectFiles.filter(f => isPathInsideFolder(f.path, safePath));
+            if (!affectedFiles.length) {
+                return;
+            }
+            if (!window.confirm(`确定删除文件夹 "${safePath}" 及其中 ${affectedFiles.length} 个文件吗？`)) {
+                return;
+            }
+            syncActiveEditorToProject();
+            removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
+            projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
+        } else {
+            const targetFile = projectFiles.find(f => f.path === safePath);
+            if (!targetFile) {
+                return;
+            }
+            if (!window.confirm(`确定删除文件 "${safePath}" 吗？`)) {
+                return;
+            }
+            syncActiveEditorToProject();
+            removedActiveFile = activeFilePath === safePath;
+            projectFiles = projectFiles.filter(f => f.path !== safePath);
+        }
+
+        refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath);
+    }
+
+    function clearAllProjectFiles() {
+        hideFloatingMenuIfOpen();
+        hideProjectTreeContextMenu();
+        if (!projectFiles.length) {
+            return;
+        }
+        if (!window.confirm("确定清空所有文件和文件夹吗？")) {
+            return;
+        }
+        syncActiveEditorToProject();
+        projectFiles = [];
+        resetWorkspaceForEmptyProject();
+    }
+
+    function showProjectTreeContextMenu(x, y, kind, path) {
+        const menu = document.getElementById("projectTreeContextMenu");
+        if (!menu) {
+            return;
+        }
+        projectTreeContextTarget = {kind: kind, path: safeNormalizePath(path)};
+        const renameButton = menu.querySelector('[data-action="rename"]');
+        const deleteButton = menu.querySelector('[data-action="delete"]');
+        if (renameButton) {
+            renameButton.textContent = kind === "folder" ? "重命名文件夹" : "重命名文件";
+        }
+        if (deleteButton) {
+            deleteButton.textContent = kind === "folder" ? "删除文件夹" : "删除文件";
+        }
+
+        menu.style.display = "block";
+        menu.setAttribute("aria-hidden", "false");
+        menu.style.left = "0px";
+        menu.style.top = "0px";
+        const rect = menu.getBoundingClientRect();
+        const padding = 8;
+        const left = Math.max(padding, Math.min(x, window.innerWidth - rect.width - padding));
+        const top = Math.max(padding, Math.min(y, window.innerHeight - rect.height - padding));
+        menu.style.left = left + "px";
+        menu.style.top = top + "px";
+    }
+
+    function hideProjectTreeContextMenu() {
+        const menu = document.getElementById("projectTreeContextMenu");
+        if (!menu) {
+            return;
+        }
+        projectTreeContextTarget = null;
+        menu.style.display = "none";
+        menu.setAttribute("aria-hidden", "true");
+    }
+
+    function bindProjectTreeContextMenu() {
+        const menu = document.getElementById("projectTreeContextMenu");
+        if (!menu) {
+            return;
+        }
+        menu.addEventListener("click", function (e) {
+            const button = e.target.closest("button[data-action]");
+            if (!button || !projectTreeContextTarget) {
+                return;
+            }
+            const target = Object.assign({}, projectTreeContextTarget);
+            const action = button.getAttribute("data-action");
+            hideProjectTreeContextMenu();
+            if (action === "rename") {
+                beginRenameTreeItem(target.kind, target.path);
+            } else if (action === "delete") {
+                deleteProjectTreeItem(target.kind, target.path);
+            }
+        });
+        document.addEventListener("click", function (e) {
+            if (!menu.contains(e.target)) {
+                hideProjectTreeContextMenu();
+            }
+        });
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                hideProjectTreeContextMenu();
+            }
+        });
+        window.addEventListener("resize", hideProjectTreeContextMenu);
+        document.addEventListener("scroll", hideProjectTreeContextMenu, true);
+    }
+
     function renderProjectFileTree() {
         const treeEl = document.getElementById("projectFileTree");
         const emptyEl = document.getElementById("projectTreeEmpty");
@@ -1497,20 +1925,40 @@
     function buildTreeDom(node, parent, prefix) {
         const folderNames = Object.keys(node.dirs).sort((a, b) => a.localeCompare(b));
         for (const folder of folderNames) {
+            const folderPath = prefix ? `${prefix}/${folder}` : folder;
             const li = document.createElement("li");
             li.className = "tree-node";
             const title = document.createElement("div");
             title.className = "tree-folder";
-            const span = document.createElement("span");
-            span.className = "tree-folder-title";
-            span.textContent = "📁 " + folder;
-            title.appendChild(span);
+            if (projectTreeRenameTarget && projectTreeRenameTarget.kind === "folder" && projectTreeRenameTarget.path === folderPath) {
+                const input = document.createElement("input");
+                input.className = "tree-rename-input";
+                input.type = "text";
+                input.value = folder;
+                bindProjectTreeRenameInput(input, "folder", folderPath);
+                title.appendChild(input);
+            } else {
+                const span = document.createElement("span");
+                span.className = "tree-folder-title";
+                span.textContent = "📁 " + folder;
+                title.appendChild(span);
+                title.addEventListener("dblclick", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    beginRenameTreeItem("folder", folderPath);
+                });
+                title.addEventListener("contextmenu", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showProjectTreeContextMenu(e.clientX, e.clientY, "folder", folderPath);
+                });
+            }
             li.appendChild(title);
 
             const child = document.createElement("ul");
             child.className = "tree-group";
             child.style.paddingLeft = "14px";
-            buildTreeDom(node.dirs[folder], child, prefix ? `${prefix}/${folder}` : folder);
+            buildTreeDom(node.dirs[folder], child, folderPath);
             li.appendChild(child);
             parent.appendChild(li);
         }
@@ -1519,20 +1967,40 @@
         for (const item of fileItems) {
             const li = document.createElement("li");
             li.className = "tree-node";
-            const button = document.createElement("button");
-            button.className = "tree-file-button";
-            if (item.file.path === activeFilePath) {
-                button.classList.add("active");
-            }
-            const icon = item.file.kind === "text" ? "📄" : "🧩";
-            button.innerHTML = `<span class="tree-file-icon">${icon}</span>${escapeHtml(item.name)}`;
-            button.addEventListener("click", function () {
-                openProjectFile(item.file.path);
-                if (isMobileViewport()) {
-                    setSidebarOpen(false);
+            if (projectTreeRenameTarget && projectTreeRenameTarget.kind === "file" && projectTreeRenameTarget.path === item.file.path) {
+                const input = document.createElement("input");
+                input.className = "tree-rename-input";
+                input.type = "text";
+                input.value = item.name;
+                bindProjectTreeRenameInput(input, "file", item.file.path);
+                li.appendChild(input);
+            } else {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "tree-file-button";
+                if (item.file.path === activeFilePath) {
+                    button.classList.add("active");
                 }
-            });
-            li.appendChild(button);
+                const icon = item.file.kind === "text" ? "📄" : "🧩";
+                button.innerHTML = `<span class="tree-file-icon">${icon}</span>${escapeHtml(item.name)}`;
+                button.addEventListener("click", function () {
+                    openProjectFile(item.file.path);
+                    if (isMobileViewport()) {
+                        setSidebarOpen(false);
+                    }
+                });
+                button.addEventListener("dblclick", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    beginRenameTreeItem("file", item.file.path);
+                });
+                button.addEventListener("contextmenu", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showProjectTreeContextMenu(e.clientX, e.clientY, "file", item.file.path);
+                });
+                li.appendChild(button);
+            }
             parent.appendChild(li);
         }
     }
@@ -2163,6 +2631,7 @@
         });
 
         bindSelectorSync();
+        bindProjectTreeContextMenu();
 
         const initialState = resolveInitialState();
         projectFiles = initialState.project.files;
