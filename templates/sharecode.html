@@ -602,7 +602,7 @@
         .project-context-menu {
             position: fixed;
             z-index: 260;
-            min-width: 132px;
+            min-width: 168px;
             padding: 6px;
             border-radius: 8px;
             border: 1px solid var(--panel-border);
@@ -626,6 +626,12 @@
 
         .project-context-menu button:hover {
             background: rgba(255, 255, 255, 0.1);
+        }
+
+        .project-context-menu-separator {
+            height: 1px;
+            margin: 5px 4px;
+            background: rgba(255, 255, 255, 0.12);
         }
 
         .project-context-menu button.danger {
@@ -879,6 +885,7 @@
 
         #shareOverlay,
         #fileCreateOverlay,
+        #folderCreateOverlay,
         #projectConfirmOverlay,
         #aboutOverlay {
             position: fixed;
@@ -1320,8 +1327,11 @@
 <input id="folder-input" type="file" webkitdirectory directory multiple style="display: none;"/>
 
 <div id="projectTreeContextMenu" class="project-context-menu" role="menu" aria-hidden="true">
-    <button type="button" data-action="rename">重命名</button>
-    <button type="button" data-action="delete" class="danger">删除</button>
+    <button type="button" data-action="new-file">新建文件</button>
+    <button type="button" data-action="new-folder">新建文件夹</button>
+    <div class="project-context-menu-separator" data-item-only="true"></div>
+    <button type="button" data-action="rename" data-item-only="true">重命名</button>
+    <button type="button" data-action="delete" data-item-only="true" class="danger">删除</button>
 </div>
 
 <div id="projectTreeNotice" class="project-notice" aria-live="polite"></div>
@@ -1390,6 +1400,25 @@
             <div class="overlay-actions">
                 <button class="btn-secondary-lite" onclick="closeCreateFileDialog()">取消</button>
                 <button class="btn-primary-lite" onclick="createNewProjectFileFromDialog()">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="folderCreateOverlay">
+    <div class="overlay-dialog" id="folderCreateDialog">
+        <div class="overlay-dialog-header">
+            <h5 class="overlay-dialog-title">新建文件夹</h5>
+            <button class="overlay-dialog-close" onclick="closeCreateFolderDialog()">×</button>
+        </div>
+        <div class="overlay-dialog-body">
+            <div class="overlay-field">
+                <label for="new-folder-path">文件夹路径（支持目录层级，如 src/components）</label>
+                <input id="new-folder-path" type="text" placeholder="src/components" autocomplete="off" />
+            </div>
+            <div class="overlay-actions">
+                <button class="btn-secondary-lite" onclick="closeCreateFolderDialog()">取消</button>
+                <button class="btn-primary-lite" onclick="createNewProjectFolderFromDialog()">创建</button>
             </div>
         </div>
     </div>
@@ -1505,6 +1534,7 @@
 
     let sharecodeDraftSaveTimer = null;
     let projectFiles = [];
+    let projectFolders = [];
     let activeFilePath = "";
     let collapsedFolderPaths = new Set();
     let sidebarOpen = false;
@@ -1512,6 +1542,7 @@
     let projectTreeContextTarget = null;
     let projectTreeRenameTarget = null;
     let projectTreeInlineDeleteTarget = null;
+    let projectTreeCreateParentPath = "";
     let pendingProjectConfirmAction = null;
     let projectNoticeTimer = null;
 
@@ -1610,8 +1641,9 @@
                 project: {
                     text_files: textFiles,
                     assets: [],
+                    folders: projectFolders.slice(),
                     active_file: activeFilePath,
-                    empty_project: projectFiles.length === 0
+                    empty_project: projectFiles.length === 0 && projectFolders.length === 0
                 },
                 language: getCurrentLanguageValue(),
                 theme: getCurrentThemeValue(),
@@ -1931,6 +1963,14 @@
             return;
         }
         const folderPaths = new Set();
+        for (const folderPath of projectFolders) {
+            const parts = safeNormalizePath(folderPath).split("/");
+            let current = "";
+            for (let i = 0; i < parts.length; i++) {
+                current = current ? `${current}/${parts[i]}` : parts[i];
+                folderPaths.add(current);
+            }
+        }
         for (const file of projectFiles) {
             const parts = safeNormalizePath(file.path).split("/");
             let current = "";
@@ -1973,10 +2013,71 @@
         return parentPath ? `${parentPath}/${name}` : name;
     }
 
+    function hasProjectTreeItems() {
+        return projectFiles.length > 0 || projectFolders.length > 0;
+    }
+
+    function isSameOrInsideFolder(path, folderPath) {
+        const safePath = safeNormalizePath(path);
+        const safeFolderPath = safeNormalizePath(folderPath);
+        return !!(safePath && safeFolderPath && (safePath === safeFolderPath || safePath.startsWith(safeFolderPath + "/")));
+    }
+
     function isPathInsideFolder(filePath, folderPath) {
         const safeFilePath = safeNormalizePath(filePath);
         const safeFolderPath = safeNormalizePath(folderPath);
         return !!(safeFilePath && safeFolderPath && safeFilePath.startsWith(safeFolderPath + "/"));
+    }
+
+    function projectFolderExists(folderPath) {
+        const safeFolderPath = safeNormalizePath(folderPath);
+        if (!safeFolderPath) {
+            return false;
+        }
+        return projectFolders.includes(safeFolderPath) || projectFiles.some(f => isPathInsideFolder(f.path, safeFolderPath));
+    }
+
+    function projectPathConflictsWithFile(path) {
+        const safePath = safeNormalizePath(path);
+        return !!(safePath && projectFiles.some(f => f.path === safePath));
+    }
+
+    function ensureUniqueFolderPath(path) {
+        let safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return "";
+        }
+        if (!projectFolderExists(safePath) && !projectPathConflictsWithFile(safePath)) {
+            return safePath;
+        }
+        let index = 1;
+        while (projectFolderExists(`${safePath}_${index}`) || projectPathConflictsWithFile(`${safePath}_${index}`)) {
+            index += 1;
+        }
+        return `${safePath}_${index}`;
+    }
+
+    function addProjectFolder(folderPath) {
+        const safeFolderPath = safeNormalizePath(folderPath);
+        if (!safeFolderPath || projectFolders.includes(safeFolderPath)) {
+            return safeFolderPath;
+        }
+        projectFolders.push(safeFolderPath);
+        projectFolders.sort((a, b) => a.localeCompare(b));
+        return safeFolderPath;
+    }
+
+    function getContextTargetParentPath(target) {
+        if (!target || target.kind === "root") {
+            return "";
+        }
+        if (target.kind === "folder") {
+            return safeNormalizePath(target.path);
+        }
+        if (target.kind === "file") {
+            return getPathParent(target.path);
+        }
+        return "";
     }
 
     function normalizeProjectTreeItemName(rawName) {
@@ -1998,6 +2099,10 @@
         const opts = options || {};
         projectTreeRenameTarget = null;
         projectTreeInlineDeleteTarget = null;
+        projectTreeCreateParentPath = "";
+        if (opts.clearFolders) {
+            projectFolders = [];
+        }
         collapsedFolderPaths.clear();
         activeFilePath = "";
         const emptyLanguage = language || getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
@@ -2061,8 +2166,32 @@
         const opts = options || {};
         projectTreeRenameTarget = null;
         projectTreeInlineDeleteTarget = null;
+        projectTreeCreateParentPath = "";
         if (!projectFiles.length) {
-            resetWorkspaceForEmptyProject(null, opts);
+            if (!projectFolders.length) {
+                resetWorkspaceForEmptyProject(null, opts);
+                return;
+            }
+            activeFilePath = "";
+            const viewer = document.getElementById("assetViewer");
+            const editorElement = document.getElementById("editor");
+            if (viewer) {
+                viewer.style.display = "none";
+                viewer.innerHTML = "";
+            }
+            if (editorElement) {
+                editorElement.style.display = "block";
+            }
+            if (window.editor) {
+                window.editor.setValue("", -1);
+                window.editor.resize();
+            }
+            renderProjectFileTree();
+            updatePythonRunButtonVisibility();
+            scheduleSharecodeDraftCacheSave();
+            if (!opts.preserveSidebar) {
+                updateSidebarVisibilityByFileCount(false);
+            }
             return;
         }
 
@@ -2110,7 +2239,7 @@
         if (kind === "file" && !projectFiles.some(f => f.path === safePath)) {
             return;
         }
-        if (kind === "folder" && !projectFiles.some(f => isPathInsideFolder(f.path, safePath))) {
+        if (kind === "folder" && !projectFolderExists(safePath)) {
             return;
         }
         hideProjectTreeContextMenu();
@@ -2151,13 +2280,20 @@
         }
 
         const affectedFiles = projectFiles.filter(f => isPathInsideFolder(f.path, safeOldFolderPath));
-        if (!affectedFiles.length) {
+        const affectedFolders = projectFolders.filter(path => isSameOrInsideFolder(path, safeOldFolderPath));
+        if (!affectedFiles.length && !affectedFolders.length) {
             return true;
+        }
+        if (projectPathConflictsWithFile(newFolderPath) || projectFolderExists(newFolderPath)) {
+            showProjectNotice("重命名后会产生同名文件或路径，请换一个名称。");
+            return false;
         }
 
         const outsidePaths = new Set(projectFiles
             .filter(f => !isPathInsideFolder(f.path, safeOldFolderPath))
             .map(f => f.path));
+        const outsideFolders = new Set(projectFolders
+            .filter(path => !isSameOrInsideFolder(path, safeOldFolderPath)));
         const nextPaths = new Set();
         for (const file of affectedFiles) {
             const nextPath = safeNormalizePath(newFolderPath + file.path.slice(safeOldFolderPath.length));
@@ -2166,6 +2302,15 @@
                 return false;
             }
             nextPaths.add(nextPath);
+        }
+        const nextFolders = new Set();
+        for (const folderPath of affectedFolders) {
+            const nextFolderPath = safeNormalizePath(newFolderPath + folderPath.slice(safeOldFolderPath.length));
+            if (!nextFolderPath || outsidePaths.has(nextFolderPath) || outsideFolders.has(nextFolderPath) || nextFolders.has(nextFolderPath)) {
+                showProjectNotice("重命名后会产生同名文件或路径，请换一个名称。");
+                return false;
+            }
+            nextFolders.add(nextFolderPath);
         }
 
         syncActiveEditorToProject();
@@ -2178,6 +2323,12 @@
                 nextActivePath = nextPath;
             }
         }
+        projectFolders = projectFolders.map(path => {
+            if (isSameOrInsideFolder(path, safeOldFolderPath)) {
+                return safeNormalizePath(newFolderPath + path.slice(safeOldFolderPath.length));
+            }
+            return path;
+        }).sort((a, b) => a.localeCompare(b));
         moveCollapsedFolderState(safeOldFolderPath, newFolderPath);
         activeFilePath = nextActivePath;
         refreshProjectAfterMutation(nextActivePath);
@@ -2241,7 +2392,8 @@
         let removedActiveFile = false;
         if (kind === "folder") {
             const affectedFiles = projectFiles.filter(f => isPathInsideFolder(f.path, safePath));
-            if (!affectedFiles.length) {
+            const affectedFolders = projectFolders.filter(path => isSameOrInsideFolder(path, safePath));
+            if (!affectedFiles.length && !affectedFolders.length) {
                 return;
             }
             openProjectConfirmDialog(
@@ -2252,6 +2404,8 @@
                     syncActiveEditorToProject();
                     removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
                     projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
+                    projectFolders = projectFolders.filter(path => !isSameOrInsideFolder(path, safePath));
+                    collapsedFolderPaths = new Set(Array.from(collapsedFolderPaths).filter(path => !isSameOrInsideFolder(path, safePath)));
                     refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
                     showProjectNotice("文件夹已删除。");
                 }
@@ -2286,11 +2440,13 @@
         syncActiveEditorToProject();
         let removedActiveFile = false;
         if (kind === "folder") {
-            if (!projectFiles.some(f => isPathInsideFolder(f.path, safePath))) {
+            if (!projectFolderExists(safePath)) {
                 return;
             }
             removedActiveFile = isPathInsideFolder(activeFilePath, safePath);
             projectFiles = projectFiles.filter(f => !isPathInsideFolder(f.path, safePath));
+            projectFolders = projectFolders.filter(path => !isSameOrInsideFolder(path, safePath));
+            collapsedFolderPaths = new Set(Array.from(collapsedFolderPaths).filter(path => !isSameOrInsideFolder(path, safePath)));
             refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
             showProjectNotice("文件夹已删除。");
             return;
@@ -2360,14 +2516,15 @@
         hideFloatingMenuIfOpen();
         hideProjectTreeContextMenu();
         const emptyLanguage = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
-        if (!projectFiles.length) {
-            resetWorkspaceForEmptyProject(emptyLanguage);
+        if (!hasProjectTreeItems()) {
+            resetWorkspaceForEmptyProject(emptyLanguage, {clearFolders: true});
             showProjectNotice(`已清空，继续输入将自动创建 ${defaultFilenameForLanguage(emptyLanguage)}。`);
             return;
         }
         syncActiveEditorToProject();
         projectFiles = [];
-        resetWorkspaceForEmptyProject(emptyLanguage);
+        projectFolders = [];
+        resetWorkspaceForEmptyProject(emptyLanguage, {clearFolders: true});
         showProjectNotice(`已清空所有文件，继续输入将自动创建 ${defaultFilenameForLanguage(emptyLanguage)}。`);
     }
 
@@ -2376,14 +2533,33 @@
         if (!menu) {
             return;
         }
-        projectTreeContextTarget = {kind: kind, path: safeNormalizePath(path)};
+        const targetKind = kind || "root";
+        projectTreeContextTarget = {kind: targetKind, path: safeNormalizePath(path)};
+        const newFileButton = menu.querySelector('[data-action="new-file"]');
+        const newFolderButton = menu.querySelector('[data-action="new-folder"]');
         const renameButton = menu.querySelector('[data-action="rename"]');
         const deleteButton = menu.querySelector('[data-action="delete"]');
+        const itemOnlyElements = menu.querySelectorAll('[data-item-only="true"]');
+        const isRootTarget = targetKind === "root";
+
+        itemOnlyElements.forEach(el => {
+            el.style.display = isRootTarget ? "none" : "";
+        });
+        if (newFileButton) {
+            newFileButton.textContent = targetKind === "folder"
+                ? "新建文件"
+                : (targetKind === "file" ? "新建同级文件" : "新建文件");
+        }
+        if (newFolderButton) {
+            newFolderButton.textContent = targetKind === "folder"
+                ? "新建文件夹"
+                : (targetKind === "file" ? "新建同级文件夹" : "新建文件夹");
+        }
         if (renameButton) {
-            renameButton.textContent = kind === "folder" ? "重命名文件夹" : "重命名文件";
+            renameButton.textContent = targetKind === "folder" ? "重命名文件夹" : "重命名文件";
         }
         if (deleteButton) {
-            deleteButton.textContent = kind === "folder" ? "删除文件夹" : "删除文件";
+            deleteButton.textContent = targetKind === "folder" ? "删除文件夹" : "删除文件";
         }
 
         menu.style.display = "block";
@@ -2456,6 +2632,8 @@
         if (!menu) {
             return;
         }
+        const treeEl = document.getElementById("projectFileTree");
+        const emptyEl = document.getElementById("projectTreeEmpty");
         menu.addEventListener("click", function (e) {
             const button = e.target.closest("button[data-action]");
             if (!button || !projectTreeContextTarget) {
@@ -2464,12 +2642,33 @@
             const target = Object.assign({}, projectTreeContextTarget);
             const action = button.getAttribute("data-action");
             hideProjectTreeContextMenu();
-            if (action === "rename") {
+            if (action === "new-file") {
+                openCreateFileDialog(getContextTargetParentPath(target));
+            } else if (action === "new-folder") {
+                openCreateFolderDialog(getContextTargetParentPath(target));
+            } else if (action === "rename") {
                 beginRenameTreeItem(target.kind, target.path);
             } else if (action === "delete") {
                 deleteProjectTreeItem(target.kind, target.path);
             }
         });
+        if (treeEl) {
+            treeEl.addEventListener("contextmenu", function (e) {
+                if (e.target.closest(".tree-folder-title, .tree-file-button, .tree-rename-input, .tree-delete-btn, .tree-delete-confirm-btn")) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                showProjectTreeContextMenu(e.clientX, e.clientY, "root", "");
+            });
+        }
+        if (emptyEl) {
+            emptyEl.addEventListener("contextmenu", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showProjectTreeContextMenu(e.clientX, e.clientY, "root", "");
+            });
+        }
         document.addEventListener("click", function (e) {
             if (!menu.contains(e.target)) {
                 hideProjectTreeContextMenu();
@@ -2493,7 +2692,7 @@
         const emptyEl = document.getElementById("projectTreeEmpty");
         treeEl.innerHTML = "";
 
-        if (!projectFiles.length) {
+        if (!hasProjectTreeItems()) {
             collapsedFolderPaths.clear();
             emptyEl.style.display = "block";
             return;
@@ -2502,6 +2701,20 @@
         pruneCollapsedProjectFolders();
 
         const root = {dirs: {}, files: []};
+        const sortedFolders = projectFolders.slice().sort((a, b) => a.localeCompare(b));
+        for (const folderPath of sortedFolders) {
+            const parts = safeNormalizePath(folderPath).split("/");
+            let node = root;
+            for (const segment of parts) {
+                if (!segment) {
+                    continue;
+                }
+                if (!node.dirs[segment]) {
+                    node.dirs[segment] = {dirs: {}, files: []};
+                }
+                node = node.dirs[segment];
+            }
+        }
         const sortedFiles = projectFiles.slice().sort((a, b) => a.path.localeCompare(b.path));
         for (const file of sortedFiles) {
             const parts = file.path.split("/");
@@ -2743,6 +2956,7 @@
     function normalizeServerProject(rawProject) {
         const normalized = {
             files: [],
+            folders: [],
             activeFile: ""
         };
         if (!rawProject || typeof rawProject !== "object") {
@@ -2751,6 +2965,16 @@
 
         const textFiles = Array.isArray(rawProject.text_files) ? rawProject.text_files : [];
         const assets = Array.isArray(rawProject.assets) ? rawProject.assets : [];
+        const folders = Array.isArray(rawProject.folders)
+            ? rawProject.folders
+            : (Array.isArray(rawProject.project_folders) ? rawProject.project_folders : []);
+
+        for (const item of folders) {
+            const folderPath = safeNormalizePath(typeof item === "string" ? item : (item && item.path));
+            if (folderPath && !normalized.folders.includes(folderPath)) {
+                normalized.folders.push(folderPath);
+            }
+        }
 
         for (const item of textFiles) {
             if (!item || typeof item !== "object") {
@@ -2790,6 +3014,8 @@
             });
         }
 
+        normalized.folders.sort((a, b) => a.localeCompare(b));
+
         if (typeof rawProject.active_file === "string") {
             normalized.activeFile = safeNormalizePath(rawProject.active_file);
         }
@@ -2808,7 +3034,7 @@
     function resolveInitialState() {
         const isSharedCodePage = window.location.pathname.indexOf("/share/") === 0;
         const cache = loadSharecodeDraftCache();
-        let project = {files: [], activeFile: ""};
+        let project = {files: [], folders: [], activeFile: ""};
         let theme = SHARECODE_DEFAULT_THEME;
         let language = SHARECODE_DEFAULT_LANG;
 
@@ -2821,7 +3047,7 @@
 
         if (isSharedCodePage) {
             project = normalizeServerProject(server_pre_project);
-            if (!project.files.length) {
+            if (!project.files.length && !project.folders.length) {
                 const fallbackLang = server_pre_lang || SHARECODE_DEFAULT_LANG;
                 const fallbackPath = defaultFilenameForLanguage(fallbackLang);
                 project.files.push({
@@ -2837,10 +3063,10 @@
             if (cache && cache.project) {
                 project = normalizeServerProject(cache.project);
             }
-            if (!shouldKeepEmptyCacheProject && !project.files.length && server_pre_project) {
+            if (!shouldKeepEmptyCacheProject && !project.files.length && !project.folders.length && server_pre_project) {
                 project = normalizeServerProject(server_pre_project);
             }
-            if (!shouldKeepEmptyCacheProject && !project.files.length && typeof server_pre_code === "string" && server_pre_code) {
+            if (!shouldKeepEmptyCacheProject && !project.files.length && !project.folders.length && typeof server_pre_code === "string" && server_pre_code) {
                 const lang = server_pre_lang || SHARECODE_DEFAULT_LANG;
                 const filePath = defaultFilenameForLanguage(lang);
                 project.files.push({
@@ -2851,7 +3077,7 @@
                 });
                 project.activeFile = filePath;
             }
-            if (!shouldKeepEmptyCacheProject && !project.files.length) {
+            if (!shouldKeepEmptyCacheProject && !project.files.length && !project.folders.length) {
                 const lang = SHARECODE_DEFAULT_LANG;
                 const filePath = defaultFilenameForLanguage(lang);
                 project.files.push({
@@ -2909,7 +3135,8 @@
     function updateSidebarVisibilityByFileCount(firstLoad) {
         const textCount = projectFiles.filter(f => f.kind === "text").length;
         const assetCount = projectFiles.filter(f => f.kind === "asset").length;
-        const shouldAutoHide = textCount <= 1 && assetCount === 0;
+        const folderCount = projectFolders.length;
+        const shouldAutoHide = textCount <= 1 && assetCount === 0 && folderCount === 0;
 
         if (firstLoad && shouldAutoHide) {
             setSidebarOpen(false);
@@ -2966,14 +3193,22 @@
         document.getElementById(overlayId).style.display = "none";
     }
 
-    function openCreateFileDialog() {
+    function openCreateFileDialog(parentPath) {
+        const safeParentPath = safeNormalizePath(parentPath || "");
         const active = getActiveProjectFile();
         const lang = active && active.kind === "text" ? (active.language || detectLanguageFromFilename(active.path)) : SHARECODE_DEFAULT_LANG;
+        const defaultName = defaultFilenameForLanguage(lang);
+        const input = document.getElementById("new-file-path");
         document.getElementById("new-file-language").value = lang;
-        document.getElementById("new-file-path").value = "";
+        input.value = safeParentPath ? joinProjectPath(safeParentPath, defaultName) : "";
+        input.placeholder = safeParentPath ? joinProjectPath(safeParentPath, defaultName) : defaultName;
         openOverlay("fileCreateOverlay");
         setTimeout(() => {
-            document.getElementById("new-file-path").focus();
+            input.focus();
+            if (safeParentPath && input.setSelectionRange) {
+                const prefixLength = safeParentPath.length + 1;
+                input.setSelectionRange(prefixLength, input.value.length);
+            }
         }, 40);
     }
 
@@ -3008,6 +3243,54 @@
         closeCreateFileDialog();
         updateSidebarVisibilityByFileCount(false);
         scheduleSharecodeDraftCacheSave();
+    }
+
+    function openCreateFolderDialog(parentPath) {
+        projectTreeCreateParentPath = safeNormalizePath(parentPath || "");
+        const input = document.getElementById("new-folder-path");
+        const defaultName = "new-folder";
+        input.value = projectTreeCreateParentPath ? joinProjectPath(projectTreeCreateParentPath, defaultName) : defaultName;
+        input.placeholder = projectTreeCreateParentPath
+            ? joinProjectPath(projectTreeCreateParentPath, "components")
+            : "src/components";
+        openOverlay("folderCreateOverlay");
+        setTimeout(() => {
+            input.focus();
+            if (input.setSelectionRange) {
+                const prefixLength = projectTreeCreateParentPath ? projectTreeCreateParentPath.length + 1 : 0;
+                input.setSelectionRange(prefixLength, input.value.length);
+            }
+        }, 40);
+    }
+
+    function closeCreateFolderDialog() {
+        projectTreeCreateParentPath = "";
+        closeOverlay("folderCreateOverlay");
+    }
+
+    function createNewProjectFolderFromDialog() {
+        let inputPath = document.getElementById("new-folder-path").value || "";
+        inputPath = safeNormalizePath(inputPath);
+        if (!inputPath) {
+            inputPath = projectTreeCreateParentPath
+                ? joinProjectPath(projectTreeCreateParentPath, "new-folder")
+                : "new-folder";
+        }
+
+        const folderPath = ensureUniqueFolderPath(inputPath);
+        if (!folderPath) {
+            return;
+        }
+
+        addProjectFolder(folderPath);
+        expandProjectTreeAncestors(joinProjectPath(folderPath, "_placeholder"));
+        collapsedFolderPaths.delete(folderPath);
+        renderProjectFileTree();
+        updateSidebarVisibilityByFileCount(false);
+        setSidebarOpen(true);
+        scheduleSharecodeDraftCacheSave();
+        closeCreateFolderDialog();
+        showProjectNotice(`已创建文件夹 "${folderPath}"。`);
     }
 
     function openAboutDialog() {
@@ -3093,6 +3376,7 @@
         return {
             text_files: textFiles,
             assets: assets,
+            folders: projectFolders.slice(),
             active_file: activeFilePath
         };
     }
@@ -3301,6 +3585,7 @@
 
         const initialState = resolveInitialState();
         projectFiles = initialState.project.files;
+        projectFolders = initialState.project.folders || [];
         activeFilePath = initialState.project.activeFile;
 
         applyEditorTheme(initialState.theme);
@@ -3343,6 +3628,7 @@
 
         bindOverlayDismiss("shareOverlay", "shareDialog");
         bindOverlayDismiss("fileCreateOverlay", "fileCreateDialog");
+        bindOverlayDismiss("folderCreateOverlay", "folderCreateDialog");
         bindOverlayDismiss("projectConfirmOverlay", "projectConfirmDialog");
         bindOverlayDismiss("aboutOverlay", "aboutDialog");
 

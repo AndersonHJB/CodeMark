@@ -24,6 +24,7 @@ app = Flask(__name__)
 
 FILENAME_MARKER = "__FILENAME___="
 ASSET_MARKER = "__ASSET___="
+FOLDER_MARKER = "__FOLDER___="
 
 LANGUAGE_FILE_EXTENSIONS = {
     "python": "py",
@@ -128,7 +129,7 @@ def parse_project_sections(body_lines, project_id=None):
     若不存在标记，则 has_markers=False，raw_content 为原文本。
     """
     has_markers = any(
-        line.startswith(FILENAME_MARKER) or line.startswith(ASSET_MARKER)
+        line.startswith(FILENAME_MARKER) or line.startswith(ASSET_MARKER) or line.startswith(FOLDER_MARKER)
         for line in body_lines
     )
     raw_content = "".join(body_lines)
@@ -138,10 +139,12 @@ def parse_project_sections(body_lines, project_id=None):
             "raw_content": raw_content,
             "text_files": [],
             "assets": [],
+            "folders": [],
         }
 
     text_files = []
     assets = []
+    folders = []
     current_path = None
     current_language = "python"
     current_content_lines = []
@@ -169,6 +172,14 @@ def parse_project_sections(body_lines, project_id=None):
                 safe_path = default_filename_for_language("python")
             current_path = safe_path
             current_language = detect_language_from_filename(safe_path)
+            continue
+
+        if line.startswith(FOLDER_MARKER):
+            flush_current_file()
+            raw_path = line.split("=", 1)[1].strip()
+            safe_path = normalize_project_relative_path(raw_path)
+            if safe_path and safe_path not in folders:
+                folders.append(safe_path)
             continue
 
         if line.startswith(ASSET_MARKER):
@@ -209,6 +220,7 @@ def parse_project_sections(body_lines, project_id=None):
         "raw_content": raw_content,
         "text_files": text_files,
         "assets": assets,
+        "folders": folders,
     }
 
 
@@ -217,6 +229,18 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
     project_data = project_payload if isinstance(project_payload, dict) else {}
 
     text_files = []
+    folders = []
+    incoming_folders = project_data.get("folders", project_data.get("project_folders", []))
+    if isinstance(incoming_folders, list):
+        for folder_item in incoming_folders:
+            safe_path = normalize_project_relative_path(
+                folder_item if isinstance(folder_item, str) else (
+                    folder_item.get("path") if isinstance(folder_item, dict) else ""
+                )
+            )
+            if safe_path and safe_path not in folders:
+                folders.append(safe_path)
+
     incoming_text_files = project_data.get("text_files", [])
     if isinstance(incoming_text_files, list):
         for idx, file_item in enumerate(incoming_text_files):
@@ -235,7 +259,7 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
                 "language": detect_language_from_filename(safe_path),
             })
 
-    if not text_files:
+    if not text_files and not folders:
         fallback_path = default_filename_for_language(language)
         text_files.append({
             "path": fallback_path,
@@ -303,6 +327,8 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
     with open(code_file_path, 'w', encoding='utf-8') as f:
         f.write(f"__TEMPLATE__={template_type}\n")
         f.write(f"__LANG__={language}\n")
+        for folder_path in folders:
+            f.write(f"{FOLDER_MARKER}{folder_path}\n")
         for text_file in text_files:
             f.write(f"{FILENAME_MARKER}{text_file['path']}\n")
             f.write(text_file["content"])
@@ -615,6 +641,7 @@ def show_shared_code(project_id):
                 if parsed_project["has_markers"]:
                     text_files = parsed_project["text_files"]
                     assets = parsed_project["assets"]
+                    folders = parsed_project.get("folders", [])
                     if text_files:
                         code_content = text_files[0]["content"]
                         lang = text_files[0].get("language", lang) or lang
@@ -623,6 +650,7 @@ def show_shared_code(project_id):
                     pre_project = {
                         "text_files": text_files,
                         "assets": assets,
+                        "folders": folders,
                         "active_file": text_files[0]["path"] if text_files else "",
                     }
                 else:
@@ -636,6 +664,7 @@ def show_shared_code(project_id):
                                 "language": detect_language_from_filename(fallback_path),
                             }],
                             "assets": [],
+                            "folders": [],
                             "active_file": fallback_path,
                         }
                 break
