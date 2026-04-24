@@ -11,6 +11,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     {% if pre_code %}
         <script>let server_pre_code = {{ pre_code|tojson }};</script>
@@ -382,11 +383,19 @@
             gap: 6px;
             padding: 3px 6px;
             border-radius: 6px;
-            cursor: default;
+            cursor: pointer;
+            min-height: 28px;
+            user-select: none;
         }
 
         .tree-folder-title:hover {
             background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tree-folder-title:focus-visible,
+        .tree-file-button:focus-visible {
+            outline: 1px solid rgba(109, 221, 242, 0.8);
+            outline-offset: 1px;
         }
 
         .tree-entry-label {
@@ -422,10 +431,65 @@
             color: #eaffff;
         }
 
+        .tree-folder-toggle {
+            width: 12px;
+            min-width: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1;
+            text-align: center;
+        }
+
+        .tree-folder-icon,
         .tree-file-icon {
+            width: 16px;
+            min-width: 16px;
             margin-right: 6px;
-            opacity: 0.86;
             flex: 0 0 auto;
+            font-size: 15px;
+            line-height: 1;
+            text-align: center;
+        }
+
+        .tree-folder-icon {
+            color: #e5b95e;
+            margin-right: 0;
+        }
+
+        .tree-file-icon {
+            opacity: 0.96;
+        }
+
+        .tree-group.is-collapsed {
+            display: none;
+        }
+
+        .file-icon-python { color: #4aa3ff; }
+        .file-icon-javascript { color: #f7df5e; }
+        .file-icon-typescript { color: #4b9cf5; }
+        .file-icon-html { color: #ff8a4c; }
+        .file-icon-css { color: #69b7ff; }
+        .file-icon-markdown { color: #d7ddca; }
+        .file-icon-json { color: #f2c94c; }
+        .file-icon-yaml { color: #d38dff; }
+        .file-icon-java { color: #ff765f; }
+        .file-icon-php { color: #9ba7ff; }
+        .file-icon-ruby { color: #ff6473; }
+        .file-icon-go { color: #61d4e8; }
+        .file-icon-shell { color: #91d57b; }
+        .file-icon-sql { color: #7ac7ff; }
+        .file-icon-image { color: #7bd88f; }
+        .file-icon-audio { color: #d7a6ff; }
+        .file-icon-video { color: #ff9f6e; }
+        .file-icon-pdf { color: #ff6d6d; }
+        .file-icon-archive { color: #c7a76c; }
+        .file-icon-code { color: #95c9ff; }
+        .file-icon-text { color: #cdd5c0; }
+        .file-icon-asset { color: #b4c1ff; }
+
+        .tree-delete-btn .bi {
+            font-size: 13px;
+            line-height: 1;
         }
 
         .tree-delete-btn,
@@ -1342,10 +1406,52 @@
         "php", "rb", "go", "html", "htm", "css", "scss", "less", "md", "txt", "json",
         "yaml", "yml", "xml", "sh", "ini", "toml", "sql", "rs", "swift", "kt", "dart"
     ]);
+    const FILE_ICON_BY_EXTENSION = {
+        py: {icon: "bi-filetype-py", className: "file-icon-python", label: "Python file"},
+        js: {icon: "bi-filetype-js", className: "file-icon-javascript", label: "JavaScript file"},
+        jsx: {icon: "bi-filetype-jsx", className: "file-icon-javascript", label: "JSX file"},
+        ts: {icon: "bi-file-earmark-code", className: "file-icon-typescript", label: "TypeScript file"},
+        tsx: {icon: "bi-filetype-tsx", className: "file-icon-typescript", label: "TSX file"},
+        html: {icon: "bi-filetype-html", className: "file-icon-html", label: "HTML file"},
+        htm: {icon: "bi-filetype-html", className: "file-icon-html", label: "HTML file"},
+        css: {icon: "bi-filetype-css", className: "file-icon-css", label: "CSS file"},
+        scss: {icon: "bi-filetype-scss", className: "file-icon-css", label: "SCSS file"},
+        sass: {icon: "bi-filetype-sass", className: "file-icon-css", label: "Sass file"},
+        less: {icon: "bi-file-earmark-code", className: "file-icon-css", label: "Less file"},
+        md: {icon: "bi-filetype-md", className: "file-icon-markdown", label: "Markdown file"},
+        markdown: {icon: "bi-filetype-md", className: "file-icon-markdown", label: "Markdown file"},
+        json: {icon: "bi-filetype-json", className: "file-icon-json", label: "JSON file"},
+        yaml: {icon: "bi-filetype-yml", className: "file-icon-yaml", label: "YAML file"},
+        yml: {icon: "bi-filetype-yml", className: "file-icon-yaml", label: "YAML file"},
+        xml: {icon: "bi-filetype-xml", className: "file-icon-code", label: "XML file"},
+        java: {icon: "bi-filetype-java", className: "file-icon-java", label: "Java file"},
+        php: {icon: "bi-filetype-php", className: "file-icon-php", label: "PHP file"},
+        rb: {icon: "bi-filetype-rb", className: "file-icon-ruby", label: "Ruby file"},
+        go: {icon: "bi-file-earmark-code", className: "file-icon-go", label: "Go file"},
+        c: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "C file"},
+        cc: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "C++ file"},
+        cpp: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "C++ file"},
+        h: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Header file"},
+        hpp: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Header file"},
+        rs: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Rust file"},
+        swift: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Swift file"},
+        kt: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Kotlin file"},
+        dart: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Dart file"},
+        sh: {icon: "bi-filetype-sh", className: "file-icon-shell", label: "Shell file"},
+        sql: {icon: "bi-filetype-sql", className: "file-icon-sql", label: "SQL file"},
+        txt: {icon: "bi-filetype-txt", className: "file-icon-text", label: "Text file"},
+        ini: {icon: "bi-file-earmark-text", className: "file-icon-text", label: "Config file"},
+        toml: {icon: "bi-file-earmark-text", className: "file-icon-text", label: "TOML file"}
+    };
+    const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]);
+    const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "flac", "aac", "m4a"]);
+    const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "mkv", "avi"]);
+    const ARCHIVE_EXTENSIONS = new Set(["zip", "rar", "7z", "tar", "gz", "tgz"]);
 
     let sharecodeDraftSaveTimer = null;
     let projectFiles = [];
     let activeFilePath = "";
+    let collapsedFolderPaths = new Set();
     let sidebarOpen = false;
     let editorReady = false;
     let projectTreeContextTarget = null;
@@ -1580,6 +1686,7 @@
         }
         syncActiveEditorToProject();
         activeFilePath = safePath;
+        expandProjectTreeAncestors(safePath);
 
         if (targetFile.kind === "text") {
             document.getElementById("assetViewer").style.display = "none";
@@ -1657,6 +1764,127 @@
             .replace(/'/g, "&#39;");
     }
 
+    function getPathExtension(path) {
+        const safePath = safeNormalizePath(path).toLowerCase();
+        const filename = safePath.split("/").pop() || "";
+        const dotIndex = filename.lastIndexOf(".");
+        if (dotIndex <= 0 || dotIndex === filename.length - 1) {
+            return "";
+        }
+        return filename.slice(dotIndex + 1);
+    }
+
+    function createBootstrapIcon(iconName, className, label) {
+        const icon = document.createElement("i");
+        icon.className = ["bi", iconName, className].filter(Boolean).join(" ");
+        icon.setAttribute("aria-hidden", "true");
+        if (label) {
+            icon.title = label;
+        }
+        return icon;
+    }
+
+    function getTreeFileIconMeta(file) {
+        const extension = getPathExtension(file && file.path);
+        const mimeType = String((file && file.mime_type) || "").toLowerCase();
+
+        if (file && file.kind === "asset") {
+            if (mimeType.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) {
+                return {icon: "bi-file-earmark-image", className: "file-icon-image", label: "Image asset"};
+            }
+            if (mimeType.startsWith("audio/") || AUDIO_EXTENSIONS.has(extension)) {
+                return {icon: "bi-file-earmark-music", className: "file-icon-audio", label: "Audio asset"};
+            }
+            if (mimeType.startsWith("video/") || VIDEO_EXTENSIONS.has(extension)) {
+                return {icon: "bi-file-earmark-play", className: "file-icon-video", label: "Video asset"};
+            }
+            if (extension === "pdf" || mimeType === "application/pdf") {
+                return {icon: "bi-file-earmark-pdf", className: "file-icon-pdf", label: "PDF asset"};
+            }
+            if (ARCHIVE_EXTENSIONS.has(extension) || mimeType.includes("zip") || mimeType.includes("compressed")) {
+                return {icon: "bi-file-earmark-zip", className: "file-icon-archive", label: "Archive asset"};
+            }
+            return {icon: "bi-file-earmark-binary", className: "file-icon-asset", label: "Asset file"};
+        }
+
+        return FILE_ICON_BY_EXTENSION[extension] || {
+            icon: extension ? "bi-file-earmark-code" : "bi-file-earmark-text",
+            className: extension ? "file-icon-code" : "file-icon-text",
+            label: extension ? "Code file" : "Text file"
+        };
+    }
+
+    function createTreeFileIcon(file) {
+        const meta = getTreeFileIconMeta(file || {});
+        return createBootstrapIcon(meta.icon, "tree-file-icon " + meta.className, meta.label);
+    }
+
+    function isProjectFolderCollapsed(path) {
+        const safePath = safeNormalizePath(path);
+        return !!(safePath && collapsedFolderPaths.has(safePath));
+    }
+
+    function toggleProjectTreeFolder(path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return;
+        }
+        hideProjectTreeContextMenu();
+        projectTreeInlineDeleteTarget = null;
+        if (collapsedFolderPaths.has(safePath)) {
+            collapsedFolderPaths.delete(safePath);
+        } else {
+            collapsedFolderPaths.add(safePath);
+        }
+        renderProjectFileTree();
+    }
+
+    function expandProjectTreeAncestors(path) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath || safePath.indexOf("/") < 0) {
+            return;
+        }
+        const parts = safePath.split("/");
+        let current = "";
+        for (let i = 0; i < parts.length - 1; i++) {
+            current = current ? `${current}/${parts[i]}` : parts[i];
+            collapsedFolderPaths.delete(current);
+        }
+    }
+
+    function pruneCollapsedProjectFolders() {
+        if (!collapsedFolderPaths.size) {
+            return;
+        }
+        const folderPaths = new Set();
+        for (const file of projectFiles) {
+            const parts = safeNormalizePath(file.path).split("/");
+            let current = "";
+            for (let i = 0; i < parts.length - 1; i++) {
+                current = current ? `${current}/${parts[i]}` : parts[i];
+                folderPaths.add(current);
+            }
+        }
+        collapsedFolderPaths = new Set(Array.from(collapsedFolderPaths).filter(path => folderPaths.has(path)));
+    }
+
+    function moveCollapsedFolderState(oldPath, newPath) {
+        const safeOldPath = safeNormalizePath(oldPath);
+        const safeNewPath = safeNormalizePath(newPath);
+        if (!safeOldPath || !safeNewPath || !collapsedFolderPaths.size) {
+            return;
+        }
+        const nextCollapsed = new Set();
+        collapsedFolderPaths.forEach(path => {
+            if (path === safeOldPath || path.startsWith(safeOldPath + "/")) {
+                nextCollapsed.add(safeNewPath + path.slice(safeOldPath.length));
+            } else {
+                nextCollapsed.add(path);
+            }
+        });
+        collapsedFolderPaths = nextCollapsed;
+    }
+
     function getPathParent(path) {
         const safePath = safeNormalizePath(path);
         if (!safePath || safePath.indexOf("/") < 0) {
@@ -1696,6 +1924,7 @@
         const opts = options || {};
         projectTreeRenameTarget = null;
         projectTreeInlineDeleteTarget = null;
+        collapsedFolderPaths.clear();
         activeFilePath = "";
         const emptyLanguage = language || getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
         const viewer = document.getElementById("assetViewer");
@@ -1875,6 +2104,7 @@
                 nextActivePath = nextPath;
             }
         }
+        moveCollapsedFolderState(safeOldFolderPath, newFolderPath);
         activeFilePath = nextActivePath;
         refreshProjectAfterMutation(nextActivePath);
         return true;
@@ -2028,7 +2258,7 @@
             button.setAttribute("aria-label", "确认删除");
         } else {
             button.className = "tree-delete-btn";
-            button.textContent = "🗑";
+            button.innerHTML = '<i class="bi bi-trash3" aria-hidden="true"></i>';
             button.title = "删除";
             button.setAttribute("aria-label", "删除");
         }
@@ -2190,10 +2420,12 @@
         treeEl.innerHTML = "";
 
         if (!projectFiles.length) {
+            collapsedFolderPaths.clear();
             emptyEl.style.display = "block";
             return;
         }
         emptyEl.style.display = "none";
+        pruneCollapsedProjectFolders();
 
         const root = {dirs: {}, files: []};
         const sortedFiles = projectFiles.slice().sort((a, b) => a.path.localeCompare(b.path));
@@ -2220,6 +2452,7 @@
         const folderNames = Object.keys(node.dirs).sort((a, b) => a.localeCompare(b));
         for (const folder of folderNames) {
             const folderPath = prefix ? `${prefix}/${folder}` : folder;
+            const isCollapsed = isProjectFolderCollapsed(folderPath);
             const li = document.createElement("li");
             li.className = "tree-node";
             const title = document.createElement("div");
@@ -2234,12 +2467,43 @@
             } else {
                 const span = document.createElement("span");
                 span.className = "tree-folder-title";
+                if (isCollapsed) {
+                    span.classList.add("is-collapsed");
+                }
+                span.setAttribute("role", "button");
+                span.tabIndex = 0;
+                span.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+                span.title = isCollapsed ? "展开文件夹" : "折叠文件夹";
+                const toggleIcon = createBootstrapIcon(
+                    isCollapsed ? "bi-chevron-right" : "bi-chevron-down",
+                    "tree-folder-toggle",
+                    ""
+                );
+                const folderIcon = createBootstrapIcon(
+                    isCollapsed ? "bi-folder" : "bi-folder2-open",
+                    "tree-folder-icon",
+                    isCollapsed ? "Folder" : "Open folder"
+                );
                 const label = document.createElement("span");
                 label.className = "tree-entry-label";
-                label.textContent = "📁 " + folder;
+                label.textContent = folder;
+                span.appendChild(toggleIcon);
+                span.appendChild(folderIcon);
                 span.appendChild(label);
                 span.appendChild(createTreeDeleteControl("folder", folderPath));
                 title.appendChild(span);
+                span.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleProjectTreeFolder(folderPath);
+                });
+                span.addEventListener("keydown", function (e) {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleProjectTreeFolder(folderPath);
+                    }
+                });
                 title.addEventListener("dblclick", function (e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -2255,6 +2519,9 @@
 
             const child = document.createElement("ul");
             child.className = "tree-group";
+            if (isCollapsed) {
+                child.classList.add("is-collapsed");
+            }
             child.style.paddingLeft = "14px";
             buildTreeDom(node.dirs[folder], child, folderPath);
             li.appendChild(child);
@@ -2280,9 +2547,7 @@
                 if (item.file.path === activeFilePath) {
                     button.classList.add("active");
                 }
-                const icon = document.createElement("span");
-                icon.className = "tree-file-icon";
-                icon.textContent = item.file.kind === "text" ? "📄" : "🧩";
+                const icon = createTreeFileIcon(item.file);
                 const label = document.createElement("span");
                 label.className = "tree-entry-label";
                 label.textContent = item.name;
