@@ -440,52 +440,107 @@
             text-align: center;
         }
 
-        .tree-folder-icon,
         .tree-file-icon {
-            width: 16px;
-            min-width: 16px;
             margin-right: 6px;
             flex: 0 0 auto;
-            font-size: 15px;
-            line-height: 1;
             text-align: center;
         }
 
         .tree-folder-icon {
-            color: #e5b95e;
+            position: relative;
+            width: 19px;
+            min-width: 19px;
+            height: 14px;
             margin-right: 0;
+            flex: 0 0 auto;
+            border-radius: 2px 2px 3px 3px;
+            background: linear-gradient(180deg, #f4cd67 0%, #d79a36 100%);
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.28);
+        }
+
+        .tree-folder-icon::before {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: -4px;
+            width: 9px;
+            height: 5px;
+            border-radius: 2px 2px 0 0;
+            background: #f7d879;
+        }
+
+        .tree-folder-title.is-collapsed .tree-folder-icon {
+            background: linear-gradient(180deg, #eabe59 0%, #bd7d2f 100%);
         }
 
         .tree-file-icon {
-            opacity: 0.96;
+            position: relative;
+            width: 21px;
+            min-width: 21px;
+            height: 21px;
+            margin-right: 7px;
+            border-radius: 4px;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-family: Monaco, Menlo, Consolas, monospace;
+            font-size: 7px;
+            font-weight: 800;
+            letter-spacing: 0;
+            line-height: 1;
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.28);
+        }
+
+        .tree-file-icon::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 6px 6px 0;
+            border-color: transparent rgba(255, 255, 255, 0.3) transparent transparent;
+        }
+
+        .tree-file-icon-text {
+            position: relative;
+            z-index: 1;
+            transform: translateY(0.5px);
+        }
+
+        .tree-file-icon.is-wide {
+            font-size: 6px;
         }
 
         .tree-group.is-collapsed {
             display: none;
         }
 
-        .file-icon-python { color: #4aa3ff; }
-        .file-icon-javascript { color: #f7df5e; }
-        .file-icon-typescript { color: #4b9cf5; }
-        .file-icon-html { color: #ff8a4c; }
-        .file-icon-css { color: #69b7ff; }
-        .file-icon-markdown { color: #d7ddca; }
-        .file-icon-json { color: #f2c94c; }
-        .file-icon-yaml { color: #d38dff; }
-        .file-icon-java { color: #ff765f; }
-        .file-icon-php { color: #9ba7ff; }
-        .file-icon-ruby { color: #ff6473; }
-        .file-icon-go { color: #61d4e8; }
-        .file-icon-shell { color: #91d57b; }
-        .file-icon-sql { color: #7ac7ff; }
-        .file-icon-image { color: #7bd88f; }
-        .file-icon-audio { color: #d7a6ff; }
-        .file-icon-video { color: #ff9f6e; }
-        .file-icon-pdf { color: #ff6d6d; }
-        .file-icon-archive { color: #c7a76c; }
-        .file-icon-code { color: #95c9ff; }
-        .file-icon-text { color: #cdd5c0; }
-        .file-icon-asset { color: #b4c1ff; }
+        .file-icon-python { background: linear-gradient(135deg, #2f6fb0 0%, #48a6ff 54%, #ffd15a 55%, #f1b83b 100%); color: #fff; }
+        .file-icon-javascript { background: #f0d848; color: #2f2a12; }
+        .file-icon-typescript { background: #3478c6; color: #fff; }
+        .file-icon-html { background: #e86d37; color: #fff; }
+        .file-icon-css { background: #297bd7; color: #fff; }
+        .file-icon-markdown { background: #55606a; color: #f5f7fa; }
+        .file-icon-json { background: #d79e2a; color: #221a09; }
+        .file-icon-yaml { background: #8357c5; color: #fff; }
+        .file-icon-java { background: #d34f3f; color: #fff; }
+        .file-icon-php { background: #777bb4; color: #fff; }
+        .file-icon-ruby { background: #c83f4d; color: #fff; }
+        .file-icon-go { background: #25a9c7; color: #fff; }
+        .file-icon-shell { background: #4e9a45; color: #fff; }
+        .file-icon-sql { background: #2d8bcf; color: #fff; }
+        .file-icon-image { background: #49a65f; color: #fff; }
+        .file-icon-audio { background: #9d62ce; color: #fff; }
+        .file-icon-video { background: #d2783d; color: #fff; }
+        .file-icon-pdf { background: #d44848; color: #fff; }
+        .file-icon-archive { background: #9a7840; color: #fff; }
+        .file-icon-code { background: #5a7fb7; color: #fff; }
+        .file-icon-text { background: #737d71; color: #fff; }
+        .file-icon-asset { background: #6970b8; color: #fff; }
 
         .tree-delete-btn .bi {
             font-size: 13px;
@@ -1407,41 +1462,41 @@
         "yaml", "yml", "xml", "sh", "ini", "toml", "sql", "rs", "swift", "kt", "dart"
     ]);
     const FILE_ICON_BY_EXTENSION = {
-        py: {icon: "bi-filetype-py", className: "file-icon-python", label: "Python file"},
-        js: {icon: "bi-filetype-js", className: "file-icon-javascript", label: "JavaScript file"},
-        jsx: {icon: "bi-filetype-jsx", className: "file-icon-javascript", label: "JSX file"},
-        ts: {icon: "bi-file-earmark-code", className: "file-icon-typescript", label: "TypeScript file"},
-        tsx: {icon: "bi-filetype-tsx", className: "file-icon-typescript", label: "TSX file"},
-        html: {icon: "bi-filetype-html", className: "file-icon-html", label: "HTML file"},
-        htm: {icon: "bi-filetype-html", className: "file-icon-html", label: "HTML file"},
-        css: {icon: "bi-filetype-css", className: "file-icon-css", label: "CSS file"},
-        scss: {icon: "bi-filetype-scss", className: "file-icon-css", label: "SCSS file"},
-        sass: {icon: "bi-filetype-sass", className: "file-icon-css", label: "Sass file"},
-        less: {icon: "bi-file-earmark-code", className: "file-icon-css", label: "Less file"},
-        md: {icon: "bi-filetype-md", className: "file-icon-markdown", label: "Markdown file"},
-        markdown: {icon: "bi-filetype-md", className: "file-icon-markdown", label: "Markdown file"},
-        json: {icon: "bi-filetype-json", className: "file-icon-json", label: "JSON file"},
-        yaml: {icon: "bi-filetype-yml", className: "file-icon-yaml", label: "YAML file"},
-        yml: {icon: "bi-filetype-yml", className: "file-icon-yaml", label: "YAML file"},
-        xml: {icon: "bi-filetype-xml", className: "file-icon-code", label: "XML file"},
-        java: {icon: "bi-filetype-java", className: "file-icon-java", label: "Java file"},
-        php: {icon: "bi-filetype-php", className: "file-icon-php", label: "PHP file"},
-        rb: {icon: "bi-filetype-rb", className: "file-icon-ruby", label: "Ruby file"},
-        go: {icon: "bi-file-earmark-code", className: "file-icon-go", label: "Go file"},
-        c: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "C file"},
-        cc: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "C++ file"},
-        cpp: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "C++ file"},
-        h: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Header file"},
-        hpp: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Header file"},
-        rs: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Rust file"},
-        swift: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Swift file"},
-        kt: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Kotlin file"},
-        dart: {icon: "bi-file-earmark-code", className: "file-icon-code", label: "Dart file"},
-        sh: {icon: "bi-filetype-sh", className: "file-icon-shell", label: "Shell file"},
-        sql: {icon: "bi-filetype-sql", className: "file-icon-sql", label: "SQL file"},
-        txt: {icon: "bi-filetype-txt", className: "file-icon-text", label: "Text file"},
-        ini: {icon: "bi-file-earmark-text", className: "file-icon-text", label: "Config file"},
-        toml: {icon: "bi-file-earmark-text", className: "file-icon-text", label: "TOML file"}
+        py: {text: "PY", className: "file-icon-python", label: "Python file"},
+        js: {text: "JS", className: "file-icon-javascript", label: "JavaScript file"},
+        jsx: {text: "JSX", className: "file-icon-javascript", label: "JSX file"},
+        ts: {text: "TS", className: "file-icon-typescript", label: "TypeScript file"},
+        tsx: {text: "TSX", className: "file-icon-typescript", label: "TSX file"},
+        html: {text: "HTML", className: "file-icon-html", label: "HTML file"},
+        htm: {text: "HTML", className: "file-icon-html", label: "HTML file"},
+        css: {text: "CSS", className: "file-icon-css", label: "CSS file"},
+        scss: {text: "SCSS", className: "file-icon-css", label: "SCSS file"},
+        sass: {text: "SASS", className: "file-icon-css", label: "Sass file"},
+        less: {text: "LESS", className: "file-icon-css", label: "Less file"},
+        md: {text: "MD", className: "file-icon-markdown", label: "Markdown file"},
+        markdown: {text: "MD", className: "file-icon-markdown", label: "Markdown file"},
+        json: {text: "JSON", className: "file-icon-json", label: "JSON file"},
+        yaml: {text: "YML", className: "file-icon-yaml", label: "YAML file"},
+        yml: {text: "YML", className: "file-icon-yaml", label: "YAML file"},
+        xml: {text: "XML", className: "file-icon-code", label: "XML file"},
+        java: {text: "JAVA", className: "file-icon-java", label: "Java file"},
+        php: {text: "PHP", className: "file-icon-php", label: "PHP file"},
+        rb: {text: "RB", className: "file-icon-ruby", label: "Ruby file"},
+        go: {text: "GO", className: "file-icon-go", label: "Go file"},
+        c: {text: "C", className: "file-icon-code", label: "C file"},
+        cc: {text: "C++", className: "file-icon-code", label: "C++ file"},
+        cpp: {text: "C++", className: "file-icon-code", label: "C++ file"},
+        h: {text: "H", className: "file-icon-code", label: "Header file"},
+        hpp: {text: "H++", className: "file-icon-code", label: "Header file"},
+        rs: {text: "RS", className: "file-icon-code", label: "Rust file"},
+        swift: {text: "SW", className: "file-icon-code", label: "Swift file"},
+        kt: {text: "KT", className: "file-icon-code", label: "Kotlin file"},
+        dart: {text: "DART", className: "file-icon-code", label: "Dart file"},
+        sh: {text: "SH", className: "file-icon-shell", label: "Shell file"},
+        sql: {text: "SQL", className: "file-icon-sql", label: "SQL file"},
+        txt: {text: "TXT", className: "file-icon-text", label: "Text file"},
+        ini: {text: "INI", className: "file-icon-text", label: "Config file"},
+        toml: {text: "TOML", className: "file-icon-text", label: "TOML file"}
     };
     const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]);
     const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "flac", "aac", "m4a"]);
@@ -1790,25 +1845,25 @@
 
         if (file && file.kind === "asset") {
             if (mimeType.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) {
-                return {icon: "bi-file-earmark-image", className: "file-icon-image", label: "Image asset"};
+                return {text: "IMG", className: "file-icon-image", label: "Image asset"};
             }
             if (mimeType.startsWith("audio/") || AUDIO_EXTENSIONS.has(extension)) {
-                return {icon: "bi-file-earmark-music", className: "file-icon-audio", label: "Audio asset"};
+                return {text: "AUD", className: "file-icon-audio", label: "Audio asset"};
             }
             if (mimeType.startsWith("video/") || VIDEO_EXTENSIONS.has(extension)) {
-                return {icon: "bi-file-earmark-play", className: "file-icon-video", label: "Video asset"};
+                return {text: "VID", className: "file-icon-video", label: "Video asset"};
             }
             if (extension === "pdf" || mimeType === "application/pdf") {
-                return {icon: "bi-file-earmark-pdf", className: "file-icon-pdf", label: "PDF asset"};
+                return {text: "PDF", className: "file-icon-pdf", label: "PDF asset"};
             }
             if (ARCHIVE_EXTENSIONS.has(extension) || mimeType.includes("zip") || mimeType.includes("compressed")) {
-                return {icon: "bi-file-earmark-zip", className: "file-icon-archive", label: "Archive asset"};
+                return {text: "ZIP", className: "file-icon-archive", label: "Archive asset"};
             }
-            return {icon: "bi-file-earmark-binary", className: "file-icon-asset", label: "Asset file"};
+            return {text: extension ? extension.slice(0, 4).toUpperCase() : "BIN", className: "file-icon-asset", label: "Asset file"};
         }
 
         return FILE_ICON_BY_EXTENSION[extension] || {
-            icon: extension ? "bi-file-earmark-code" : "bi-file-earmark-text",
+            text: extension ? extension.slice(0, 4).toUpperCase() : "TXT",
             className: extension ? "file-icon-code" : "file-icon-text",
             label: extension ? "Code file" : "Text file"
         };
@@ -1816,7 +1871,26 @@
 
     function createTreeFileIcon(file) {
         const meta = getTreeFileIconMeta(file || {});
-        return createBootstrapIcon(meta.icon, "tree-file-icon " + meta.className, meta.label);
+        const icon = document.createElement("span");
+        const text = String(meta.text || "").toUpperCase();
+        icon.className = ["tree-file-icon", meta.className, text.length > 3 ? "is-wide" : ""].filter(Boolean).join(" ");
+        icon.setAttribute("aria-hidden", "true");
+        if (meta.label) {
+            icon.title = meta.label;
+        }
+        const textEl = document.createElement("span");
+        textEl.className = "tree-file-icon-text";
+        textEl.textContent = text;
+        icon.appendChild(textEl);
+        return icon;
+    }
+
+    function createTreeFolderIcon(isCollapsed) {
+        const icon = document.createElement("span");
+        icon.className = "tree-folder-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.title = isCollapsed ? "Folder" : "Open folder";
+        return icon;
     }
 
     function isProjectFolderCollapsed(path) {
@@ -2479,11 +2553,7 @@
                     "tree-folder-toggle",
                     ""
                 );
-                const folderIcon = createBootstrapIcon(
-                    isCollapsed ? "bi-folder" : "bi-folder2-open",
-                    "tree-folder-icon",
-                    isCollapsed ? "Folder" : "Open folder"
-                );
+                const folderIcon = createTreeFolderIcon(isCollapsed);
                 const label = document.createElement("span");
                 label.className = "tree-entry-label";
                 label.textContent = folder;
