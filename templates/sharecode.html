@@ -50,6 +50,7 @@
             --accent-share: #a7c336;
             --accent-run: #3b82f6;
             --accent-home: #ef7d62;
+            --toolbar-hover-lift: 4px;
         }
 
         html, body {
@@ -752,7 +753,9 @@
         }
 
         .toolbar {
-            height: var(--toolbar-height);
+            height: calc(var(--toolbar-height) + var(--toolbar-hover-lift));
+            margin-top: calc(var(--toolbar-hover-lift) * -1);
+            padding-top: var(--toolbar-hover-lift);
             background: var(--page-bg);
             border-top: 1px solid var(--panel-border);
             display: flex;
@@ -762,8 +765,8 @@
             overflow-y: hidden;
             white-space: nowrap;
             position: relative;
-            z-index: 30;
-            flex: 0 0 var(--toolbar-height);
+            z-index: 160;
+            flex: 0 0 calc(var(--toolbar-height) + var(--toolbar-hover-lift));
         }
 
         .toolbar::-webkit-scrollbar {
@@ -789,12 +792,15 @@
             min-width: 88px;
             transition: transform 0.14s ease, filter 0.14s ease;
             font-size: 14px;
+            position: relative;
+            z-index: 1;
         }
 
         .toolbar-btn:hover {
             transform: translateY(-2px);
             filter: brightness(1.08);
             cursor: pointer;
+            z-index: 2;
         }
 
         .toolbar-btn:active {
@@ -850,7 +856,7 @@
             top: 50%;
             right: 0;
             transform: translateY(-50%);
-            z-index: 105;
+            z-index: 10000;
             width: 40px;
             height: 40px;
             background-color: var(--accent-home);
@@ -873,7 +879,7 @@
             padding: 10px;
             border-radius: 8px 0 0 8px;
             transition: transform 0.3s ease;
-            z-index: 104;
+            z-index: 9999;
             box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.5);
             width: 220px;
             display: none;
@@ -931,7 +937,7 @@
             inset: 0;
             background: rgba(0, 0, 0, 0.64);
             display: none;
-            z-index: 200;
+            z-index: 10020;
         }
 
         .overlay-dialog {
@@ -1037,7 +1043,7 @@
             position: fixed;
             right: 18px;
             bottom: 18px;
-            z-index: 280;
+            z-index: 10030;
             max-width: min(360px, calc(100vw - 36px));
             padding: 10px 14px;
             border-radius: 8px;
