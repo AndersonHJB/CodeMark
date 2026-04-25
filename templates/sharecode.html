@@ -663,6 +663,26 @@
             outline: none;
         }
 
+        .tree-create-row {
+            min-height: 28px;
+            border-radius: 6px;
+            background: rgba(109, 221, 242, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 6px;
+        }
+
+        .tree-create-row .tree-folder-toggle {
+            color: transparent;
+        }
+
+        .tree-create-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 24px;
+        }
+
         .project-context-menu {
             position: fixed;
             z-index: 260;
@@ -948,8 +968,6 @@
         }
 
         #shareOverlay,
-        #fileCreateOverlay,
-        #folderCreateOverlay,
         #projectConfirmOverlay,
         #aboutOverlay {
             position: fixed;
@@ -1440,59 +1458,6 @@
     </div>
 </div>
 
-<div id="fileCreateOverlay">
-    <div class="overlay-dialog" id="fileCreateDialog">
-        <div class="overlay-dialog-header">
-            <h5 class="overlay-dialog-title">新建文件</h5>
-            <button class="overlay-dialog-close" onclick="closeCreateFileDialog()">×</button>
-        </div>
-        <div class="overlay-dialog-body">
-            <div class="overlay-field">
-                <label for="new-file-path">文件路径（支持目录层级，如 src/main.py）</label>
-                <input id="new-file-path" type="text" placeholder="src/main.py" autocomplete="off" />
-            </div>
-            <div class="overlay-field">
-                <label for="new-file-language">语言</label>
-                <select id="new-file-language">
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="c_cpp">C/C++</option>
-                    <option value="java">Java</option>
-                    <option value="php">PHP</option>
-                    <option value="ruby">Ruby</option>
-                    <option value="golang">Go</option>
-                    <option value="html">HTML</option>
-                    <option value="css">CSS</option>
-                    <option value="markdown">Markdown</option>
-                </select>
-            </div>
-            <div class="overlay-actions">
-                <button class="btn-secondary-lite" onclick="closeCreateFileDialog()">取消</button>
-                <button class="btn-primary-lite" onclick="createNewProjectFileFromDialog()">创建</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="folderCreateOverlay">
-    <div class="overlay-dialog" id="folderCreateDialog">
-        <div class="overlay-dialog-header">
-            <h5 class="overlay-dialog-title">新建文件夹</h5>
-            <button class="overlay-dialog-close" onclick="closeCreateFolderDialog()">×</button>
-        </div>
-        <div class="overlay-dialog-body">
-            <div class="overlay-field">
-                <label for="new-folder-path">文件夹路径（支持目录层级，如 src/components）</label>
-                <input id="new-folder-path" type="text" placeholder="src/components" autocomplete="off" />
-            </div>
-            <div class="overlay-actions">
-                <button class="btn-secondary-lite" onclick="closeCreateFolderDialog()">取消</button>
-                <button class="btn-primary-lite" onclick="createNewProjectFolderFromDialog()">创建</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div id="aboutOverlay">
     <div class="overlay-dialog" id="aboutDialog">
         <div class="overlay-dialog-header">
@@ -1615,7 +1580,7 @@
     let projectTreeContextTarget = null;
     let projectTreeRenameTarget = null;
     let projectTreeInlineDeleteTarget = null;
-    let projectTreeCreateParentPath = "";
+    let projectTreeCreateTarget = null;
     let pendingProjectConfirmAction = null;
     let projectNoticeTimer = null;
     let sidebarResizeState = null;
@@ -2281,7 +2246,7 @@
         const opts = options || {};
         projectTreeRenameTarget = null;
         projectTreeInlineDeleteTarget = null;
-        projectTreeCreateParentPath = "";
+        projectTreeCreateTarget = null;
         if (opts.clearFolders) {
             projectFolders = [];
         }
@@ -2348,7 +2313,7 @@
         const opts = options || {};
         projectTreeRenameTarget = null;
         projectTreeInlineDeleteTarget = null;
-        projectTreeCreateParentPath = "";
+        projectTreeCreateTarget = null;
         if (!projectFiles.length) {
             if (!projectFolders.length) {
                 resetWorkspaceForEmptyProject(null, opts);
@@ -2409,6 +2374,179 @@
         renderProjectFileTree();
     }
 
+    function focusProjectCreateInput() {
+        setTimeout(function () {
+            const input = document.querySelector('[data-tree-create-input="true"]');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 0);
+    }
+
+    function cancelProjectTreeCreate() {
+        if (!projectTreeCreateTarget) {
+            return;
+        }
+        projectTreeCreateTarget = null;
+        renderProjectFileTree();
+    }
+
+    function getProjectTreeCreateLanguage() {
+        const active = getActiveProjectFile();
+        if (active && active.kind === "text") {
+            return active.language || detectLanguageFromFilename(active.path);
+        }
+        return getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+    }
+
+    function getPathRelativeToParent(path, parentPath) {
+        const safePath = safeNormalizePath(path);
+        const safeParentPath = safeNormalizePath(parentPath || "");
+        if (safeParentPath && safePath.startsWith(safeParentPath + "/")) {
+            return safePath.slice(safeParentPath.length + 1);
+        }
+        return safePath;
+    }
+
+    function getProjectTreeCreateDefaultName(kind, parentPath, language) {
+        const safeParentPath = safeNormalizePath(parentPath || "");
+        const fallbackName = kind === "folder"
+            ? "new-folder"
+            : defaultFilenameForLanguage(language || getProjectTreeCreateLanguage());
+        const fallbackPath = safeNormalizePath(joinProjectPath(safeParentPath, fallbackName));
+        const uniquePath = kind === "folder"
+            ? ensureUniqueFolderPath(fallbackPath)
+            : ensureUniquePath(fallbackPath);
+        return getPathRelativeToParent(uniquePath || fallbackPath || fallbackName, safeParentPath) || fallbackName;
+    }
+
+    function beginProjectTreeCreate(kind, parentPath) {
+        if (kind !== "file" && kind !== "folder") {
+            return;
+        }
+        const safeParentPath = safeNormalizePath(parentPath || "");
+        const language = kind === "file" ? getProjectTreeCreateLanguage() : "";
+        hideFloatingMenuIfOpen();
+        hideProjectTreeContextMenu();
+        projectTreeRenameTarget = null;
+        projectTreeInlineDeleteTarget = null;
+        if (safeParentPath) {
+            expandProjectTreeAncestors(joinProjectPath(safeParentPath, "_placeholder"));
+            collapsedFolderPaths.delete(safeParentPath);
+        }
+        projectTreeCreateTarget = {
+            kind: kind,
+            parentPath: safeParentPath,
+            language: language,
+            defaultName: getProjectTreeCreateDefaultName(kind, safeParentPath, language)
+        };
+        setSidebarOpen(true);
+        renderProjectFileTree();
+        focusProjectCreateInput();
+    }
+
+    function resolveProjectTreeCreatePath(target, rawName, fallbackName) {
+        const safeParentPath = safeNormalizePath((target && target.parentPath) || "");
+        const rawValue = typeof rawName === "string" ? rawName.trim() : "";
+        const nameValue = rawValue || fallbackName || "";
+        const safeNamePath = safeNormalizePath(nameValue);
+        if (!safeNamePath) {
+            return "";
+        }
+        if (safeParentPath && (safeNamePath === safeParentPath || safeNamePath.startsWith(safeParentPath + "/"))) {
+            return safeNamePath;
+        }
+        return safeNormalizePath(joinProjectPath(safeParentPath, safeNamePath));
+    }
+
+    function commitProjectTreeCreate(kind, parentPath, rawName) {
+        const safeParentPath = safeNormalizePath(parentPath || "");
+        const target = projectTreeCreateTarget;
+        if (!target || target.kind !== kind || target.parentPath !== safeParentPath) {
+            return true;
+        }
+
+        let inputPath = resolveProjectTreeCreatePath(target, rawName, target.defaultName);
+        if (!inputPath) {
+            showProjectNotice("名称不能为空，不能使用 . 或 .. 路径段。");
+            focusProjectCreateInput();
+            return false;
+        }
+
+        if (kind === "file") {
+            const selectedLanguage = target.language || getProjectTreeCreateLanguage();
+            const filename = getProjectPathName(inputPath);
+            if (filename && filename.indexOf(".") < 0) {
+                inputPath = safeNormalizePath(inputPath + "." + (LANGUAGE_TO_EXTENSION[selectedLanguage] || "txt"));
+            }
+            const filePath = ensureUniquePath(inputPath);
+            if (!filePath) {
+                showProjectNotice("文件名无效，请换一个名称。");
+                focusProjectCreateInput();
+                return false;
+            }
+
+            syncActiveEditorToProject();
+            projectTreeCreateTarget = null;
+            upsertProjectFile({
+                kind: "text",
+                path: filePath,
+                content: "",
+                language: detectLanguageFromFilename(filePath) || selectedLanguage
+            }, true);
+            updateSidebarVisibilityByFileCount(false);
+            scheduleSharecodeDraftCacheSave();
+            return true;
+        }
+
+        const folderPath = ensureUniqueFolderPath(inputPath);
+        if (!folderPath) {
+            showProjectNotice("文件夹名称无效，请换一个名称。");
+            focusProjectCreateInput();
+            return false;
+        }
+
+        projectTreeCreateTarget = null;
+        addProjectFolder(folderPath);
+        expandProjectTreeAncestors(joinProjectPath(folderPath, "_placeholder"));
+        collapsedFolderPaths.delete(folderPath);
+        renderProjectFileTree();
+        updateSidebarVisibilityByFileCount(false);
+        setSidebarOpen(true);
+        scheduleSharecodeDraftCacheSave();
+        showProjectNotice(`已创建文件夹 "${folderPath}"。`);
+        return true;
+    }
+
+    function bindProjectTreeCreateInput(input, kind, parentPath) {
+        input.dataset.treeCreateInput = "true";
+        input.addEventListener("click", function (e) {
+            e.stopPropagation();
+        });
+        input.addEventListener("dblclick", function (e) {
+            e.stopPropagation();
+        });
+        input.addEventListener("contextmenu", function (e) {
+            e.stopPropagation();
+        });
+        input.addEventListener("keydown", function (e) {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+                e.preventDefault();
+                commitProjectTreeCreate(kind, parentPath, input.value);
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelProjectTreeCreate();
+            }
+        });
+        input.addEventListener("blur", function () {
+            if (projectTreeCreateTarget && projectTreeCreateTarget.kind === kind && projectTreeCreateTarget.parentPath === safeNormalizePath(parentPath || "")) {
+                cancelProjectTreeCreate();
+            }
+        });
+    }
+
     function isSameProjectTreeTarget(target, kind, path) {
         return !!(target && target.kind === kind && target.path === safeNormalizePath(path));
     }
@@ -2427,6 +2565,7 @@
         hideProjectTreeContextMenu();
         projectTreeRenameTarget = {kind: kind, path: safePath};
         projectTreeInlineDeleteTarget = null;
+        projectTreeCreateTarget = null;
         renderProjectFileTree();
         focusProjectRenameInput();
     }
@@ -2676,6 +2815,7 @@
         hideProjectTreeContextMenu();
         projectTreeRenameTarget = null;
         projectTreeInlineDeleteTarget = null;
+        projectTreeCreateTarget = null;
         if (!canMoveProjectTreeItemToParent(kind, safePath, safeTargetParentPath)) {
             return false;
         }
@@ -2955,6 +3095,7 @@
         }
         hideProjectTreeContextMenu();
         projectTreeRenameTarget = null;
+        projectTreeCreateTarget = null;
         projectTreeInlineDeleteTarget = {kind: kind, path: safePath};
         renderProjectFileTree();
     }
@@ -3003,6 +3144,7 @@
     function clearAllProjectFiles() {
         hideFloatingMenuIfOpen();
         hideProjectTreeContextMenu();
+        projectTreeCreateTarget = null;
         const emptyLanguage = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
         if (!hasProjectTreeItems()) {
             resetWorkspaceForEmptyProject(emptyLanguage, {clearFolders: true});
@@ -3177,18 +3319,52 @@
         document.addEventListener("scroll", hideProjectTreeContextMenu, true);
     }
 
+    function appendProjectTreeCreateInput(parent, prefix, kind) {
+        if (!projectTreeCreateTarget || projectTreeCreateTarget.kind !== kind || projectTreeCreateTarget.parentPath !== safeNormalizePath(prefix || "")) {
+            return;
+        }
+
+        const li = document.createElement("li");
+        li.className = "tree-node";
+        const row = document.createElement("div");
+        row.className = "tree-create-row";
+        const input = document.createElement("input");
+        input.className = "tree-rename-input tree-create-input";
+        input.type = "text";
+        input.value = projectTreeCreateTarget.defaultName || getProjectTreeCreateDefaultName(kind, prefix, projectTreeCreateTarget.language);
+        input.placeholder = kind === "folder" ? "new-folder" : defaultFilenameForLanguage(projectTreeCreateTarget.language || getProjectTreeCreateLanguage());
+        bindProjectTreeCreateInput(input, kind, prefix);
+
+        if (kind === "folder") {
+            row.appendChild(createBootstrapIcon("bi-chevron-right", "tree-folder-toggle", ""));
+            row.appendChild(createTreeFolderIcon(true));
+        } else {
+            const previewPath = safeNormalizePath(joinProjectPath(prefix || "", input.value));
+            row.appendChild(createTreeFileIcon({
+                kind: "text",
+                path: previewPath || input.value
+            }));
+        }
+
+        row.appendChild(input);
+        li.appendChild(row);
+        parent.appendChild(li);
+    }
+
     function renderProjectFileTree() {
         const treeEl = document.getElementById("projectFileTree");
         const emptyEl = document.getElementById("projectTreeEmpty");
         treeEl.innerHTML = "";
 
-        if (!hasProjectTreeItems()) {
+        if (!hasProjectTreeItems() && !projectTreeCreateTarget) {
             collapsedFolderPaths.clear();
             emptyEl.style.display = "block";
             return;
         }
         emptyEl.style.display = "none";
-        pruneCollapsedProjectFolders();
+        if (hasProjectTreeItems()) {
+            pruneCollapsedProjectFolders();
+        }
 
         const root = {dirs: {}, files: []};
         const sortedFolders = projectFolders.slice().sort((a, b) => a.localeCompare(b));
@@ -3226,6 +3402,8 @@
     }
 
     function buildTreeDom(node, parent, prefix) {
+        appendProjectTreeCreateInput(parent, prefix, "folder");
+
         const folderNames = Object.keys(node.dirs).sort((a, b) => a.localeCompare(b));
         for (const folder of folderNames) {
             const folderPath = prefix ? `${prefix}/${folder}` : folder;
@@ -3302,6 +3480,8 @@
             li.appendChild(child);
             parent.appendChild(li);
         }
+
+        appendProjectTreeCreateInput(parent, prefix, "file");
 
         const fileItems = node.files.slice().sort((a, b) => a.name.localeCompare(b.name));
         for (const item of fileItems) {
@@ -3688,103 +3868,37 @@
     }
 
     function openCreateFileDialog(parentPath) {
-        const safeParentPath = safeNormalizePath(parentPath || "");
-        const active = getActiveProjectFile();
-        const lang = active && active.kind === "text" ? (active.language || detectLanguageFromFilename(active.path)) : SHARECODE_DEFAULT_LANG;
-        const defaultName = defaultFilenameForLanguage(lang);
-        const input = document.getElementById("new-file-path");
-        document.getElementById("new-file-language").value = lang;
-        input.value = safeParentPath ? joinProjectPath(safeParentPath, defaultName) : "";
-        input.placeholder = safeParentPath ? joinProjectPath(safeParentPath, defaultName) : defaultName;
-        openOverlay("fileCreateOverlay");
-        setTimeout(() => {
-            input.focus();
-            if (safeParentPath && input.setSelectionRange) {
-                const prefixLength = safeParentPath.length + 1;
-                input.setSelectionRange(prefixLength, input.value.length);
-            }
-        }, 40);
+        beginProjectTreeCreate("file", parentPath);
     }
 
     function closeCreateFileDialog() {
-        closeOverlay("fileCreateOverlay");
+        cancelProjectTreeCreate();
     }
 
     function createNewProjectFileFromDialog() {
-        const language = document.getElementById("new-file-language").value || SHARECODE_DEFAULT_LANG;
-        let inputPath = document.getElementById("new-file-path").value || "";
-        inputPath = safeNormalizePath(inputPath);
-
-        if (!inputPath) {
-            inputPath = defaultFilenameForLanguage(language);
-        }
-        if (!inputPath.includes(".")) {
-            inputPath += "." + (LANGUAGE_TO_EXTENSION[language] || "txt");
-        }
-
-        inputPath = ensureUniquePath(inputPath);
-        if (!inputPath) {
+        if (!projectTreeCreateTarget || projectTreeCreateTarget.kind !== "file") {
+            beginProjectTreeCreate("file", "");
             return;
         }
-
-        upsertProjectFile({
-            kind: "text",
-            path: inputPath,
-            content: "",
-            language
-        }, true);
-
-        closeCreateFileDialog();
-        updateSidebarVisibilityByFileCount(false);
-        scheduleSharecodeDraftCacheSave();
+        const input = document.querySelector('[data-tree-create-input="true"]');
+        commitProjectTreeCreate("file", projectTreeCreateTarget.parentPath, input ? input.value : "");
     }
 
     function openCreateFolderDialog(parentPath) {
-        projectTreeCreateParentPath = safeNormalizePath(parentPath || "");
-        const input = document.getElementById("new-folder-path");
-        const defaultName = "new-folder";
-        input.value = projectTreeCreateParentPath ? joinProjectPath(projectTreeCreateParentPath, defaultName) : defaultName;
-        input.placeholder = projectTreeCreateParentPath
-            ? joinProjectPath(projectTreeCreateParentPath, "components")
-            : "src/components";
-        openOverlay("folderCreateOverlay");
-        setTimeout(() => {
-            input.focus();
-            if (input.setSelectionRange) {
-                const prefixLength = projectTreeCreateParentPath ? projectTreeCreateParentPath.length + 1 : 0;
-                input.setSelectionRange(prefixLength, input.value.length);
-            }
-        }, 40);
+        beginProjectTreeCreate("folder", parentPath);
     }
 
     function closeCreateFolderDialog() {
-        projectTreeCreateParentPath = "";
-        closeOverlay("folderCreateOverlay");
+        cancelProjectTreeCreate();
     }
 
     function createNewProjectFolderFromDialog() {
-        let inputPath = document.getElementById("new-folder-path").value || "";
-        inputPath = safeNormalizePath(inputPath);
-        if (!inputPath) {
-            inputPath = projectTreeCreateParentPath
-                ? joinProjectPath(projectTreeCreateParentPath, "new-folder")
-                : "new-folder";
-        }
-
-        const folderPath = ensureUniqueFolderPath(inputPath);
-        if (!folderPath) {
+        if (!projectTreeCreateTarget || projectTreeCreateTarget.kind !== "folder") {
+            beginProjectTreeCreate("folder", "");
             return;
         }
-
-        addProjectFolder(folderPath);
-        expandProjectTreeAncestors(joinProjectPath(folderPath, "_placeholder"));
-        collapsedFolderPaths.delete(folderPath);
-        renderProjectFileTree();
-        updateSidebarVisibilityByFileCount(false);
-        setSidebarOpen(true);
-        scheduleSharecodeDraftCacheSave();
-        closeCreateFolderDialog();
-        showProjectNotice(`已创建文件夹 "${folderPath}"。`);
+        const input = document.querySelector('[data-tree-create-input="true"]');
+        commitProjectTreeCreate("folder", projectTreeCreateTarget.parentPath, input ? input.value : "");
     }
 
     function openAboutDialog() {
@@ -4125,8 +4239,6 @@
         });
 
         bindOverlayDismiss("shareOverlay", "shareDialog");
-        bindOverlayDismiss("fileCreateOverlay", "fileCreateDialog");
-        bindOverlayDismiss("folderCreateOverlay", "folderCreateDialog");
         bindOverlayDismiss("projectConfirmOverlay", "projectConfirmDialog");
         bindOverlayDismiss("aboutOverlay", "aboutDialog");
 
