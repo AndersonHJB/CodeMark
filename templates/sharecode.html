@@ -756,8 +756,16 @@
             height: calc(var(--toolbar-height) + var(--toolbar-hover-lift));
             margin-top: calc(var(--toolbar-hover-lift) * -1);
             padding-top: var(--toolbar-hover-lift);
-            background: var(--page-bg);
-            border-top: 1px solid var(--panel-border);
+            background: linear-gradient(
+                to bottom,
+                transparent 0,
+                transparent var(--toolbar-hover-lift),
+                var(--panel-border) var(--toolbar-hover-lift),
+                var(--panel-border) calc(var(--toolbar-hover-lift) + 1px),
+                var(--page-bg) calc(var(--toolbar-hover-lift) + 1px),
+                var(--page-bg) 100%
+            );
+            border-top: none;
             display: flex;
             align-items: center;
             gap: 0;
