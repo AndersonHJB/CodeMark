@@ -716,6 +716,22 @@
             z-index: 1;
         }
 
+        #htmlPreviewPane {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            display: none;
+            background: #fff;
+        }
+
+        #htmlPreviewFrame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: block;
+            background: #fff;
+        }
+
         #assetViewer {
             position: absolute;
             inset: 0;
@@ -842,6 +858,18 @@
             color: #fff;
             padding: 0 8px;
             min-width: 126px;
+        }
+
+        .html-share-view-control {
+            display: none;
+        }
+
+        .toolbar .html-share-view-control.is-visible {
+            display: flex;
+        }
+
+        #floatingMenu .html-share-view-control.is-visible {
+            display: block;
         }
 
         .toolbar-link {
@@ -1303,6 +1331,9 @@
         <div id="editorArea" onclick="hideFloatingMenuIfOpen()">
             <div id="editor"></div>
             <div id="assetViewer"></div>
+            <div id="htmlPreviewPane">
+                <iframe id="htmlPreviewFrame" title="HTML Preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+            </div>
         </div>
 
         <div class="toolbar" id="desktopToolbar">
@@ -1310,6 +1341,13 @@
             <button class="toolbar-btn open" onclick="performClick('file-input')">open</button>
             <button class="toolbar-btn folder" onclick="performClick('folder-input')">folder</button>
             <button class="toolbar-btn share" onclick="share()">share</button>
+            <div class="toolbar-select-group html-share-view-control" id="share-view-control-desktop">
+                <span>View</span>
+                <select id="share-view-selector-desktop" class="toolbar-select">
+                    <option value="source">Source</option>
+                    <option value="preview">Preview</option>
+                </select>
+            </div>
             <button class="toolbar-btn run python-run-btn" onclick="goPythonRunPage()">py-run</button>
             <button class="toolbar-btn home" onclick="home()">home</button>
 
@@ -1360,6 +1398,13 @@
     <button id="mobile-open" onclick="performClick('file-input')">open</button>
     <button id="mobile-folder" onclick="performClick('folder-input')">folder</button>
     <button id="mobile-share" onclick="share()">share</button>
+    <div class="mobile-select-wrap html-share-view-control" id="share-view-control-mobile">
+        <label for="share-view-selector-mobile">View</label>
+        <select id="share-view-selector-mobile" class="mobile-select">
+            <option value="source">Source</option>
+            <option value="preview">Preview</option>
+        </select>
+    </div>
     <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()">py-run</button>
     <button id="mobile-home" onclick="home()">home</button>
 
@@ -1508,6 +1553,8 @@
     const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
     const SHARECODE_DEFAULT_LANG = "python";
     const SHARECODE_DEFAULT_THEME = "monokai";
+    const SHARE_VIEW_SOURCE = "source";
+    const SHARE_VIEW_PREVIEW = "preview";
     const SIDEBAR_DEFAULT_WIDTH = 236;
     const SIDEBAR_MIN_WIDTH = 184;
     const SIDEBAR_MAX_WIDTH = 520;
@@ -1703,6 +1750,8 @@
     let sidebarResizeFrame = null;
     let projectTreeDragState = null;
     let projectTreeCurrentDropTarget = null;
+    let shareViewMode = SHARE_VIEW_SOURCE;
+    let htmlPreviewRefreshTimer = null;
 
     function isMobileViewport() {
         return window.matchMedia("(max-width: 768px)").matches;
@@ -1848,7 +1897,7 @@
     function detectLanguageFromFilename(filename) {
         let safePath = safeNormalizePath(filename).toLowerCase();
         if (safePath.endsWith(".py")) return "python";
-        if (safePath.endsWith(".js")) return "javascript";
+        if (safePath.endsWith(".js") || safePath.endsWith(".jsx") || safePath.endsWith(".ts") || safePath.endsWith(".tsx")) return "javascript";
         if (safePath.endsWith(".c") || safePath.endsWith(".cpp") || safePath.endsWith(".cc") || safePath.endsWith(".h") || safePath.endsWith(".hpp")) return "c_cpp";
         if (safePath.endsWith(".java")) return "java";
         if (safePath.endsWith(".php")) return "php";
@@ -2046,8 +2095,10 @@
             targetFile.language = lang;
             setLanguageSelectors(lang);
             setEditorLang(lang);
+            applyShareViewToWorkspace({immediate: true});
         } else {
             showAssetPreview(targetFile);
+            updateHtmlShareViewControls();
         }
 
         renderProjectFileTree();
@@ -2084,6 +2135,7 @@
     function showAssetPreview(assetFile) {
         const viewer = document.getElementById("assetViewer");
         const editorElement = document.getElementById("editor");
+        hideHtmlPreviewPane();
         editorElement.style.display = "none";
         viewer.style.display = "block";
 
@@ -2112,6 +2164,585 @@
             .replace(/>/g, "&gt;")
             .replace(/\"/g, "&quot;")
             .replace(/'/g, "&#39;");
+    }
+
+    function isSharedCodePage() {
+        return window.location.pathname.indexOf("/share/") === 0;
+    }
+
+    function normalizeShareViewMode(rawMode) {
+        return rawMode === SHARE_VIEW_PREVIEW ? SHARE_VIEW_PREVIEW : SHARE_VIEW_SOURCE;
+    }
+
+    function resolveInitialShareViewMode() {
+        try {
+            const params = new URLSearchParams(window.location.search || "");
+            const view = (params.get("view") || "").toLowerCase();
+            const preview = (params.get("preview") || "").toLowerCase();
+            if (view === SHARE_VIEW_PREVIEW || preview === "1" || preview === "true") {
+                return SHARE_VIEW_PREVIEW;
+            }
+        } catch (e) {
+        }
+        return SHARE_VIEW_SOURCE;
+    }
+
+    function setShareViewSelectors(mode) {
+        const nextMode = normalizeShareViewMode(mode);
+        const desktop = document.getElementById("share-view-selector-desktop");
+        const mobile = document.getElementById("share-view-selector-mobile");
+        if (desktop) {
+            desktop.value = nextMode;
+        }
+        if (mobile) {
+            mobile.value = nextMode;
+        }
+    }
+
+    function isHtmlDocumentFile(file) {
+        if (!file || file.kind !== "text") {
+            return false;
+        }
+        const ext = getPathExtension(file.path);
+        const language = file.language || detectLanguageFromFilename(file.path);
+        return language === "html" || ext === "html" || ext === "htm";
+    }
+
+    function looksLikeReactCode(content) {
+        const code = String(content || "");
+        return /(?:from\s+["']react["']|ReactDOM|createRoot\s*\(|<[A-Z][A-Za-z0-9.]*[\s/>])/.test(code);
+    }
+
+    function isReactPreviewFile(file) {
+        if (!file || file.kind !== "text") {
+            return false;
+        }
+        const ext = getPathExtension(file.path);
+        if (ext === "jsx" || ext === "tsx") {
+            return true;
+        }
+        return (ext === "js" || ext === "ts") && looksLikeReactCode(file.content);
+    }
+
+    function isHtmlPreviewableFile(file) {
+        return isHtmlDocumentFile(file) || isReactPreviewFile(file);
+    }
+
+    function updateHtmlShareViewControls() {
+        const visible = isHtmlPreviewableFile(getActiveProjectFile());
+        document.querySelectorAll(".html-share-view-control").forEach(control => {
+            control.classList.toggle("is-visible", visible);
+        });
+        document.querySelectorAll("#share-view-selector-desktop, #share-view-selector-mobile").forEach(selector => {
+            selector.disabled = !visible;
+            selector.value = normalizeShareViewMode(shareViewMode);
+        });
+        return visible;
+    }
+
+    function hideHtmlPreviewPane() {
+        const previewPane = document.getElementById("htmlPreviewPane");
+        if (previewPane) {
+            previewPane.style.display = "none";
+        }
+    }
+
+    function showSourcePaneForActiveFile() {
+        const active = getActiveProjectFile();
+        hideHtmlPreviewPane();
+        if (!active || active.kind !== "text") {
+            return;
+        }
+        const assetViewer = document.getElementById("assetViewer");
+        const editorElement = document.getElementById("editor");
+        if (assetViewer) {
+            assetViewer.style.display = "none";
+        }
+        if (editorElement) {
+            editorElement.style.display = "block";
+        }
+        if (window.editor) {
+            setTimeout(function () {
+                window.editor.resize();
+            }, 0);
+        }
+    }
+
+    function showHtmlPreviewPane() {
+        const assetViewer = document.getElementById("assetViewer");
+        const editorElement = document.getElementById("editor");
+        const previewPane = document.getElementById("htmlPreviewPane");
+        if (assetViewer) {
+            assetViewer.style.display = "none";
+        }
+        if (editorElement) {
+            editorElement.style.display = "none";
+        }
+        if (previewPane) {
+            previewPane.style.display = "block";
+        }
+    }
+
+    function getEffectiveShareViewMode() {
+        return shareViewMode === SHARE_VIEW_PREVIEW && isHtmlPreviewableFile(getActiveProjectFile())
+            ? SHARE_VIEW_PREVIEW
+            : SHARE_VIEW_SOURCE;
+    }
+
+    function updateCurrentShareViewUrl() {
+        if (!isSharedCodePage() || !window.history || !window.history.replaceState) {
+            return;
+        }
+        try {
+            const url = new URL(window.location.href);
+            if (getEffectiveShareViewMode() === SHARE_VIEW_PREVIEW) {
+                url.searchParams.set("view", SHARE_VIEW_PREVIEW);
+            } else {
+                url.searchParams.delete("view");
+                url.searchParams.delete("preview");
+            }
+            window.history.replaceState(null, "", url.toString());
+        } catch (e) {
+        }
+    }
+
+    function applyShareViewToWorkspace(options) {
+        const opts = options || {};
+        const active = getActiveProjectFile();
+        const canPreview = updateHtmlShareViewControls();
+        if (!active || active.kind !== "text") {
+            hideHtmlPreviewPane();
+            return;
+        }
+        if (shareViewMode === SHARE_VIEW_PREVIEW && canPreview) {
+            showHtmlPreviewPane();
+            if (!opts.skipRefresh) {
+                refreshHtmlPreview(opts.immediate === true);
+            }
+        } else {
+            showSourcePaneForActiveFile();
+        }
+        if (opts.updateUrl) {
+            updateCurrentShareViewUrl();
+        }
+    }
+
+    function setShareViewMode(nextMode, options) {
+        const opts = options || {};
+        shareViewMode = normalizeShareViewMode(nextMode);
+        setShareViewSelectors(shareViewMode);
+        applyShareViewToWorkspace({
+            immediate: true,
+            updateUrl: opts.updateUrl !== false
+        });
+        scheduleSharecodeDraftCacheSave();
+    }
+
+    function appendShareViewToLink(rawLink) {
+        if (getEffectiveShareViewMode() !== SHARE_VIEW_PREVIEW) {
+            return rawLink;
+        }
+        try {
+            const url = new URL(rawLink, window.location.href);
+            url.searchParams.set("view", SHARE_VIEW_PREVIEW);
+            return url.toString();
+        } catch (e) {
+            const separator = rawLink.indexOf("?") >= 0 ? "&" : "?";
+            return rawLink + separator + "view=" + SHARE_VIEW_PREVIEW;
+        }
+    }
+
+    function getTextResourceMimeType(file) {
+        const ext = getPathExtension(file && file.path);
+        if (ext === "css" || ext === "scss" || ext === "less") return "text/css";
+        if (ext === "html" || ext === "htm") return "text/html";
+        if (ext === "svg") return "image/svg+xml";
+        if (ext === "json") return "application/json";
+        if (ext === "js" || ext === "jsx" || ext === "ts" || ext === "tsx") return "text/javascript";
+        return "text/plain";
+    }
+
+    function addPreviewResource(resourceMap, path, resource) {
+        const safePath = safeNormalizePath(path);
+        if (!safePath) {
+            return;
+        }
+        if (!resourceMap.has(safePath)) {
+            resourceMap.set(safePath, resource);
+        }
+        if (safePath.startsWith("assets/")) {
+            const unprefixedPath = safeNormalizePath(safePath.slice("assets/".length));
+            if (unprefixedPath && !resourceMap.has(unprefixedPath)) {
+                resourceMap.set(unprefixedPath, resource);
+            }
+        }
+        const baseName = getProjectPathBaseName(safePath);
+        if (baseName && !resourceMap.has(baseName)) {
+            resourceMap.set(baseName, resource);
+        }
+    }
+
+    function buildPreviewResourceMap() {
+        const resourceMap = new Map();
+        for (const file of projectFiles) {
+            const safePath = safeNormalizePath(file && file.path);
+            if (!safePath) {
+                continue;
+            }
+            if (file.kind === "text") {
+                addPreviewResource(resourceMap, safePath, {
+                    kind: "text",
+                    path: safePath,
+                    content: file.content || "",
+                    mime_type: getTextResourceMimeType(file)
+                });
+            } else if (file.kind === "asset") {
+                const source = resolveAssetPreviewSource(file);
+                if (source) {
+                    addPreviewResource(resourceMap, safePath, {
+                        kind: "asset",
+                        path: safePath,
+                        url: source,
+                        mime_type: file.mime_type || "application/octet-stream"
+                    });
+                }
+            }
+        }
+        return resourceMap;
+    }
+
+    function isExternalPreviewUrl(rawValue) {
+        const value = String(rawValue || "").trim();
+        return !value
+            || value.startsWith("#")
+            || value.startsWith("//")
+            || /^[a-z][a-z0-9+.-]*:/i.test(value);
+    }
+
+    function splitPreviewUrl(rawValue) {
+        const value = String(rawValue || "").trim();
+        const match = value.match(/^([^?#]*)([?#].*)?$/);
+        return {
+            path: match ? match[1] : value,
+            suffix: match && match[2] ? match[2] : ""
+        };
+    }
+
+    function findPreviewResource(rawValue, basePath, resourceMap) {
+        if (isExternalPreviewUrl(rawValue)) {
+            return null;
+        }
+        const parts = splitPreviewUrl(rawValue);
+        const rawPath = parts.path || "";
+        const baseDir = getPathParent(basePath || "");
+        const candidates = [];
+        if (rawPath.startsWith("/")) {
+            candidates.push(safeNormalizePath(rawPath.replace(/^\/+/, "")));
+        } else {
+            candidates.push(safeNormalizePath(joinProjectPath(baseDir, rawPath)));
+            candidates.push(safeNormalizePath(rawPath));
+        }
+        try {
+            const decodedPath = decodeURIComponent(rawPath);
+            if (decodedPath !== rawPath) {
+                if (decodedPath.startsWith("/")) {
+                    candidates.push(safeNormalizePath(decodedPath.replace(/^\/+/, "")));
+                } else {
+                    candidates.push(safeNormalizePath(joinProjectPath(baseDir, decodedPath)));
+                    candidates.push(safeNormalizePath(decodedPath));
+                }
+            }
+        } catch (e) {
+        }
+        for (const candidate of candidates) {
+            if (candidate && resourceMap.has(candidate)) {
+                return {
+                    resource: resourceMap.get(candidate),
+                    suffix: parts.suffix
+                };
+            }
+        }
+        return null;
+    }
+
+    function textResourceToDataUrl(resource) {
+        return `data:${resource.mime_type || "text/plain"};charset=utf-8,${encodeURIComponent(resource.content || "")}`;
+    }
+
+    function getPreviewResourceUrl(rawValue, basePath, resourceMap) {
+        const resolved = findPreviewResource(rawValue, basePath, resourceMap);
+        if (!resolved) {
+            return "";
+        }
+        const resource = resolved.resource;
+        const url = resource.kind === "asset" ? resource.url : textResourceToDataUrl(resource);
+        if (!url) {
+            return "";
+        }
+        if (!resolved.suffix || url.startsWith("data:")) {
+            return url;
+        }
+        return url + resolved.suffix;
+    }
+
+    function rewriteCssResourceUrls(cssText, cssPath, resourceMap) {
+        return String(cssText || "").replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g, function (match, quote, urlValue) {
+            const nextUrl = getPreviewResourceUrl(urlValue, cssPath, resourceMap);
+            if (!nextUrl) {
+                return match;
+            }
+            return `url("${nextUrl.replace(/"/g, "%22")}")`;
+        });
+    }
+
+    function appendPreviewRuntime(doc, options) {
+        const opts = options || {};
+        const head = doc.head || doc.documentElement;
+        function appendScript(id, src) {
+            if (doc.getElementById(id)) {
+                return;
+            }
+            const script = doc.createElement("script");
+            script.id = id;
+            script.crossOrigin = "anonymous";
+            script.src = src;
+            head.appendChild(script);
+        }
+        if (opts.react) {
+            appendScript("codemark-preview-react", "https://unpkg.com/react@18/umd/react.development.js");
+            appendScript("codemark-preview-react-dom", "https://unpkg.com/react-dom@18/umd/react-dom.development.js");
+        }
+        if (opts.babel) {
+            appendScript("codemark-preview-babel", "https://unpkg.com/@babel/standalone/babel.min.js");
+        }
+    }
+
+    function getBabelPresetsForPath(path) {
+        const ext = getPathExtension(path);
+        return ext === "ts" || ext === "tsx" ? "env,react,typescript" : "env,react";
+    }
+
+    function setInlineScriptContent(script, content) {
+        script.textContent = String(content || "").replace(/<\/script/gi, "<\\/script");
+    }
+
+    function collectNamedImports(code, packageName) {
+        const names = new Set();
+        const escapedPackage = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const importRe = new RegExp("import\\s+(?:[A-Za-z_$][\\w$]*\\s*,\\s*)?\\{([^}]+)\\}\\s+from\\s+[\"']" + escapedPackage + "[\"'];?", "g");
+        let match;
+        while ((match = importRe.exec(code)) !== null) {
+            match[1].split(",").forEach(item => {
+                const part = item.trim();
+                if (!part) {
+                    return;
+                }
+                const aliasParts = part.split(/\s+as\s+/i).map(value => value.trim()).filter(Boolean);
+                if (aliasParts.length === 2) {
+                    names.add(`${aliasParts[0]}: ${aliasParts[1]}`);
+                } else {
+                    names.add(aliasParts[0]);
+                }
+            });
+        }
+        return Array.from(names);
+    }
+
+    function prepareReactPreviewCode(code) {
+        const rawCode = String(code || "");
+        const reactImports = collectNamedImports(rawCode, "react");
+        const reactDomImports = collectNamedImports(rawCode, "react-dom/client")
+            .concat(collectNamedImports(rawCode, "react-dom"));
+        let nextCode = rawCode
+            .replace(/^\s*import\s+[^;\n]+;\s*$/gm, "")
+            .replace(/^\s*export\s+default\s+/gm, "")
+            .replace(/^\s*export\s+(?=(function|class|const|let|var)\s+)/gm, "")
+            .replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, "");
+        const prelude = [];
+        if (reactImports.length) {
+            prelude.push(`const { ${reactImports.join(", ")} } = React;`);
+        }
+        if (reactDomImports.length) {
+            prelude.push(`const { ${Array.from(new Set(reactDomImports)).join(", ")} } = ReactDOM;`);
+        }
+        if (!/(createRoot\s*\(|ReactDOM\.render\s*\()/m.test(nextCode)
+            && /(?:function|class)\s+App\b|(?:const|let|var)\s+App\s*=/.test(nextCode)) {
+            nextCode += "\n\nconst codemarkPreviewRoot = document.getElementById('root');\n";
+            nextCode += "ReactDOM.createRoot(codemarkPreviewRoot).render(<App />);\n";
+        }
+        return prelude.concat(nextCode).join("\n");
+    }
+
+    function appendProjectCssToDocument(doc, resourceMap) {
+        const head = doc.head || doc.documentElement;
+        for (const file of projectFiles) {
+            if (!file || file.kind !== "text") {
+                continue;
+            }
+            const ext = getPathExtension(file.path);
+            if (ext !== "css") {
+                continue;
+            }
+            const style = doc.createElement("style");
+            style.setAttribute("data-codemark-preview", file.path);
+            style.textContent = rewriteCssResourceUrls(file.content || "", file.path, resourceMap);
+            head.appendChild(style);
+        }
+    }
+
+    function buildReactPreviewDocument(file) {
+        const resourceMap = buildPreviewResourceMap();
+        const doc = document.implementation.createHTMLDocument("Preview");
+        const meta = doc.createElement("meta");
+        meta.setAttribute("charset", "UTF-8");
+        doc.head.appendChild(meta);
+        const viewport = doc.createElement("meta");
+        viewport.name = "viewport";
+        viewport.content = "width=device-width, initial-scale=1.0";
+        doc.head.appendChild(viewport);
+        const baseStyle = doc.createElement("style");
+        baseStyle.textContent = "html,body,#root{min-height:100%;margin:0;}body{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;}";
+        doc.head.appendChild(baseStyle);
+        appendProjectCssToDocument(doc, resourceMap);
+        const root = doc.createElement("div");
+        root.id = "root";
+        doc.body.appendChild(root);
+        appendPreviewRuntime(doc, {react: true, babel: true});
+        const script = doc.createElement("script");
+        script.type = "text/babel";
+        script.setAttribute("data-presets", getBabelPresetsForPath(file.path));
+        setInlineScriptContent(script, prepareReactPreviewCode(file.content || ""));
+        doc.body.appendChild(script);
+        return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    }
+
+    function buildHtmlPreviewDocument(file) {
+        const resourceMap = buildPreviewResourceMap();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(file.content || "", "text/html");
+        let needsReactRuntime = false;
+        let needsBabelRuntime = false;
+
+        doc.querySelectorAll("link[href]").forEach(link => {
+            const href = link.getAttribute("href") || "";
+            const resolved = findPreviewResource(href, file.path, resourceMap);
+            if (!resolved) {
+                return;
+            }
+            const rel = (link.getAttribute("rel") || "").toLowerCase();
+            if (rel.indexOf("stylesheet") >= 0 && resolved.resource.kind === "text") {
+                const style = doc.createElement("style");
+                style.setAttribute("data-codemark-preview", resolved.resource.path);
+                style.textContent = rewriteCssResourceUrls(resolved.resource.content || "", resolved.resource.path, resourceMap);
+                link.parentNode.replaceChild(style, link);
+                return;
+            }
+            const nextUrl = getPreviewResourceUrl(href, file.path, resourceMap);
+            if (nextUrl) {
+                link.setAttribute("href", nextUrl);
+            }
+        });
+
+        doc.querySelectorAll("script[src]").forEach(script => {
+            const src = script.getAttribute("src") || "";
+            const resolved = findPreviewResource(src, file.path, resourceMap);
+            if (!resolved) {
+                return;
+            }
+            if (resolved.resource.kind === "text") {
+                script.removeAttribute("src");
+                const ext = getPathExtension(resolved.resource.path);
+                if (ext === "jsx" || ext === "tsx") {
+                    script.type = "text/babel";
+                    script.setAttribute("data-presets", getBabelPresetsForPath(resolved.resource.path));
+                    setInlineScriptContent(script, prepareReactPreviewCode(resolved.resource.content || ""));
+                    needsReactRuntime = true;
+                    needsBabelRuntime = true;
+                } else {
+                    setInlineScriptContent(script, resolved.resource.content || "");
+                }
+                return;
+            }
+            const nextUrl = getPreviewResourceUrl(src, file.path, resourceMap);
+            if (nextUrl) {
+                script.setAttribute("src", nextUrl);
+            }
+        });
+
+        doc.querySelectorAll("script").forEach(script => {
+            const type = (script.getAttribute("type") || "").toLowerCase();
+            if (type === "text/babel" || type === "text/jsx") {
+                needsReactRuntime = true;
+                needsBabelRuntime = true;
+                if (!script.getAttribute("data-presets")) {
+                    script.setAttribute("data-presets", "env,react");
+                }
+            }
+        });
+
+        doc.querySelectorAll("style").forEach(style => {
+            style.textContent = rewriteCssResourceUrls(style.textContent || "", file.path, resourceMap);
+        });
+
+        doc.querySelectorAll("[style]").forEach(el => {
+            el.setAttribute("style", rewriteCssResourceUrls(el.getAttribute("style") || "", file.path, resourceMap));
+        });
+
+        ["src", "poster", "href"].forEach(attr => {
+            doc.querySelectorAll(`[${attr}]`).forEach(el => {
+                if ((el.tagName || "").toLowerCase() === "script" && attr === "src") {
+                    return;
+                }
+                if ((el.tagName || "").toLowerCase() === "link" && attr === "href") {
+                    return;
+                }
+                const value = el.getAttribute(attr) || "";
+                const nextUrl = getPreviewResourceUrl(value, file.path, resourceMap);
+                if (nextUrl) {
+                    el.setAttribute(attr, nextUrl);
+                }
+            });
+        });
+
+        if (needsReactRuntime || needsBabelRuntime) {
+            appendPreviewRuntime(doc, {react: needsReactRuntime, babel: needsBabelRuntime});
+        }
+        return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    }
+
+    function refreshHtmlPreview(immediate) {
+        if (htmlPreviewRefreshTimer) {
+            clearTimeout(htmlPreviewRefreshTimer);
+            htmlPreviewRefreshTimer = null;
+        }
+        const runRefresh = function () {
+            if (getEffectiveShareViewMode() !== SHARE_VIEW_PREVIEW) {
+                return;
+            }
+            syncActiveEditorToProject();
+            const active = getActiveProjectFile();
+            if (!isHtmlPreviewableFile(active)) {
+                return;
+            }
+            const frame = document.getElementById("htmlPreviewFrame");
+            if (!frame) {
+                return;
+            }
+            frame.srcdoc = isHtmlDocumentFile(active)
+                ? buildHtmlPreviewDocument(active)
+                : buildReactPreviewDocument(active);
+        };
+        if (immediate) {
+            runRefresh();
+            return;
+        }
+        htmlPreviewRefreshTimer = setTimeout(runRefresh, 180);
+    }
+
+    function refreshHtmlPreviewSoon() {
+        if (getEffectiveShareViewMode() === SHARE_VIEW_PREVIEW) {
+            refreshHtmlPreview(false);
+        }
     }
 
     function getPathExtension(path) {
@@ -2513,6 +3144,7 @@
             viewer.style.display = "none";
             viewer.innerHTML = "";
         }
+        hideHtmlPreviewPane();
         if (editorElement) {
             editorElement.style.display = "block";
         }
@@ -2524,6 +3156,7 @@
         }
         renderProjectFileTree();
         updatePythonRunButtonVisibility();
+        updateHtmlShareViewControls();
         if (!opts.preserveSidebar) {
             updateSidebarVisibilityByFileCount(false);
         }
@@ -2556,10 +3189,12 @@
         renderProjectFileTree();
         updateSidebarVisibilityByFileCount(false);
         updatePythonRunButtonVisibility();
+        applyShareViewToWorkspace({immediate: true});
     }
 
     function handleEditorContentChange() {
         createProjectFileFromEditorInput();
+        refreshHtmlPreviewSoon();
         scheduleSharecodeDraftCacheSave();
     }
 
@@ -2587,8 +3222,10 @@
                 window.editor.setValue("", -1);
                 window.editor.resize();
             }
+            hideHtmlPreviewPane();
             renderProjectFileTree();
             updatePythonRunButtonVisibility();
+            updateHtmlShareViewControls();
             scheduleSharecodeDraftCacheSave();
             if (!opts.preserveSidebar) {
                 updateSidebarVisibilityByFileCount(false);
@@ -4221,11 +4858,18 @@
 
     function buildSharePayload() {
         syncActiveEditorToProject();
-        const textFiles = projectFiles.filter(f => f.kind === "text").map(f => ({
-            path: f.path,
-            content: f.content || "",
-            language: f.language || detectLanguageFromFilename(f.path)
-        }));
+        const textFiles = projectFiles
+            .filter(f => f.kind === "text")
+            .sort((a, b) => {
+                if (a.path === activeFilePath) return -1;
+                if (b.path === activeFilePath) return 1;
+                return 0;
+            })
+            .map(f => ({
+                path: f.path,
+                content: f.content || "",
+                language: f.language || detectLanguageFromFilename(f.path)
+            }));
 
         const assets = projectFiles.filter(f => f.kind === "asset").map(f => ({
             path: f.path,
@@ -4278,7 +4922,7 @@
                 project_payload: JSON.stringify(payload)
             },
             success: function (d) {
-                let shareLink = d.share_link;
+                let shareLink = appendShareViewToLink(d.share_link);
                 $('#qrcode').empty();
                 $('#qrcode').qrcode({
                     text: shareLink,
@@ -4426,6 +5070,8 @@
         const langMobile = document.getElementById("lang-selector-mobile");
         const themeDesktop = document.getElementById("theme-selector-desktop");
         const themeMobile = document.getElementById("theme-selector-mobile");
+        const shareViewDesktop = document.getElementById("share-view-selector-desktop");
+        const shareViewMobile = document.getElementById("share-view-selector-mobile");
 
         function onLanguageChange(nextLang) {
             const lang = nextLang || SHARECODE_DEFAULT_LANG;
@@ -4435,6 +5081,7 @@
                 setEditorLang(lang);
                 createProjectFileFromEditorInput();
                 updatePythonRunButtonVisibility();
+                applyShareViewToWorkspace({immediate: true});
                 scheduleSharecodeDraftCacheSave();
                 return;
             }
@@ -4442,6 +5089,7 @@
             setLanguageSelectors(lang);
             setEditorLang(lang);
             updatePythonRunButtonVisibility();
+            applyShareViewToWorkspace({immediate: true});
             scheduleSharecodeDraftCacheSave();
         }
 
@@ -4462,6 +5110,13 @@
         });
         themeMobile.addEventListener("change", function () {
             onThemeChange(themeMobile.value);
+        });
+
+        shareViewDesktop.addEventListener("change", function () {
+            setShareViewMode(shareViewDesktop.value);
+        });
+        shareViewMobile.addEventListener("change", function () {
+            setShareViewMode(shareViewMobile.value);
         });
     }
 
@@ -4504,6 +5159,8 @@
         projectFiles = initialState.project.files;
         projectFolders = initialState.project.folders || [];
         activeFilePath = initialState.project.activeFile;
+        shareViewMode = resolveInitialShareViewMode();
+        setShareViewSelectors(shareViewMode);
 
         applyEditorTheme(initialState.theme);
 
@@ -4518,6 +5175,7 @@
             setLanguageSelectors(initialState.language);
             setEditorLang(initialState.language);
             updatePythonRunButtonVisibility();
+            updateHtmlShareViewControls();
         }
 
         editor.session.on("change", handleEditorContentChange);

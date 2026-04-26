@@ -56,6 +56,9 @@ EXTENSION_LANGUAGE_MAP = {
     "htm": "html",
     "css": "css",
     "md": "markdown",
+    "jsx": "javascript",
+    "ts": "javascript",
+    "tsx": "javascript",
 }
 
 
