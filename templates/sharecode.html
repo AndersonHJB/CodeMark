@@ -2213,6 +2213,10 @@
         return /(?:from\s+["']react["']|ReactDOM|createRoot\s*\(|<[A-Z][A-Za-z0-9.]*[\s/>])/.test(code);
     }
 
+    function looksLikeHtmlPreviewDocument(content) {
+        return /(?:<!doctype\s+html|<html[\s>]|<head[\s>]|<body[\s>]|<script\b)/i.test(String(content || ""));
+    }
+
     function isReactPreviewFile(file) {
         if (!file || file.kind !== "text") {
             return false;
@@ -2221,7 +2225,14 @@
         if (ext === "jsx" || ext === "tsx") {
             return true;
         }
-        return (ext === "js" || ext === "ts") && looksLikeReactCode(file.content);
+        if ((ext === "html" || ext === "htm") && looksLikeReactCode(file.content)) {
+            return !looksLikeHtmlPreviewDocument(file.content);
+        }
+        return looksLikeReactCode(file.content) && (!ext || ["js", "jsx", "ts", "tsx", "py", "txt"].includes(ext));
+    }
+
+    function shouldBuildReactPreviewDocument(file) {
+        return isReactPreviewFile(file) && (!isHtmlDocumentFile(file) || !looksLikeHtmlPreviewDocument(file.content));
     }
 
     function isHtmlPreviewableFile(file) {
@@ -2498,7 +2509,7 @@
     function appendPreviewRuntime(doc, options) {
         const opts = options || {};
         const head = doc.head || doc.documentElement;
-        function appendScript(id, src) {
+        function appendScript(id, src, fallbackSrc) {
             if (doc.getElementById(id)) {
                 return;
             }
@@ -2506,11 +2517,40 @@
             script.id = id;
             script.crossOrigin = "anonymous";
             script.src = src;
+            if (fallbackSrc) {
+                script.onerror = function () {
+                    if (script.dataset.codemarkFallbackLoaded === "true") {
+                        return;
+                    }
+                    script.dataset.codemarkFallbackLoaded = "true";
+                    script.src = fallbackSrc;
+                };
+            }
             head.appendChild(script);
+        }
+        function appendInlineScript(id, content) {
+            if (doc.getElementById(id)) {
+                return;
+            }
+            const script = doc.createElement("script");
+            script.id = id;
+            script.textContent = content;
+            head.appendChild(script);
+        }
+        if (opts.tailwind && !doc.querySelector('script[src*="tailwindcss"],script[src*="@tailwindcss/browser"]')) {
+            appendScript(
+                "codemark-preview-tailwind",
+                "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4",
+                "https://cdn.tailwindcss.com/3.4.17"
+            );
         }
         if (opts.react) {
             appendScript("codemark-preview-react", "https://unpkg.com/react@18/umd/react.development.js");
             appendScript("codemark-preview-react-dom", "https://unpkg.com/react-dom@18/umd/react-dom.development.js");
+        }
+        if (opts.lucide) {
+            appendInlineScript("codemark-preview-react-global-alias", "window.react = window.React;");
+            appendScript("codemark-preview-lucide-react", "https://cdn.jsdelivr.net/npm/lucide-react@1.0.0/dist/umd/lucide-react.js");
         }
         if (opts.babel) {
             appendScript("codemark-preview-babel", "https://unpkg.com/@babel/standalone/babel.min.js");
@@ -2548,13 +2588,58 @@
         return Array.from(names);
     }
 
+    function collectNamespaceImports(code, packageName) {
+        const names = new Set();
+        const escapedPackage = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const importRe = new RegExp("import\\s+\\*\\s+as\\s+([A-Za-z_$][\\w$]*)\\s+from\\s+[\"']" + escapedPackage + "[\"'];?", "g");
+        let match;
+        while ((match = importRe.exec(code)) !== null) {
+            names.add(match[1]);
+        }
+        return Array.from(names);
+    }
+
+    function hasPackageImport(code, packageName) {
+        const escapedPackage = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const fromRe = new RegExp("\\bfrom\\s+[\"']" + escapedPackage + "[\"']");
+        const sideEffectRe = new RegExp("^\\s*import\\s+[\"']" + escapedPackage + "[\"'];?", "m");
+        return fromRe.test(code) || sideEffectRe.test(code);
+    }
+
+    function stripStaticImportStatements(code) {
+        return String(code || "").replace(/^\s*import\s+(?:[\s\S]*?\s+from\s+)?["'][^"']+["'];?\s*/gm, "");
+    }
+
+    function usesLucideReactPackage(code) {
+        return hasPackageImport(String(code || ""), "lucide-react");
+    }
+
+    function looksLikeTailwindCode(content) {
+        const code = String(content || "");
+        if (/tailwindcss|cdn\.tailwindcss\.com/.test(code)) {
+            return true;
+        }
+        if (!/(?:className|class)\s*=/.test(code)) {
+            return false;
+        }
+        return /\b(?:sm:|md:|lg:|xl:|2xl:|dark:|hover:|focus:|active:|disabled:|group-hover:|bg-|text-|font-|flex\b|grid\b|items-|justify-|gap-|p[trblxy]?-\d|m[trblxy]?-\d|w-\d|h-\d|min-h-|max-w-|rounded|shadow|border)\b/.test(code);
+    }
+
+    function defaultFilenameForContent(language, content) {
+        if (looksLikeReactCode(content)) {
+            return "main.jsx";
+        }
+        return defaultFilenameForLanguage(language);
+    }
+
     function prepareReactPreviewCode(code) {
         const rawCode = String(code || "");
         const reactImports = collectNamedImports(rawCode, "react");
         const reactDomImports = collectNamedImports(rawCode, "react-dom/client")
             .concat(collectNamedImports(rawCode, "react-dom"));
-        let nextCode = rawCode
-            .replace(/^\s*import\s+[^;\n]+;\s*$/gm, "")
+        const lucideImports = collectNamedImports(rawCode, "lucide-react");
+        const lucideNamespaces = collectNamespaceImports(rawCode, "lucide-react");
+        let nextCode = stripStaticImportStatements(rawCode)
             .replace(/^\s*export\s+default\s+/gm, "")
             .replace(/^\s*export\s+(?=(function|class|const|let|var)\s+)/gm, "")
             .replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, "");
@@ -2565,6 +2650,12 @@
         if (reactDomImports.length) {
             prelude.push(`const { ${Array.from(new Set(reactDomImports)).join(", ")} } = ReactDOM;`);
         }
+        if (lucideImports.length) {
+            prelude.push(`const { ${lucideImports.join(", ")} } = LucideReact;`);
+        }
+        lucideNamespaces.forEach(name => {
+            prelude.push(`const ${name} = LucideReact;`);
+        });
         if (!/(createRoot\s*\(|ReactDOM\.render\s*\()/m.test(nextCode)
             && /(?:function|class)\s+App\b|(?:const|let|var)\s+App\s*=/.test(nextCode)) {
             nextCode += "\n\nconst codemarkPreviewRoot = document.getElementById('root');\n";
@@ -2607,7 +2698,12 @@
         const root = doc.createElement("div");
         root.id = "root";
         doc.body.appendChild(root);
-        appendPreviewRuntime(doc, {react: true, babel: true});
+        appendPreviewRuntime(doc, {
+            react: true,
+            babel: true,
+            lucide: usesLucideReactPackage(file.content || ""),
+            tailwind: looksLikeTailwindCode(file.content || "")
+        });
         const script = doc.createElement("script");
         script.type = "text/babel";
         script.setAttribute("data-presets", getBabelPresetsForPath(file.path));
@@ -2622,6 +2718,8 @@
         const doc = parser.parseFromString(file.content || "", "text/html");
         let needsReactRuntime = false;
         let needsBabelRuntime = false;
+        let needsLucideRuntime = usesLucideReactPackage(file.content || "");
+        const needsTailwindRuntime = looksLikeTailwindCode(file.content || "");
 
         doc.querySelectorAll("link[href]").forEach(link => {
             const href = link.getAttribute("href") || "";
@@ -2658,6 +2756,7 @@
                     setInlineScriptContent(script, prepareReactPreviewCode(resolved.resource.content || ""));
                     needsReactRuntime = true;
                     needsBabelRuntime = true;
+                    needsLucideRuntime = needsLucideRuntime || usesLucideReactPackage(resolved.resource.content || "");
                 } else {
                     setInlineScriptContent(script, resolved.resource.content || "");
                 }
@@ -2672,11 +2771,14 @@
         doc.querySelectorAll("script").forEach(script => {
             const type = (script.getAttribute("type") || "").toLowerCase();
             if (type === "text/babel" || type === "text/jsx") {
+                const scriptCode = script.textContent || "";
                 needsReactRuntime = true;
                 needsBabelRuntime = true;
+                needsLucideRuntime = needsLucideRuntime || usesLucideReactPackage(scriptCode);
                 if (!script.getAttribute("data-presets")) {
                     script.setAttribute("data-presets", "env,react");
                 }
+                setInlineScriptContent(script, prepareReactPreviewCode(scriptCode));
             }
         });
 
@@ -2704,8 +2806,13 @@
             });
         });
 
-        if (needsReactRuntime || needsBabelRuntime) {
-            appendPreviewRuntime(doc, {react: needsReactRuntime, babel: needsBabelRuntime});
+        if (needsReactRuntime || needsBabelRuntime || needsLucideRuntime || needsTailwindRuntime) {
+            appendPreviewRuntime(doc, {
+                react: needsReactRuntime || needsLucideRuntime,
+                babel: needsBabelRuntime,
+                lucide: needsLucideRuntime,
+                tailwind: needsTailwindRuntime
+            });
         }
         return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
     }
@@ -2728,9 +2835,9 @@
             if (!frame) {
                 return;
             }
-            frame.srcdoc = isHtmlDocumentFile(active)
-                ? buildHtmlPreviewDocument(active)
-                : buildReactPreviewDocument(active);
+            frame.srcdoc = shouldBuildReactPreviewDocument(active)
+                ? buildReactPreviewDocument(active)
+                : buildHtmlPreviewDocument(active);
         };
         if (immediate) {
             runRefresh();
@@ -3171,8 +3278,12 @@
         if (!content) {
             return;
         }
-        const language = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
-        const filePath = ensureUniquePath(defaultFilenameForLanguage(language));
+        let language = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+        const isReactContent = looksLikeReactCode(content);
+        if (isReactContent) {
+            language = "javascript";
+        }
+        const filePath = ensureUniquePath(defaultFilenameForContent(language, content));
         if (!filePath) {
             return;
         }
@@ -4615,12 +4726,13 @@
             project = normalizeServerProject(server_pre_project);
             if (!project.files.length && !project.folders.length) {
                 const fallbackLang = server_pre_lang || SHARECODE_DEFAULT_LANG;
-                const fallbackPath = defaultFilenameForLanguage(fallbackLang);
+                const fallbackContent = typeof server_pre_code === "string" ? server_pre_code : "";
+                const fallbackPath = defaultFilenameForContent(fallbackLang, fallbackContent);
                 project.files.push({
                     kind: "text",
                     path: fallbackPath,
-                    content: typeof server_pre_code === "string" ? server_pre_code : "",
-                    language: fallbackLang
+                    content: fallbackContent,
+                    language: looksLikeReactCode(fallbackContent) ? "javascript" : fallbackLang
                 });
                 project.activeFile = fallbackPath;
             }
@@ -4634,12 +4746,12 @@
             }
             if (!shouldKeepEmptyCacheProject && !project.files.length && !project.folders.length && typeof server_pre_code === "string" && server_pre_code) {
                 const lang = server_pre_lang || SHARECODE_DEFAULT_LANG;
-                const filePath = defaultFilenameForLanguage(lang);
+                const filePath = defaultFilenameForContent(lang, server_pre_code);
                 project.files.push({
                     kind: "text",
                     path: filePath,
                     content: server_pre_code,
-                    language: lang
+                    language: looksLikeReactCode(server_pre_code) ? "javascript" : lang
                 });
                 project.activeFile = filePath;
             }
