@@ -82,14 +82,9 @@ def normalize_project_relative_path(raw_path: str) -> str:
     return "/".join(parts)
 
 
-def ensure_assets_prefix(path: str) -> str:
-    """统一将非代码文件放入 assets/ 前缀目录。"""
-    safe_path = normalize_project_relative_path(path)
-    if not safe_path:
-        return ""
-    if safe_path.startswith("assets/"):
-        return safe_path
-    return f"assets/{safe_path}"
+def normalize_asset_logical_path(path: str) -> str:
+    """Normalize uploaded asset paths while preserving their project location."""
+    return normalize_project_relative_path(path)
 
 
 def detect_language_from_filename(filename: str) -> str:
@@ -280,7 +275,7 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
             if not isinstance(asset_item, dict):
                 continue
 
-            safe_logical_path = ensure_assets_prefix(
+            safe_logical_path = normalize_asset_logical_path(
                 asset_item.get("path") or asset_item.get("name") or f"asset_{idx + 1}"
             )
             if not safe_logical_path:
