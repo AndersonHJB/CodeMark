@@ -6,14 +6,16 @@
 # @Blog    ：https://bornforthis.cn/
 # code is far away from bugs with the god animal protecting
 #    I love animals. They taste delicious.
-from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
+from flask import Flask, render_template, request, jsonify, url_for, send_from_directory, send_file
 import markdown
 import base64
+import io
 import json
 import os, re, random
 import shutil
 import uuid
 import datetime
+import zipfile
 import qrcode  # pip install qrcode[pil]
 
 app = Flask(__name__)
@@ -340,6 +342,51 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
 
     return text_files, assets_meta
 
+
+def get_project_payload_for_download(raw_payload: str):
+    if not raw_payload:
+        return {}
+    try:
+        payload = json.loads(raw_payload)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def sanitize_download_filename(raw_filename: str) -> str:
+    filename = raw_filename if isinstance(raw_filename, str) else ""
+    filename = os.path.basename(filename.strip())
+    filename = re.sub(r"[^A-Za-z0-9._-]+", "-", filename).strip(".-")
+    if not filename:
+        filename = "codemark-project.zip"
+    if not filename.lower().endswith(".zip"):
+        filename += ".zip"
+    return filename
+
+
+def write_zip_folder(zip_file, folder_path, written_names):
+    safe_path = normalize_project_relative_path(folder_path)
+    if not safe_path:
+        return
+    zip_path = safe_path.rstrip("/") + "/"
+    if zip_path not in written_names:
+        zip_file.writestr(zip_path, "")
+        written_names.add(zip_path)
+
+
+def write_zip_bytes(zip_file, file_path, data, written_names):
+    safe_path = normalize_project_relative_path(file_path)
+    if not safe_path or safe_path.endswith("/"):
+        return False
+    if safe_path in written_names:
+        return False
+    parent_path = os.path.dirname(safe_path).replace("\\", "/")
+    if parent_path:
+        write_zip_folder(zip_file, parent_path, written_names)
+    zip_file.writestr(safe_path, data)
+    written_names.add(safe_path)
+    return True
+
 def parse_sort_key(filename):
     """
     如果文件名以数字开头，则按数字排序，否则返回一个随机数以保证随机排序。
@@ -590,6 +637,94 @@ def upload_code():
         "project_id": project_id,
         "share_link": share_link,
     })
+
+
+@app.route('/download_project_zip', methods=['POST'])
+def download_project_zip():
+    project_payload = get_project_payload_for_download(request.form.get('project_payload', ''))
+    filename = sanitize_download_filename(request.form.get('filename', 'codemark-project.zip'))
+
+    archive_buffer = io.BytesIO()
+    written_names = set()
+
+    with zipfile.ZipFile(archive_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        incoming_folders = project_payload.get("folders", project_payload.get("project_folders", []))
+        if isinstance(incoming_folders, list):
+            for folder_item in incoming_folders:
+                folder_path = folder_item if isinstance(folder_item, str) else (
+                    folder_item.get("path") if isinstance(folder_item, dict) else ""
+                )
+                write_zip_folder(zip_file, folder_path, written_names)
+
+        incoming_text_files = project_payload.get("text_files", [])
+        text_file_count = 0
+        if isinstance(incoming_text_files, list):
+            for idx, file_item in enumerate(incoming_text_files):
+                if not isinstance(file_item, dict):
+                    continue
+                safe_path = normalize_project_relative_path(
+                    file_item.get("path") or file_item.get("name") or f"file_{idx + 1}.txt"
+                )
+                if not safe_path:
+                    continue
+                raw_content = file_item.get("content", "")
+                content = raw_content if isinstance(raw_content, str) else str(raw_content)
+                if write_zip_bytes(zip_file, safe_path, content.encode("utf-8"), written_names):
+                    text_file_count += 1
+
+        if text_file_count == 0:
+            fallback_code = request.form.get("code", "")
+            if fallback_code:
+                fallback_language = (request.form.get("language", "") or "python").strip().lower()
+                write_zip_bytes(
+                    zip_file,
+                    default_filename_for_language(fallback_language),
+                    fallback_code.encode("utf-8"),
+                    written_names
+                )
+
+        incoming_assets = project_payload.get("assets", [])
+        if isinstance(incoming_assets, list):
+            for idx, asset_item in enumerate(incoming_assets):
+                if not isinstance(asset_item, dict):
+                    continue
+                safe_path = normalize_project_relative_path(
+                    asset_item.get("path") or asset_item.get("name") or f"asset_{idx + 1}"
+                )
+                if not safe_path:
+                    continue
+
+                asset_bytes = None
+                data_base64 = asset_item.get("data_base64")
+                if isinstance(data_base64, str) and data_base64.strip():
+                    asset_bytes = decode_base64_payload(data_base64)
+
+                if asset_bytes is None:
+                    source_project_id = asset_item.get("source_project_id")
+                    source_stored_path = normalize_project_relative_path(asset_item.get("source_stored_path", ""))
+                    if (
+                        isinstance(source_project_id, str)
+                        and re.fullmatch(r"[A-Za-z0-9._-]+", source_project_id)
+                        and source_stored_path
+                    ):
+                        source_abs_path = os.path.join("sharecode", "assets", source_project_id, source_stored_path)
+                        if os.path.isfile(source_abs_path):
+                            with open(source_abs_path, "rb") as source_file:
+                                asset_bytes = source_file.read()
+
+                if asset_bytes is not None:
+                    write_zip_bytes(zip_file, safe_path, asset_bytes, written_names)
+
+        if not written_names:
+            zip_file.writestr("README.txt", "CodeMark project is empty.\n")
+
+    archive_buffer.seek(0)
+    return send_file(
+        archive_buffer,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 @app.route('/share_asset/<project_id>/<path:asset_path>')

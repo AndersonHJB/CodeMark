@@ -50,6 +50,7 @@
             --accent-share: #a7c336;
             --accent-run: #3b82f6;
             --accent-home: #ef7d62;
+            --accent-download: #7f6df2;
             --toolbar-hover-lift: 4px;
         }
 
@@ -989,9 +990,15 @@
         .toolbar-btn.save { background-color: var(--accent-save); }
         .toolbar-btn.open { background-color: var(--accent-open); }
         .toolbar-btn.folder { background-color: var(--accent-folder); }
+        .toolbar-btn.download { background-color: var(--accent-download); }
         .toolbar-btn.share { background-color: var(--accent-share); }
         .toolbar-btn.run { background-color: var(--accent-run); }
         .toolbar-btn.home { background-color: var(--accent-home); }
+
+        .project-download-btn:disabled {
+            opacity: 0.64;
+            cursor: wait;
+        }
 
         .toolbar-select-group {
             display: flex;
@@ -1095,6 +1102,7 @@
         #mobile-save { background: var(--accent-save); }
         #mobile-open { background: var(--accent-open); }
         #mobile-folder { background: var(--accent-folder); }
+        #mobile-download { background: var(--accent-download); }
         #mobile-share { background: var(--accent-share); }
         #mobile-python-run { background: var(--accent-run); }
         #mobile-home { background: var(--accent-home); }
@@ -1488,7 +1496,7 @@
             <button class="sidebar-action upload" onclick="performClick('file-input')">
                 <span class="sidebar-action-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path fill="currentColor" d="M3.5 13.5a.75.75 0 0 1 .75.75v1.25A1.5 1.5 0 0 0 5.75 17h8.5a1.5 1.5 0 0 0 1.5-1.5v-1.25a.75.75 0 0 1 1.5 0v1.25a3 3 0 0 1-3 3h-8.5a3 3 0 0 1-3-3v-1.25a.75.75 0 0 1 .75-.75Zm6.5-10a.75.75 0 0 1 .75.75v6.44l1.97-1.97a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L6.22 9.78a.75.75 0 1 1 1.06-1.06l1.97 1.97V4.25A.75.75 0 0 1 10 3.5Z"></path>
+                        <path fill="currentColor" d="M3.5 13.5a.75.75 0 0 1 .75.75v1.25A1.5 1.5 0 0 0 5.75 17h8.5a1.5 1.5 0 0 0 1.5-1.5v-1.25a.75.75 0 0 1 1.5 0v1.25a3 3 0 0 1-3 3h-8.5a3 3 0 0 1-3-3v-1.25a.75.75 0 0 1 .75-.75ZM10 3.5a.75.75 0 0 1 .53.22l3.25 3.25a.75.75 0 1 1-1.06 1.06l-1.97-1.97v6.44a.75.75 0 0 1-1.5 0V6.06L7.28 8.03a.75.75 0 0 1-1.06-1.06l3.25-3.25A.75.75 0 0 1 10 3.5Z"></path>
                     </svg>
                 </span>
                 <span class="sidebar-action-text">upload</span>
@@ -1548,6 +1556,7 @@
             <button class="toolbar-btn save" onclick="save()">save</button>
             <button class="toolbar-btn open" onclick="performClick('file-input')">open</button>
             <button class="toolbar-btn folder" onclick="performClick('folder-input')">folder</button>
+            <button class="toolbar-btn download project-download-btn" onclick="downloadProjectArchive()">zip</button>
             <button class="toolbar-btn share" onclick="share()">share</button>
             <button class="toolbar-btn run python-run-btn" onclick="goPythonRunPage()">py-run</button>
             <button class="toolbar-btn home" onclick="home()">home</button>
@@ -1598,6 +1607,7 @@
     <button id="mobile-save" onclick="save()">save</button>
     <button id="mobile-open" onclick="performClick('file-input')">open</button>
     <button id="mobile-folder" onclick="performClick('folder-input')">folder</button>
+    <button id="mobile-download" class="project-download-btn" onclick="downloadProjectArchive()">download</button>
     <button id="mobile-share" onclick="share()">share</button>
     <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()">py-run</button>
     <button id="mobile-home" onclick="home()">home</button>
@@ -1951,6 +1961,7 @@
     let projectTreeCurrentDropTarget = null;
     let shareViewMode = SHARE_VIEW_SOURCE;
     let htmlPreviewRefreshTimer = null;
+    let projectArchiveDownloadBusy = false;
 
     function isMobileViewport() {
         return window.matchMedia("(max-width: 768px)").matches;
@@ -5386,6 +5397,67 @@
         link.target = "_blank";
         link.rel = "noreferrer";
         link.click();
+    }
+
+    function getProjectArchiveFilename() {
+        return "codemark-project.zip";
+    }
+
+    function setProjectDownloadBusy(isBusy) {
+        projectArchiveDownloadBusy = !!isBusy;
+        document.querySelectorAll(".project-download-btn").forEach(button => {
+            if (!button.dataset.defaultText) {
+                button.dataset.defaultText = button.textContent;
+            }
+            button.disabled = projectArchiveDownloadBusy;
+            button.textContent = projectArchiveDownloadBusy ? "..." : button.dataset.defaultText;
+        });
+    }
+
+    async function downloadProjectArchive() {
+        if (projectArchiveDownloadBusy) {
+            return;
+        }
+        hideFloatingMenuIfOpen();
+        createProjectFileFromEditorInput();
+        syncActiveEditorToProject();
+
+        const payload = buildSharePayload();
+        const hasItems = payload.text_files.length > 0 || payload.assets.length > 0 || payload.folders.length > 0;
+        if (!hasItems) {
+            showProjectNotice("当前没有可打包下载的文件。");
+            return;
+        }
+
+        const active = getActiveProjectFile();
+        const language = active && active.kind === "text"
+            ? (active.language || detectLanguageFromFilename(active.path))
+            : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
+        const code = active && active.kind === "text" ? (active.content || "") : "";
+        const filename = getProjectArchiveFilename();
+        const formData = new FormData();
+        formData.append("project_payload", JSON.stringify(payload));
+        formData.append("filename", filename);
+        formData.append("code", code);
+        formData.append("language", language);
+
+        setProjectDownloadBusy(true);
+        try {
+            const response = await fetch("/download_project_zip", {
+                method: "POST",
+                body: formData
+            });
+            if (!response.ok) {
+                throw new Error("download failed");
+            }
+            const archiveBlob = await response.blob();
+            saveAs(archiveBlob, filename);
+            showProjectNotice("项目已打包下载。");
+        } catch (e) {
+            showProjectNotice("打包下载失败，请稍后再试。");
+        } finally {
+            setProjectDownloadBusy(false);
+        }
     }
 
     function home() {
