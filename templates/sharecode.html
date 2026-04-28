@@ -792,8 +792,10 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.22);
             backdrop-filter: blur(18px) saturate(1.35);
             -webkit-backdrop-filter: blur(18px) saturate(1.35);
+            opacity: 0.48;
             overflow-x: auto;
             scrollbar-width: none;
+            transition: opacity 0.16s ease;
         }
 
         .editor-preview-controls::-webkit-scrollbar {
@@ -802,6 +804,11 @@
 
         .editor-preview-controls.is-visible {
             display: flex;
+        }
+
+        .editor-preview-controls:hover,
+        .editor-preview-controls:focus-within {
+            opacity: 1;
         }
 
         #editorArea.share-view-split .editor-preview-controls {
