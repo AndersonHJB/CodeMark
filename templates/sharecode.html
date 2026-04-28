@@ -737,6 +737,148 @@
             background: #fff;
         }
 
+        #editorArea.share-view-split #editor {
+            right: 50%;
+            border-right: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        #editorArea.share-view-split #htmlPreviewPane {
+            left: 50%;
+            width: auto;
+            border-left: 1px solid rgba(34, 37, 28, 0.28);
+            box-shadow: -16px 0 36px rgba(0, 0, 0, 0.18);
+        }
+
+        #editorArea.is-preview-fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 10040;
+            background: #fff;
+        }
+
+        #editorArea.is-preview-fullscreen #editor,
+        #editorArea.is-preview-fullscreen #assetViewer {
+            display: none !important;
+        }
+
+        #editorArea.is-preview-fullscreen #htmlPreviewPane {
+            display: block !important;
+            inset: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            width: auto;
+            border: none;
+            box-shadow: none;
+        }
+
+        .editor-preview-controls {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            z-index: 12;
+            align-items: center;
+            gap: 6px;
+            max-width: calc(100% - 32px);
+            padding: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.07)),
+                rgba(37, 41, 32, 0.5);
+            box-shadow:
+                0 16px 36px rgba(0, 0, 0, 0.34),
+                inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(18px) saturate(1.35);
+            -webkit-backdrop-filter: blur(18px) saturate(1.35);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .editor-preview-controls::-webkit-scrollbar {
+            display: none;
+        }
+
+        .editor-preview-controls.is-visible {
+            display: flex;
+        }
+
+        #editorArea.share-view-split .editor-preview-controls {
+            right: calc(50% + 16px);
+            max-width: calc(50% - 32px);
+        }
+
+        #editorArea.is-preview-fullscreen .editor-preview-controls {
+            right: 16px;
+            max-width: calc(100% - 32px);
+        }
+
+        .preview-mode-btn,
+        .preview-fullscreen-btn {
+            min-width: 0;
+            height: 34px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            background: rgba(31, 34, 27, 0.42);
+            color: rgba(244, 245, 240, 0.88);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 11px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: pointer;
+            transition:
+                color 0.16s ease,
+                background 0.16s ease,
+                border-color 0.16s ease,
+                box-shadow 0.16s ease,
+                transform 0.14s ease;
+        }
+
+        .preview-mode-btn i,
+        .preview-fullscreen-btn i {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .preview-mode-btn:hover,
+        .preview-fullscreen-btn:hover {
+            color: #fff;
+            background: rgba(91, 109, 74, 0.58);
+            border-color: rgba(219, 242, 176, 0.34);
+            transform: translateY(-1px);
+        }
+
+        .preview-mode-btn:active,
+        .preview-fullscreen-btn:active {
+            transform: translateY(0);
+        }
+
+        .preview-mode-btn.is-active,
+        .preview-fullscreen-btn.is-active {
+            color: #f9ffe8;
+            background:
+                linear-gradient(135deg, rgba(167, 195, 54, 0.5), rgba(109, 221, 242, 0.22)),
+                rgba(31, 34, 27, 0.5);
+            border-color: rgba(226, 246, 158, 0.5);
+            box-shadow:
+                0 0 0 1px rgba(226, 246, 158, 0.08),
+                0 8px 22px rgba(167, 195, 54, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.24);
+        }
+
+        .preview-mode-btn:disabled,
+        .preview-fullscreen-btn:disabled {
+            opacity: 0.48;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         #assetViewer {
             position: absolute;
             inset: 0;
@@ -1243,6 +1385,42 @@
                 display: none;
             }
 
+            #editorArea.share-view-split #editor {
+                right: 0;
+                bottom: 50%;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+            }
+
+            #editorArea.share-view-split #htmlPreviewPane {
+                left: 0;
+                top: 50%;
+                border-left: none;
+                border-top: 1px solid rgba(34, 37, 28, 0.28);
+                box-shadow: 0 -16px 36px rgba(0, 0, 0, 0.18);
+            }
+
+            .editor-preview-controls {
+                top: 10px;
+                right: 10px;
+                max-width: calc(100% - 20px);
+                gap: 4px;
+                padding: 5px;
+            }
+
+            #editorArea.share-view-split .editor-preview-controls,
+            #editorArea.is-preview-fullscreen .editor-preview-controls {
+                right: 10px;
+                max-width: calc(100% - 20px);
+            }
+
+            .preview-mode-btn,
+            .preview-fullscreen-btn {
+                height: 32px;
+                padding: 0 9px;
+                font-size: 11px;
+            }
+
             #floatingToggle,
             #floatingMenu {
                 display: flex;
@@ -1339,6 +1517,24 @@
             <div id="htmlPreviewPane">
                 <iframe id="htmlPreviewFrame" title="HTML Preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
             </div>
+            <div id="editorPreviewControls" class="editor-preview-controls html-share-view-control" aria-label="HTML preview controls">
+                <button class="preview-mode-btn" type="button" data-share-view-mode="source" aria-pressed="true" title="源码视图">
+                    <i class="bi bi-code-slash" aria-hidden="true"></i>
+                    <span>Source</span>
+                </button>
+                <button class="preview-mode-btn" type="button" data-share-view-mode="preview" aria-pressed="false" title="预览视图">
+                    <i class="bi bi-window" aria-hidden="true"></i>
+                    <span>Preview</span>
+                </button>
+                <button class="preview-mode-btn" type="button" data-share-view-mode="split" aria-pressed="false" title="源码与预览分屏实时渲染">
+                    <i class="bi bi-layout-split" aria-hidden="true"></i>
+                    <span>Split</span>
+                </button>
+                <button id="previewFullscreenButton" class="preview-fullscreen-btn" type="button" aria-pressed="false" title="全屏预览">
+                    <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i>
+                    <span>Full</span>
+                </button>
+            </div>
         </div>
 
         <div class="toolbar" id="desktopToolbar">
@@ -1346,13 +1542,6 @@
             <button class="toolbar-btn open" onclick="performClick('file-input')">open</button>
             <button class="toolbar-btn folder" onclick="performClick('folder-input')">folder</button>
             <button class="toolbar-btn share" onclick="share()">share</button>
-            <div class="toolbar-select-group html-share-view-control" id="share-view-control-desktop">
-                <span>View</span>
-                <select id="share-view-selector-desktop" class="toolbar-select">
-                    <option value="source">Source</option>
-                    <option value="preview">Preview</option>
-                </select>
-            </div>
             <button class="toolbar-btn run python-run-btn" onclick="goPythonRunPage()">py-run</button>
             <button class="toolbar-btn home" onclick="home()">home</button>
 
@@ -1403,13 +1592,6 @@
     <button id="mobile-open" onclick="performClick('file-input')">open</button>
     <button id="mobile-folder" onclick="performClick('folder-input')">folder</button>
     <button id="mobile-share" onclick="share()">share</button>
-    <div class="mobile-select-wrap html-share-view-control" id="share-view-control-mobile">
-        <label for="share-view-selector-mobile">View</label>
-        <select id="share-view-selector-mobile" class="mobile-select">
-            <option value="source">Source</option>
-            <option value="preview">Preview</option>
-        </select>
-    </div>
     <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()">py-run</button>
     <button id="mobile-home" onclick="home()">home</button>
 
@@ -1562,6 +1744,7 @@
     const SHARECODE_DEFAULT_THEME = "monokai";
     const SHARE_VIEW_SOURCE = "source";
     const SHARE_VIEW_PREVIEW = "preview";
+    const SHARE_VIEW_SPLIT = "split";
     const SIDEBAR_DEFAULT_WIDTH = 236;
     const SIDEBAR_MIN_WIDTH = 184;
     const SIDEBAR_MAX_WIDTH = 520;
@@ -2169,7 +2352,10 @@
     }
 
     function normalizeShareViewMode(rawMode) {
-        return rawMode === SHARE_VIEW_PREVIEW ? SHARE_VIEW_PREVIEW : SHARE_VIEW_SOURCE;
+        if (rawMode === SHARE_VIEW_PREVIEW || rawMode === SHARE_VIEW_SPLIT) {
+            return rawMode;
+        }
+        return SHARE_VIEW_SOURCE;
     }
 
     function resolveInitialShareViewMode() {
@@ -2177,6 +2363,9 @@
             const params = new URLSearchParams(window.location.search || "");
             const view = (params.get("view") || "").toLowerCase();
             const preview = (params.get("preview") || "").toLowerCase();
+            if (view === SHARE_VIEW_SPLIT) {
+                return SHARE_VIEW_SPLIT;
+            }
             if (view === SHARE_VIEW_PREVIEW || preview === "1" || preview === "true") {
                 return SHARE_VIEW_PREVIEW;
             }
@@ -2187,14 +2376,87 @@
 
     function setShareViewSelectors(mode) {
         const nextMode = normalizeShareViewMode(mode);
-        const desktop = document.getElementById("share-view-selector-desktop");
-        const mobile = document.getElementById("share-view-selector-mobile");
-        if (desktop) {
-            desktop.value = nextMode;
+        document.querySelectorAll("[data-share-view-mode]").forEach(button => {
+            const active = button.getAttribute("data-share-view-mode") === nextMode;
+            button.classList.toggle("is-active", active);
+            button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+    }
+
+    function getEditorAreaElement() {
+        return document.getElementById("editorArea");
+    }
+
+    function setEditorAreaShareViewClass(mode) {
+        const editorArea = getEditorAreaElement();
+        if (!editorArea) {
+            return;
         }
-        if (mobile) {
-            mobile.value = nextMode;
+        editorArea.classList.toggle("share-view-source", mode === SHARE_VIEW_SOURCE);
+        editorArea.classList.toggle("share-view-preview", mode === SHARE_VIEW_PREVIEW);
+        editorArea.classList.toggle("share-view-split", mode === SHARE_VIEW_SPLIT);
+    }
+
+    function isHtmlPreviewFullscreenActive() {
+        const editorArea = getEditorAreaElement();
+        return !!(editorArea && editorArea.classList.contains("is-preview-fullscreen"));
+    }
+
+    function updatePreviewFullscreenButton() {
+        const button = document.getElementById("previewFullscreenButton");
+        if (!button) {
+            return;
         }
+        const active = isHtmlPreviewFullscreenActive();
+        const icon = button.querySelector("i");
+        const label = button.querySelector("span");
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+        button.title = active ? "退出全屏预览" : "全屏预览";
+        if (icon) {
+            icon.className = active ? "bi bi-fullscreen-exit" : "bi bi-arrows-fullscreen";
+        }
+        if (label) {
+            label.textContent = active ? "Exit" : "Full";
+        }
+    }
+
+    function enterHtmlPreviewFullscreen() {
+        const editorArea = getEditorAreaElement();
+        if (!editorArea || !isHtmlPreviewableFile(getActiveProjectFile())) {
+            return;
+        }
+        shareViewMode = SHARE_VIEW_PREVIEW;
+        setShareViewSelectors(shareViewMode);
+        applyShareViewToWorkspace({immediate: true, updateUrl: true});
+        editorArea.classList.add("is-preview-fullscreen");
+        updatePreviewFullscreenButton();
+        if (editorArea.requestFullscreen && document.fullscreenElement !== editorArea) {
+            editorArea.requestFullscreen().catch(function () {
+                updatePreviewFullscreenButton();
+            });
+        }
+    }
+
+    function exitHtmlPreviewFullscreen() {
+        const editorArea = getEditorAreaElement();
+        if (editorArea) {
+            editorArea.classList.remove("is-preview-fullscreen");
+        }
+        if (document.fullscreenElement === editorArea && document.exitFullscreen) {
+            document.exitFullscreen().catch(function () {
+            });
+        }
+        updatePreviewFullscreenButton();
+    }
+
+    function toggleHtmlPreviewFullscreen() {
+        hideFloatingMenuIfOpen();
+        if (isHtmlPreviewFullscreenActive()) {
+            exitHtmlPreviewFullscreen();
+            return;
+        }
+        enterHtmlPreviewFullscreen();
     }
 
     function isHtmlDocumentFile(file) {
@@ -2242,10 +2504,14 @@
         document.querySelectorAll(".html-share-view-control").forEach(control => {
             control.classList.toggle("is-visible", visible);
         });
-        document.querySelectorAll("#share-view-selector-desktop, #share-view-selector-mobile").forEach(selector => {
-            selector.disabled = !visible;
-            selector.value = normalizeShareViewMode(shareViewMode);
+        document.querySelectorAll("[data-share-view-mode], #previewFullscreenButton").forEach(control => {
+            control.disabled = !visible;
         });
+        if (!visible && isHtmlPreviewFullscreenActive()) {
+            exitHtmlPreviewFullscreen();
+        }
+        setShareViewSelectors(shareViewMode);
+        updatePreviewFullscreenButton();
         return visible;
     }
 
@@ -2254,6 +2520,7 @@
         if (previewPane) {
             previewPane.style.display = "none";
         }
+        setEditorAreaShareViewClass(SHARE_VIEW_SOURCE);
     }
 
     function showSourcePaneForActiveFile() {
@@ -2270,6 +2537,7 @@
         if (editorElement) {
             editorElement.style.display = "block";
         }
+        setEditorAreaShareViewClass(SHARE_VIEW_SOURCE);
         if (window.editor) {
             setTimeout(function () {
                 window.editor.resize();
@@ -2290,12 +2558,35 @@
         if (previewPane) {
             previewPane.style.display = "block";
         }
+        setEditorAreaShareViewClass(SHARE_VIEW_PREVIEW);
+    }
+
+    function showSplitPreviewPane() {
+        const assetViewer = document.getElementById("assetViewer");
+        const editorElement = document.getElementById("editor");
+        const previewPane = document.getElementById("htmlPreviewPane");
+        if (assetViewer) {
+            assetViewer.style.display = "none";
+        }
+        if (editorElement) {
+            editorElement.style.display = "block";
+        }
+        if (previewPane) {
+            previewPane.style.display = "block";
+        }
+        setEditorAreaShareViewClass(SHARE_VIEW_SPLIT);
+        if (window.editor) {
+            setTimeout(function () {
+                window.editor.resize();
+            }, 0);
+        }
     }
 
     function getEffectiveShareViewMode() {
-        return shareViewMode === SHARE_VIEW_PREVIEW && isHtmlPreviewableFile(getActiveProjectFile())
-            ? SHARE_VIEW_PREVIEW
-            : SHARE_VIEW_SOURCE;
+        if (!isHtmlPreviewableFile(getActiveProjectFile())) {
+            return SHARE_VIEW_SOURCE;
+        }
+        return normalizeShareViewMode(shareViewMode);
     }
 
     function updateCurrentShareViewUrl() {
@@ -2304,8 +2595,9 @@
         }
         try {
             const url = new URL(window.location.href);
-            if (getEffectiveShareViewMode() === SHARE_VIEW_PREVIEW) {
-                url.searchParams.set("view", SHARE_VIEW_PREVIEW);
+            const effectiveMode = getEffectiveShareViewMode();
+            if (effectiveMode !== SHARE_VIEW_SOURCE) {
+                url.searchParams.set("view", effectiveMode);
             } else {
                 url.searchParams.delete("view");
                 url.searchParams.delete("preview");
@@ -2328,6 +2620,11 @@
             if (!opts.skipRefresh) {
                 refreshHtmlPreview(opts.immediate === true);
             }
+        } else if (shareViewMode === SHARE_VIEW_SPLIT && canPreview) {
+            showSplitPreviewPane();
+            if (!opts.skipRefresh) {
+                refreshHtmlPreview(opts.immediate === true);
+            }
         } else {
             showSourcePaneForActiveFile();
         }
@@ -2338,7 +2635,11 @@
 
     function setShareViewMode(nextMode, options) {
         const opts = options || {};
-        shareViewMode = normalizeShareViewMode(nextMode);
+        const normalizedMode = normalizeShareViewMode(nextMode);
+        if (normalizedMode !== SHARE_VIEW_PREVIEW && isHtmlPreviewFullscreenActive()) {
+            exitHtmlPreviewFullscreen();
+        }
+        shareViewMode = normalizedMode;
         setShareViewSelectors(shareViewMode);
         applyShareViewToWorkspace({
             immediate: true,
@@ -2348,16 +2649,17 @@
     }
 
     function appendShareViewToLink(rawLink) {
-        if (getEffectiveShareViewMode() !== SHARE_VIEW_PREVIEW) {
+        const effectiveMode = getEffectiveShareViewMode();
+        if (effectiveMode === SHARE_VIEW_SOURCE) {
             return rawLink;
         }
         try {
             const url = new URL(rawLink, window.location.href);
-            url.searchParams.set("view", SHARE_VIEW_PREVIEW);
+            url.searchParams.set("view", effectiveMode);
             return url.toString();
         } catch (e) {
             const separator = rawLink.indexOf("?") >= 0 ? "&" : "?";
-            return rawLink + separator + "view=" + SHARE_VIEW_PREVIEW;
+            return rawLink + separator + "view=" + effectiveMode;
         }
     }
 
@@ -2821,7 +3123,8 @@
             htmlPreviewRefreshTimer = null;
         }
         const runRefresh = function () {
-            if (getEffectiveShareViewMode() !== SHARE_VIEW_PREVIEW) {
+            const effectiveMode = getEffectiveShareViewMode();
+            if (effectiveMode !== SHARE_VIEW_PREVIEW && effectiveMode !== SHARE_VIEW_SPLIT) {
                 return;
             }
             syncActiveEditorToProject();
@@ -2845,7 +3148,8 @@
     }
 
     function refreshHtmlPreviewSoon() {
-        if (getEffectiveShareViewMode() === SHARE_VIEW_PREVIEW) {
+        const effectiveMode = getEffectiveShareViewMode();
+        if (effectiveMode === SHARE_VIEW_PREVIEW || effectiveMode === SHARE_VIEW_SPLIT) {
             refreshHtmlPreview(false);
         }
     }
@@ -5295,8 +5599,6 @@
         const langMobile = document.getElementById("lang-selector-mobile");
         const themeDesktop = document.getElementById("theme-selector-desktop");
         const themeMobile = document.getElementById("theme-selector-mobile");
-        const shareViewDesktop = document.getElementById("share-view-selector-desktop");
-        const shareViewMobile = document.getElementById("share-view-selector-mobile");
 
         function onLanguageChange(nextLang) {
             const lang = nextLang || SHARECODE_DEFAULT_LANG;
@@ -5337,11 +5639,32 @@
             onThemeChange(themeMobile.value);
         });
 
-        shareViewDesktop.addEventListener("change", function () {
-            setShareViewMode(shareViewDesktop.value);
+        document.querySelectorAll("[data-share-view-mode]").forEach(button => {
+            button.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                setShareViewMode(button.getAttribute("data-share-view-mode"));
+            });
         });
-        shareViewMobile.addEventListener("change", function () {
-            setShareViewMode(shareViewMobile.value);
+
+        const previewFullscreenButton = document.getElementById("previewFullscreenButton");
+        if (previewFullscreenButton) {
+            previewFullscreenButton.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleHtmlPreviewFullscreen();
+            });
+        }
+
+        document.addEventListener("fullscreenchange", function () {
+            const editorArea = getEditorAreaElement();
+            if (editorArea && document.fullscreenElement !== editorArea) {
+                editorArea.classList.remove("is-preview-fullscreen");
+            }
+            updatePreviewFullscreenButton();
+            if (window.editor) {
+                window.editor.resize();
+            }
         });
     }
 
