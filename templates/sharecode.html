@@ -1665,6 +1665,7 @@
     <button type="button" data-action="upload-file">上传文件</button>
     <button type="button" data-action="upload-folder">上传文件夹</button>
     <div class="project-context-menu-separator" data-item-only="true"></div>
+    <button type="button" data-action="download" data-item-only="true">下载</button>
     <button type="button" data-action="rename" data-item-only="true">重命名</button>
     <button type="button" data-action="delete" data-item-only="true" class="danger">删除</button>
 </div>
@@ -4566,6 +4567,7 @@
         const newFolderButton = menu.querySelector('[data-action="new-folder"]');
         const uploadFileButton = menu.querySelector('[data-action="upload-file"]');
         const uploadFolderButton = menu.querySelector('[data-action="upload-folder"]');
+        const downloadButton = menu.querySelector('[data-action="download"]');
         const renameButton = menu.querySelector('[data-action="rename"]');
         const deleteButton = menu.querySelector('[data-action="delete"]');
         const itemOnlyElements = menu.querySelectorAll('[data-item-only="true"]');
@@ -4594,6 +4596,9 @@
             uploadFolderButton.textContent = targetKind === "folder"
                 ? "上传文件夹到此文件夹"
                 : (targetKind === "file" ? "上传同级文件夹" : "上传文件夹到根目录");
+        }
+        if (downloadButton) {
+            downloadButton.textContent = targetKind === "folder" ? "下载文件夹" : "下载文件";
         }
         if (renameButton) {
             renameButton.textContent = targetKind === "folder" ? "重命名文件夹" : "重命名文件";
@@ -4690,6 +4695,8 @@
                 beginProjectUpload("file-input", getContextTargetParentPath(target));
             } else if (action === "upload-folder") {
                 beginProjectUpload("folder-input", getContextTargetParentPath(target));
+            } else if (action === "download") {
+                downloadProjectTreeItem(target.kind, target.path);
             } else if (action === "rename") {
                 beginRenameTreeItem(target.kind, target.path);
             } else if (action === "delete") {
@@ -5409,6 +5416,175 @@
         link.click();
     }
 
+    function getDownloadSafeName(rawName, fallbackName) {
+        const fallback = fallbackName || "download";
+        const name = String(rawName || "").trim().replace(/[\\/:*?"<>|]+/g, "-");
+        return name || fallback;
+    }
+
+    function getProjectFileDownloadFilename(file) {
+        return getDownloadSafeName(getProjectPathBaseName(file && file.path), "download.txt");
+    }
+
+    function getProjectFolderArchiveFilename(folderPath) {
+        const folderName = getDownloadSafeName(getProjectPathName(folderPath), "folder");
+        return folderName.toLowerCase().endsWith(".zip") ? folderName : folderName + ".zip";
+    }
+
+    function projectPayloadHasDownloadItems(payload) {
+        return !!(payload
+            && Array.isArray(payload.text_files)
+            && Array.isArray(payload.assets)
+            && Array.isArray(payload.folders)
+            && (payload.text_files.length > 0 || payload.assets.length > 0 || payload.folders.length > 0));
+    }
+
+    async function saveAssetSourceAsFile(source, filename) {
+        const fetchOptions = String(source || "").startsWith("data:") ? {} : {credentials: "same-origin"};
+        const response = await fetch(source, fetchOptions);
+        if (!response.ok) {
+            throw new Error("asset download failed");
+        }
+        const blob = await response.blob();
+        saveAs(blob, filename);
+    }
+
+    function openAssetSourceForDownload(source, filename) {
+        const link = document.createElement("a");
+        link.href = source;
+        link.download = filename;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.click();
+    }
+
+    async function downloadProjectFile(path) {
+        const safePath = safeNormalizePath(path);
+        const targetFile = projectFiles.find(f => f.path === safePath);
+        if (!targetFile) {
+            showProjectNotice("未找到要下载的文件。");
+            return;
+        }
+
+        hideFloatingMenuIfOpen();
+        syncActiveEditorToProject();
+        const filename = getProjectFileDownloadFilename(targetFile);
+
+        if (targetFile.kind === "text") {
+            const mimeType = getTextResourceMimeType(targetFile) || "text/plain";
+            saveAs(new Blob([targetFile.content || ""], {type: mimeType + ";charset=utf-8"}), filename);
+            showProjectNotice("文件已下载。");
+            return;
+        }
+
+        const source = resolveAssetPreviewSource(targetFile);
+        if (!source) {
+            showProjectNotice("该资源文件暂时无法下载。");
+            return;
+        }
+
+        try {
+            await saveAssetSourceAsFile(source, filename);
+            showProjectNotice("文件已下载。");
+        } catch (e) {
+            openAssetSourceForDownload(source, filename);
+            showProjectNotice("已打开资源链接，请在新页面保存文件。");
+        }
+    }
+
+    function buildFolderDownloadPayload(folderPath) {
+        const safeFolderPath = safeNormalizePath(folderPath);
+        const payload = buildSharePayload();
+        const folderSet = new Set([safeFolderPath]);
+        payload.folders.forEach(path => {
+            if (isSameOrInsideFolder(path, safeFolderPath)) {
+                folderSet.add(path);
+            }
+        });
+
+        const textFiles = payload.text_files.filter(file => isPathInsideFolder(file.path, safeFolderPath));
+        const assets = payload.assets.filter(file => isPathInsideFolder(file.path, safeFolderPath));
+        const firstFile = textFiles[0] || assets[0] || null;
+        const activeFile = isPathInsideFolder(payload.active_file, safeFolderPath)
+            ? payload.active_file
+            : (firstFile ? firstFile.path : "");
+
+        return {
+            text_files: textFiles,
+            assets: assets,
+            folders: Array.from(folderSet),
+            active_file: activeFile
+        };
+    }
+
+    async function downloadProjectArchivePayload(payload, filename, successMessage, emptyMessage) {
+        if (projectArchiveDownloadBusy) {
+            return;
+        }
+        if (!projectPayloadHasDownloadItems(payload)) {
+            showProjectNotice(emptyMessage || "当前没有可打包下载的文件。");
+            return;
+        }
+
+        const active = getActiveProjectFile();
+        const language = active && active.kind === "text"
+            ? (active.language || detectLanguageFromFilename(active.path))
+            : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
+        const code = active && active.kind === "text" ? (active.content || "") : "";
+        const formData = new FormData();
+        formData.append("project_payload", JSON.stringify(payload));
+        formData.append("filename", filename);
+        formData.append("code", code);
+        formData.append("language", language);
+
+        setProjectDownloadBusy(true);
+        try {
+            const response = await fetch("/download_project_zip", {
+                method: "POST",
+                body: formData
+            });
+            if (!response.ok) {
+                throw new Error("download failed");
+            }
+            const archiveBlob = await response.blob();
+            saveAs(archiveBlob, filename);
+            showProjectNotice(successMessage || "项目已打包下载。");
+        } catch (e) {
+            showProjectNotice("打包下载失败，请稍后再试。");
+        } finally {
+            setProjectDownloadBusy(false);
+        }
+    }
+
+    async function downloadProjectFolderArchive(folderPath) {
+        const safeFolderPath = safeNormalizePath(folderPath);
+        if (!safeFolderPath || !projectFolderExists(safeFolderPath)) {
+            showProjectNotice("未找到要下载的文件夹。");
+            return;
+        }
+
+        hideFloatingMenuIfOpen();
+        createProjectFileFromEditorInput();
+        syncActiveEditorToProject();
+        const payload = buildFolderDownloadPayload(safeFolderPath);
+        await downloadProjectArchivePayload(
+            payload,
+            getProjectFolderArchiveFilename(safeFolderPath),
+            "文件夹已打包下载。",
+            "文件夹中没有可打包下载的内容。"
+        );
+    }
+
+    function downloadProjectTreeItem(kind, path) {
+        if (kind === "folder") {
+            downloadProjectFolderArchive(path);
+            return;
+        }
+        if (kind === "file") {
+            downloadProjectFile(path);
+        }
+    }
+
     function getProjectArchiveFilename() {
         return "codemark-project.zip";
     }
@@ -5433,41 +5609,12 @@
         syncActiveEditorToProject();
 
         const payload = buildSharePayload();
-        const hasItems = payload.text_files.length > 0 || payload.assets.length > 0 || payload.folders.length > 0;
-        if (!hasItems) {
-            showProjectNotice("当前没有可打包下载的文件。");
-            return;
-        }
-
-        const active = getActiveProjectFile();
-        const language = active && active.kind === "text"
-            ? (active.language || detectLanguageFromFilename(active.path))
-            : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
-        const code = active && active.kind === "text" ? (active.content || "") : "";
-        const filename = getProjectArchiveFilename();
-        const formData = new FormData();
-        formData.append("project_payload", JSON.stringify(payload));
-        formData.append("filename", filename);
-        formData.append("code", code);
-        formData.append("language", language);
-
-        setProjectDownloadBusy(true);
-        try {
-            const response = await fetch("/download_project_zip", {
-                method: "POST",
-                body: formData
-            });
-            if (!response.ok) {
-                throw new Error("download failed");
-            }
-            const archiveBlob = await response.blob();
-            saveAs(archiveBlob, filename);
-            showProjectNotice("项目已打包下载。");
-        } catch (e) {
-            showProjectNotice("打包下载失败，请稍后再试。");
-        } finally {
-            setProjectDownloadBusy(false);
-        }
+        await downloadProjectArchivePayload(
+            payload,
+            getProjectArchiveFilename(),
+            "项目已打包下载。",
+            "当前没有可打包下载的文件。"
+        );
     }
 
     function home() {
