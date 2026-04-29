@@ -2768,6 +2768,39 @@
         };
     }
 
+    function normalizePreviewResourcePath(rawPath) {
+        if (typeof rawPath !== "string") {
+            return "";
+        }
+        const normalizedPath = rawPath.replace(/\\/g, "/").trim().replace(/^\/+/, "");
+        if (!normalizedPath) {
+            return "";
+        }
+        const resultParts = [];
+        const pathParts = normalizedPath.split("/");
+        for (const part of pathParts) {
+            if (!part || part === ".") {
+                continue;
+            }
+            if (part === "..") {
+                if (!resultParts.length) {
+                    return "";
+                }
+                resultParts.pop();
+                continue;
+            }
+            resultParts.push(part);
+        }
+        return resultParts.join("/");
+    }
+
+    function addPreviewResourceCandidate(candidates, path) {
+        const normalizedPath = normalizePreviewResourcePath(path);
+        if (normalizedPath && !candidates.includes(normalizedPath)) {
+            candidates.push(normalizedPath);
+        }
+    }
+
     function findPreviewResource(rawValue, basePath, resourceMap) {
         if (isExternalPreviewUrl(rawValue)) {
             return null;
@@ -2777,19 +2810,19 @@
         const baseDir = getPathParent(basePath || "");
         const candidates = [];
         if (rawPath.startsWith("/")) {
-            candidates.push(safeNormalizePath(rawPath.replace(/^\/+/, "")));
+            addPreviewResourceCandidate(candidates, rawPath.replace(/^\/+/, ""));
         } else {
-            candidates.push(safeNormalizePath(joinProjectPath(baseDir, rawPath)));
-            candidates.push(safeNormalizePath(rawPath));
+            addPreviewResourceCandidate(candidates, joinProjectPath(baseDir, rawPath));
+            addPreviewResourceCandidate(candidates, rawPath);
         }
         try {
             const decodedPath = decodeURIComponent(rawPath);
             if (decodedPath !== rawPath) {
                 if (decodedPath.startsWith("/")) {
-                    candidates.push(safeNormalizePath(decodedPath.replace(/^\/+/, "")));
+                    addPreviewResourceCandidate(candidates, decodedPath.replace(/^\/+/, ""));
                 } else {
-                    candidates.push(safeNormalizePath(joinProjectPath(baseDir, decodedPath)));
-                    candidates.push(safeNormalizePath(decodedPath));
+                    addPreviewResourceCandidate(candidates, joinProjectPath(baseDir, decodedPath));
+                    addPreviewResourceCandidate(candidates, decodedPath);
                 }
             }
         } catch (e) {
@@ -2804,9 +2837,14 @@
         }
         return null;
     }
+    function textResourceToDataUrl(resource, resourceMap, seenPaths) {
 
-    function textResourceToDataUrl(resource) {
-        return `data:${resource.mime_type || "text/plain"};charset=utf-8,${encodeURIComponent(resource.content || "")}`;
+        const mimeType = resource.mime_type || "text/plain";
+        let content = resource.content || "";
+        if (mimeType === "text/css") {
+            content = rewriteCssResourceReferences(content, resource.path, resourceMap, seenPaths);
+        }
+        return `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`;
     }
 
     function getPreviewResourceUrl(rawValue, basePath, resourceMap) {
@@ -2815,7 +2853,7 @@
             return "";
         }
         const resource = resolved.resource;
-        const url = resource.kind === "asset" ? resource.url : textResourceToDataUrl(resource);
+        const url = resource.kind === "asset" ? resource.url : textResourceToDataUrl(resource, resourceMap);
         if (!url) {
             return "";
         }
@@ -2825,14 +2863,76 @@
         return url + resolved.suffix;
     }
 
-    function rewriteCssResourceUrls(cssText, cssPath, resourceMap) {
+    function getPreviewResourceUrlForCss(rawValue, cssPath, resourceMap, seenPaths) {
+        const resolved = findPreviewResource(rawValue, cssPath, resourceMap);
+        if (!resolved) {
+            return "";
+        }
+        const resource = resolved.resource;
+        if (resource.kind === "asset") {
+            return resource.url || "";
+        }
+        const pathKey = resource.path || "";
+        if (pathKey && seenPaths && seenPaths.has(pathKey)) {
+            return "";
+        }
+        const nextSeenPaths = new Set(seenPaths || []);
+        if (pathKey) {
+            nextSeenPaths.add(pathKey);
+        }
+        return textResourceToDataUrl(resource, resourceMap, nextSeenPaths);
+    }
+
+    function rewriteCssResourceUrls(cssText, cssPath, resourceMap, seenPaths) {
         return String(cssText || "").replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g, function (match, quote, urlValue) {
-            const nextUrl = getPreviewResourceUrl(urlValue, cssPath, resourceMap);
+            const nextUrl = getPreviewResourceUrlForCss(urlValue, cssPath, resourceMap, seenPaths);
             if (!nextUrl) {
                 return match;
             }
             return `url("${nextUrl.replace(/"/g, "%22")}")`;
         });
+    }
+
+    function rewriteCssImportUrls(cssText, cssPath, resourceMap, seenPaths) {
+        return String(cssText || "").replace(/@import\s+(?:url\(\s*)?(['"]?)([^'")\s]+)\1\s*\)?([^;]*);/g, function (match, quote, urlValue, mediaQuery) {
+            const nextUrl = getPreviewResourceUrlForCss(urlValue, cssPath, resourceMap, seenPaths);
+            if (!nextUrl) {
+                return match;
+            }
+            return `@import url("${nextUrl.replace(/"/g, "%22")}")${mediaQuery || ""};`;
+        });
+    }
+
+    function rewriteCssResourceReferences(cssText, cssPath, resourceMap, seenPaths) {
+        const nextSeenPaths = new Set(seenPaths || []);
+        const pathKey = safeNormalizePath(cssPath || "");
+        if (pathKey) {
+            nextSeenPaths.add(pathKey);
+        }
+        return rewriteCssImportUrls(
+            rewriteCssResourceUrls(cssText, cssPath, resourceMap, nextSeenPaths),
+            cssPath,
+            resourceMap,
+            nextSeenPaths
+        );
+    }
+
+    function rewritePreviewSrcset(value, basePath, resourceMap) {
+        if (/\bdata:/i.test(String(value || ""))) {
+            return value;
+        }
+        return String(value || "").split(",").map(part => {
+            const item = part.trim();
+            if (!item) {
+                return part;
+            }
+            const pieces = item.split(/\s+/);
+            const nextUrl = getPreviewResourceUrl(pieces[0], basePath, resourceMap);
+            if (!nextUrl) {
+                return item;
+            }
+            return [nextUrl].concat(pieces.slice(1)).join(" ");
+        }).join(", ");
     }
 
     function appendPreviewRuntime(doc, options) {
@@ -3005,7 +3105,7 @@
             }
             const style = doc.createElement("style");
             style.setAttribute("data-codemark-preview", file.path);
-            style.textContent = rewriteCssResourceUrls(file.content || "", file.path, resourceMap);
+            style.textContent = rewriteCssResourceReferences(file.content || "", file.path, resourceMap);
             head.appendChild(style);
         }
     }
@@ -3060,7 +3160,7 @@
             if (rel.indexOf("stylesheet") >= 0 && resolved.resource.kind === "text") {
                 const style = doc.createElement("style");
                 style.setAttribute("data-codemark-preview", resolved.resource.path);
-                style.textContent = rewriteCssResourceUrls(resolved.resource.content || "", resolved.resource.path, resourceMap);
+                style.textContent = rewriteCssResourceReferences(resolved.resource.content || "", resolved.resource.path, resourceMap);
                 link.parentNode.replaceChild(style, link);
                 return;
             }
@@ -3112,14 +3212,14 @@
         });
 
         doc.querySelectorAll("style").forEach(style => {
-            style.textContent = rewriteCssResourceUrls(style.textContent || "", file.path, resourceMap);
+            style.textContent = rewriteCssResourceReferences(style.textContent || "", file.path, resourceMap);
         });
 
         doc.querySelectorAll("[style]").forEach(el => {
-            el.setAttribute("style", rewriteCssResourceUrls(el.getAttribute("style") || "", file.path, resourceMap));
+            el.setAttribute("style", rewriteCssResourceReferences(el.getAttribute("style") || "", file.path, resourceMap));
         });
 
-        ["src", "poster", "href"].forEach(attr => {
+        ["src", "poster", "href", "data"].forEach(attr => {
             doc.querySelectorAll(`[${attr}]`).forEach(el => {
                 if ((el.tagName || "").toLowerCase() === "script" && attr === "src") {
                     return;
@@ -3131,6 +3231,24 @@
                 const nextUrl = getPreviewResourceUrl(value, file.path, resourceMap);
                 if (nextUrl) {
                     el.setAttribute(attr, nextUrl);
+                }
+            });
+        });
+
+        doc.querySelectorAll("[xlink\\:href]").forEach(el => {
+            const value = el.getAttribute("xlink:href") || "";
+            const nextUrl = getPreviewResourceUrl(value, file.path, resourceMap);
+            if (nextUrl) {
+                el.setAttribute("xlink:href", nextUrl);
+            }
+        });
+
+        ["srcset", "imagesrcset"].forEach(attr => {
+            doc.querySelectorAll(`[${attr}]`).forEach(el => {
+                const value = el.getAttribute(attr) || "";
+                const nextValue = rewritePreviewSrcset(value, file.path, resourceMap);
+                if (nextValue && nextValue !== value) {
+                    el.setAttribute(attr, nextValue);
                 }
             });
         });
@@ -5927,7 +6045,7 @@
         applyCachedSidebarWidth();
         bindSidebarResize();
 
-        ace.config.set("basePath", "static/js/ace/");
+        ace.config.set("basePath", "{{ url_for('static', filename='js/ace') }}/");
         window.editor = ace.edit("editor");
         editor.setOptions({
             fontSize: isMobileViewport() ? "16pt" : "20pt",
