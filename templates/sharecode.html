@@ -907,11 +907,52 @@
             display: none;
         }
 
-        #assetViewer img {
-            max-width: 100%;
-            height: auto;
+        .asset-preview-stage {
+            --asset-preview-max-height: calc(100vh - var(--toolbar-height) - 190px);
+            --asset-preview-max-height: min(72vh, calc(100vh - var(--toolbar-height) - 190px));
+            width: 100%;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
+            background: rgba(0, 0, 0, 0.22);
+        }
+
+        .asset-preview-stage.is-audio {
+            padding: 14px;
+        }
+
+        #assetViewer .asset-media {
+            max-width: 100%;
             display: block;
+        }
+
+        #assetViewer img.asset-media,
+        #assetViewer video.asset-media {
+            width: auto;
+            height: auto;
+            max-height: var(--asset-preview-max-height);
+            object-fit: contain;
+            border-radius: 9px;
+        }
+
+        #assetViewer video.asset-media {
+            width: 100%;
+            background: #000;
+        }
+
+        #assetViewer audio.asset-media {
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .asset-preview-stage {
+                --asset-preview-max-height: calc(100vh - var(--toolbar-height) - 150px);
+                --asset-preview-max-height: min(62vh, calc(100vh - var(--toolbar-height) - 150px));
+            }
         }
 
         .asset-meta {
@@ -2342,6 +2383,21 @@
         return "";
     }
 
+    function getAssetPreviewKind(assetFile) {
+        const mimeType = String((assetFile && assetFile.mime_type) || "").toLowerCase();
+        const extension = getPathExtension(assetFile && assetFile.path);
+        if (mimeType.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) {
+            return "image";
+        }
+        if (mimeType.startsWith("audio/") || AUDIO_EXTENSIONS.has(extension)) {
+            return "audio";
+        }
+        if (mimeType.startsWith("video/") || VIDEO_EXTENSIONS.has(extension)) {
+            return "video";
+        }
+        return "";
+    }
+
     function showAssetPreview(assetFile) {
         const viewer = document.getElementById("assetViewer");
         const editorElement = document.getElementById("editor");
@@ -2352,10 +2408,15 @@
         const source = resolveAssetPreviewSource(assetFile);
         const mimeType = assetFile.mime_type || "application/octet-stream";
         const sizeText = typeof assetFile.size === "number" ? `${assetFile.size} bytes` : "unknown";
+        const previewKind = getAssetPreviewKind(assetFile);
 
         let html = `<div><strong>${escapeHtml(assetFile.path)}</strong></div>`;
-        if (mimeType.startsWith("image/") && source) {
-            html += `<div style="margin-top: 12px;"><img src="${escapeHtml(source)}" alt="${escapeHtml(assetFile.path)}"></div>`;
+        if (previewKind === "image" && source) {
+            html += `<div class="asset-preview-stage"><img class="asset-media" src="${escapeHtml(source)}" alt="${escapeHtml(assetFile.path)}" decoding="async"></div>`;
+        } else if (previewKind === "audio" && source) {
+            html += `<div class="asset-preview-stage is-audio"><audio class="asset-media" controls preload="metadata" src="${escapeHtml(source)}"></audio></div>`;
+        } else if (previewKind === "video" && source) {
+            html += `<div class="asset-preview-stage"><video class="asset-media" controls preload="metadata" src="${escapeHtml(source)}"></video></div>`;
         }
         html += `<div class="asset-meta">`;
         html += `<div>MIME: ${escapeHtml(mimeType)}</div>`;
