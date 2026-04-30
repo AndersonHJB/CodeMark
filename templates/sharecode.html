@@ -343,6 +343,11 @@
             background: rgba(255, 255, 255, 0.08);
         }
 
+        .sidebar-action.select.active {
+            background: rgba(109, 221, 242, 0.18);
+            color: #eaffff;
+        }
+
         .sidebar-action.clear {
             color: #ffb4a8;
         }
@@ -473,6 +478,29 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .tree-select-control {
+            display: none;
+            width: 16px;
+            min-width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+
+        #appRoot.project-selection-visible .tree-select-control {
+            display: inline-flex;
+        }
+
+        .tree-select-checkbox {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: var(--accent-download);
         }
 
         .tree-file-button {
@@ -1560,6 +1588,14 @@
                 </span>
                 <span class="sidebar-action-text">upload folder</span>
             </button>
+            <button id="projectSelectionToggleButton" class="sidebar-action select" type="button" title="显示选择框" aria-pressed="false" onclick="toggleProjectTreeSelectionVisible()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M6.25 3.5A2.75 2.75 0 0 0 3.5 6.25v7.5a2.75 2.75 0 0 0 2.75 2.75h7.5a2.75 2.75 0 0 0 2.75-2.75v-7.5a2.75 2.75 0 0 0-2.75-2.75h-7.5Zm0 1.5h7.5A1.25 1.25 0 0 1 15 6.25v7.5A1.25 1.25 0 0 1 13.75 15h-7.5A1.25 1.25 0 0 1 5 13.75v-7.5A1.25 1.25 0 0 1 6.25 5Zm6.58 2.88a.75.75 0 0 0-1.06-1.06L8.75 9.84 7.98 9.07a.75.75 0 0 0-1.06 1.06l1.3 1.3a.75.75 0 0 0 1.06 0l3.55-3.55Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">select</span>
+            </button>
             <button class="sidebar-action clear" type="button" title="清空所有文件" onclick="clearAllProjectFiles()">
                 <span class="sidebar-action-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -1997,6 +2033,9 @@
     let projectFolders = [];
     let activeFilePath = "";
     let collapsedFolderPaths = new Set();
+    let projectTreeSelectionVisible = false;
+    let selectedProjectFilePaths = new Set();
+    let selectedProjectFolderPaths = new Set();
     let sidebarOpen = false;
     let editorReady = false;
     let projectTreeContextTarget = null;
@@ -3679,6 +3718,151 @@
         return !!(safeFilePath && safeFolderPath && safeFilePath.startsWith(safeFolderPath + "/"));
     }
 
+    function getAllProjectFolderPaths() {
+        const folderPaths = new Set();
+        function addFolderAndAncestors(path) {
+            const safePath = safeNormalizePath(path);
+            if (!safePath) {
+                return;
+            }
+            const parts = safePath.split("/");
+            let current = "";
+            for (const part of parts) {
+                current = current ? `${current}/${part}` : part;
+                folderPaths.add(current);
+            }
+        }
+
+        projectFolders.forEach(addFolderAndAncestors);
+        for (const file of projectFiles) {
+            const safePath = safeNormalizePath(file && file.path);
+            if (!safePath || safePath.indexOf("/") < 0) {
+                continue;
+            }
+            const parts = safePath.split("/");
+            parts.pop();
+            addFolderAndAncestors(parts.join("/"));
+        }
+        return Array.from(folderPaths).sort((a, b) => a.localeCompare(b));
+    }
+
+    function pruneProjectTreeSelection() {
+        const filePaths = new Set(projectFiles.map(file => safeNormalizePath(file && file.path)).filter(Boolean));
+        selectedProjectFilePaths = new Set(Array.from(selectedProjectFilePaths).filter(path => filePaths.has(path)));
+
+        const folderPaths = new Set(getAllProjectFolderPaths());
+        selectedProjectFolderPaths = new Set(Array.from(selectedProjectFolderPaths).filter(path => folderPaths.has(path)));
+    }
+
+    function hasSelectedProjectTreeItems() {
+        pruneProjectTreeSelection();
+        return selectedProjectFilePaths.size > 0 || selectedProjectFolderPaths.size > 0;
+    }
+
+    function getProjectTreeFolderSelectionState(folderPath) {
+        const safeFolderPath = safeNormalizePath(folderPath);
+        if (!safeFolderPath) {
+            return {checked: false, indeterminate: false};
+        }
+
+        const folderPaths = getAllProjectFolderPaths().filter(path => isSameOrInsideFolder(path, safeFolderPath));
+        const filePaths = projectFiles
+            .map(file => safeNormalizePath(file && file.path))
+            .filter(path => isPathInsideFolder(path, safeFolderPath));
+        const totalCount = folderPaths.length + filePaths.length;
+        if (!totalCount) {
+            return {checked: false, indeterminate: false};
+        }
+
+        const selectedFolderCount = folderPaths.filter(path => selectedProjectFolderPaths.has(path)).length;
+        const selectedFileCount = filePaths.filter(path => selectedProjectFilePaths.has(path)).length;
+        const selectedCount = selectedFolderCount + selectedFileCount;
+        return {
+            checked: selectedCount === totalCount,
+            indeterminate: selectedCount > 0 && selectedCount < totalCount
+        };
+    }
+
+    function setProjectTreeFileSelected(filePath, selected) {
+        const safePath = safeNormalizePath(filePath);
+        if (!safePath || !projectFiles.some(file => file.path === safePath)) {
+            return;
+        }
+        if (selected) {
+            selectedProjectFilePaths.add(safePath);
+        } else {
+            selectedProjectFilePaths.delete(safePath);
+        }
+    }
+
+    function setProjectTreeFolderSelected(folderPath, selected) {
+        const safeFolderPath = safeNormalizePath(folderPath);
+        if (!safeFolderPath) {
+            return;
+        }
+
+        const folderPaths = getAllProjectFolderPaths().filter(path => isSameOrInsideFolder(path, safeFolderPath));
+        const filePaths = projectFiles
+            .map(file => safeNormalizePath(file && file.path))
+            .filter(path => isPathInsideFolder(path, safeFolderPath));
+        const targetFolderPaths = folderPaths.length ? folderPaths : [safeFolderPath];
+        if (selected) {
+            targetFolderPaths.forEach(path => selectedProjectFolderPaths.add(path));
+            filePaths.forEach(path => selectedProjectFilePaths.add(path));
+        } else {
+            targetFolderPaths.forEach(path => selectedProjectFolderPaths.delete(path));
+            filePaths.forEach(path => selectedProjectFilePaths.delete(path));
+        }
+    }
+
+    function setProjectTreeItemSelected(kind, path, selected) {
+        if (kind === "folder") {
+            setProjectTreeFolderSelected(path, selected);
+        } else if (kind === "file") {
+            setProjectTreeFileSelected(path, selected);
+        }
+        renderProjectFileTree();
+    }
+
+    function moveProjectTreeSelectionPath(kind, oldPath, newPath) {
+        const safeOldPath = safeNormalizePath(oldPath);
+        const safeNewPath = safeNormalizePath(newPath);
+        if (!safeOldPath || !safeNewPath || safeOldPath === safeNewPath) {
+            return;
+        }
+
+        if (kind === "file") {
+            if (selectedProjectFilePaths.delete(safeOldPath)) {
+                selectedProjectFilePaths.add(safeNewPath);
+            }
+            return;
+        }
+
+        if (kind !== "folder") {
+            return;
+        }
+
+        const nextSelectedFolders = new Set();
+        selectedProjectFolderPaths.forEach(path => {
+            if (isSameOrInsideFolder(path, safeOldPath)) {
+                nextSelectedFolders.add(safeNewPath + path.slice(safeOldPath.length));
+            } else {
+                nextSelectedFolders.add(path);
+            }
+        });
+        selectedProjectFolderPaths = nextSelectedFolders;
+
+        const nextSelectedFiles = new Set();
+        selectedProjectFilePaths.forEach(path => {
+            if (isPathInsideFolder(path, safeOldPath)) {
+                nextSelectedFiles.add(safeNewPath + path.slice(safeOldPath.length));
+            } else {
+                nextSelectedFiles.add(path);
+            }
+        });
+        selectedProjectFilePaths = nextSelectedFiles;
+    }
+
     function projectFolderExists(folderPath) {
         const safeFolderPath = safeNormalizePath(folderPath);
         if (!safeFolderPath) {
@@ -4158,6 +4342,7 @@
 
         syncActiveEditorToProject();
         targetFile.path = newPath;
+        moveProjectTreeSelectionPath("file", safeOldPath, newPath);
         const nextActivePath = activeFilePath === safeOldPath ? newPath : activeFilePath;
         activeFilePath = nextActivePath;
         refreshProjectAfterMutation(nextActivePath);
@@ -4221,6 +4406,7 @@
             }
             return path;
         }).sort((a, b) => a.localeCompare(b));
+        moveProjectTreeSelectionPath("folder", safeOldFolderPath, newFolderPath);
         moveSelectedProjectFolderState(safeOldFolderPath, newFolderPath);
         moveCollapsedFolderState(safeOldFolderPath, newFolderPath);
         activeFilePath = nextActivePath;
@@ -4298,6 +4484,7 @@
             addProjectFolder(safeTargetParentPath);
         }
         targetFile.path = newPath;
+        moveProjectTreeSelectionPath("file", safeOldPath, newPath);
         const nextActivePath = activeFilePath === safeOldPath ? newPath : activeFilePath;
         activeFilePath = nextActivePath;
         expandProjectTreeAncestors(newPath);
@@ -4372,6 +4559,7 @@
             }
             return path;
         }).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+        moveProjectTreeSelectionPath("folder", safeOldFolderPath, newFolderPath);
         moveSelectedProjectFolderState(safeOldFolderPath, newFolderPath);
         moveCollapsedFolderState(safeOldFolderPath, newFolderPath);
         expandProjectTreeAncestors(joinProjectPath(newFolderPath, "_placeholder"));
@@ -4424,7 +4612,7 @@
     }
 
     function shouldIgnoreProjectTreeDrag(e) {
-        return !!e.target.closest(".tree-rename-input, .tree-delete-btn, .tree-delete-confirm-btn");
+        return !!e.target.closest(".tree-rename-input, .tree-delete-btn, .tree-delete-confirm-btn, .tree-select-control, .tree-select-checkbox");
     }
 
     function bindProjectTreeDragSource(element, kind, path) {
@@ -4716,6 +4904,38 @@
         return button;
     }
 
+    function createProjectTreeSelectControl(kind, path) {
+        const safePath = safeNormalizePath(path);
+        const wrapper = document.createElement("span");
+        wrapper.className = "tree-select-control";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "tree-select-checkbox";
+        checkbox.draggable = false;
+        checkbox.setAttribute("aria-label", kind === "folder" ? `选择文件夹 ${safePath}` : `选择文件 ${safePath}`);
+
+        if (kind === "folder") {
+            const state = getProjectTreeFolderSelectionState(safePath);
+            checkbox.checked = state.checked;
+            checkbox.indeterminate = state.indeterminate;
+        } else {
+            checkbox.checked = selectedProjectFilePaths.has(safePath);
+        }
+
+        checkbox.addEventListener("change", function (e) {
+            e.stopPropagation();
+            setProjectTreeItemSelected(kind, safePath, checkbox.checked);
+        });
+
+        ["click", "dblclick", "mousedown", "contextmenu"].forEach(eventName => {
+            wrapper.addEventListener(eventName, function (e) {
+                e.stopPropagation();
+            });
+        });
+        wrapper.appendChild(checkbox);
+        return wrapper;
+    }
+
     function clearAllProjectFiles() {
         hideFloatingMenuIfOpen();
         hideProjectTreeContextMenu();
@@ -4965,6 +5185,7 @@
         const treeEl = document.getElementById("projectFileTree");
         const emptyEl = document.getElementById("projectTreeEmpty");
         treeEl.innerHTML = "";
+        pruneProjectTreeSelection();
 
         if (!hasProjectTreeItems() && !projectTreeCreateTarget) {
             collapsedFolderPaths.clear();
@@ -5054,6 +5275,7 @@
                 label.className = "tree-entry-label";
                 label.textContent = folder;
                 span.appendChild(toggleIcon);
+                span.appendChild(createProjectTreeSelectControl("folder", folderPath));
                 span.appendChild(folderIcon);
                 span.appendChild(label);
                 span.appendChild(createTreeDeleteControl("folder", folderPath));
@@ -5121,6 +5343,7 @@
                 const label = document.createElement("span");
                 label.className = "tree-entry-label";
                 label.textContent = item.name;
+                button.appendChild(createProjectTreeSelectControl("file", item.file.path));
                 button.appendChild(icon);
                 button.appendChild(label);
                 button.appendChild(createTreeDeleteControl("file", item.file.path));
@@ -5453,6 +5676,37 @@
         setSidebarOpen(!sidebarOpen);
     }
 
+    function updateProjectSelectionToggleButton() {
+        const button = document.getElementById("projectSelectionToggleButton");
+        if (!button) {
+            return;
+        }
+        button.classList.toggle("active", projectTreeSelectionVisible);
+        button.setAttribute("aria-pressed", projectTreeSelectionVisible ? "true" : "false");
+        button.title = projectTreeSelectionVisible ? "隐藏选择框" : "显示选择框";
+        const text = button.querySelector(".sidebar-action-text");
+        if (text) {
+            text.textContent = projectTreeSelectionVisible ? "selecting" : "select";
+        }
+    }
+
+    function setProjectTreeSelectionVisible(visible) {
+        projectTreeSelectionVisible = !!visible;
+        const appRoot = document.getElementById("appRoot");
+        if (appRoot) {
+            appRoot.classList.toggle("project-selection-visible", projectTreeSelectionVisible);
+        }
+        updateProjectSelectionToggleButton();
+    }
+
+    function toggleProjectTreeSelectionVisible() {
+        hideProjectTreeContextMenu();
+        setProjectTreeSelectionVisible(!projectTreeSelectionVisible);
+        if (projectTreeSelectionVisible) {
+            setSidebarOpen(true);
+        }
+    }
+
     function handleSidebarLogoClick() {
         if (!sidebarOpen) {
             setSidebarOpen(true);
@@ -5696,6 +5950,32 @@
         };
     }
 
+    function buildSelectedProjectArchivePayload() {
+        if (!hasSelectedProjectTreeItems()) {
+            return null;
+        }
+
+        const payload = buildSharePayload();
+        const selectedFiles = new Set(selectedProjectFilePaths);
+        const textFiles = payload.text_files.filter(file => selectedFiles.has(safeNormalizePath(file.path)));
+        const assets = payload.assets.filter(file => selectedFiles.has(safeNormalizePath(file.path)));
+        const selectedFolders = new Set(selectedProjectFolderPaths);
+        const folders = getAllProjectFolderPaths()
+            .filter(path => selectedFolders.has(path))
+            .sort((a, b) => a.localeCompare(b));
+        const firstFile = textFiles[0] || assets[0] || null;
+        const activeFile = selectedFiles.has(safeNormalizePath(payload.active_file))
+            ? payload.active_file
+            : (firstFile ? firstFile.path : "");
+
+        return {
+            text_files: textFiles,
+            assets: assets,
+            folders: folders,
+            active_file: activeFile
+        };
+    }
+
     async function downloadProjectArchivePayload(payload, filename, successMessage, emptyMessage) {
         if (projectArchiveDownloadBusy) {
             return;
@@ -5787,12 +6067,13 @@
         createProjectFileFromEditorInput();
         syncActiveEditorToProject();
 
-        const payload = buildSharePayload();
+        const selectedPayload = buildSelectedProjectArchivePayload();
+        const payload = selectedPayload || buildSharePayload();
         await downloadProjectArchivePayload(
             payload,
             getProjectArchiveFilename(),
-            "项目已打包下载。",
-            "当前没有可打包下载的文件。"
+            selectedPayload ? "选中内容已打包下载。" : "项目已打包下载。",
+            selectedPayload ? "选中内容中没有可打包下载的文件。" : "当前没有可打包下载的文件。"
         );
     }
 
@@ -6117,6 +6398,7 @@
 
         bindSelectorSync();
         bindProjectTreeContextMenu();
+        setProjectTreeSelectionVisible(false);
 
         const initialState = resolveInitialState();
         projectFiles = initialState.project.files;
