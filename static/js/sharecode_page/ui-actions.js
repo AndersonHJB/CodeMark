@@ -694,7 +694,7 @@ function bindSelectorSync() {
             setEditorLang(lang);
             createProjectFileFromEditorInput();
             updatePythonRunButtonVisibility();
-            applyShareViewToWorkspace({immediate: true});
+            applyShareViewToWorkspace({immediate: true, forceFrame: true});
             scheduleSharecodeDraftCacheSave();
             return;
         }
@@ -702,7 +702,7 @@ function bindSelectorSync() {
         setLanguageSelectors(lang);
         setEditorLang(lang);
         updatePythonRunButtonVisibility();
-        applyShareViewToWorkspace({immediate: true});
+        applyShareViewToWorkspace({immediate: true, forceFrame: true});
         scheduleSharecodeDraftCacheSave();
     }
 
@@ -748,8 +748,19 @@ function bindSelectorSync() {
             editorArea.classList.remove("is-preview-fullscreen");
         }
         updatePreviewFullscreenButton();
+        scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
         if (window.editor) {
             window.editor.resize();
         }
+    });
+
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+            scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
+        }
+    });
+
+    window.addEventListener("pageshow", function () {
+        scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
     });
 }

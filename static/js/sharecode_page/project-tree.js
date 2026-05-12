@@ -436,7 +436,7 @@ function createProjectFileFromEditorInput() {
     renderProjectFileTree();
     updateSidebarVisibilityByFileCount(false);
     updatePythonRunButtonVisibility();
-    applyShareViewToWorkspace({immediate: true});
+    applyShareViewToWorkspace({immediate: true, forceFrame: true});
 }
 
 function handleEditorContentChange() {

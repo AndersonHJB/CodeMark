@@ -221,7 +221,7 @@ function openProjectFile(path) {
         targetFile.language = lang;
         setLanguageSelectors(lang);
         setEditorLang(lang);
-        applyShareViewToWorkspace({immediate: true});
+        applyShareViewToWorkspace({immediate: true, forceFrame: true});
     } else {
         showAssetPreview(targetFile);
         updateHtmlShareViewControls();

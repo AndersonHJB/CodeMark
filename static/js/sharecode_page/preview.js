@@ -89,9 +89,10 @@ function enterHtmlPreviewFullscreen() {
     }
     shareViewMode = SHARE_VIEW_PREVIEW;
     setShareViewSelectors(shareViewMode);
-    applyShareViewToWorkspace({immediate: true, updateUrl: true});
+    applyShareViewToWorkspace({immediate: true, forceFrame: true, updateUrl: true});
     editorArea.classList.add("is-preview-fullscreen");
     updatePreviewFullscreenButton();
+    scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
     if (editorArea.requestFullscreen && document.fullscreenElement !== editorArea) {
         editorArea.requestFullscreen().catch(function () {
             updatePreviewFullscreenButton();
@@ -222,6 +223,47 @@ function showHtmlPreviewPane() {
     setEditorAreaShareViewClass(SHARE_VIEW_PREVIEW);
 }
 
+function isHtmlPreviewVisibleForRefresh() {
+    const effectiveMode = getEffectiveShareViewMode();
+    return effectiveMode === SHARE_VIEW_PREVIEW
+        || effectiveMode === SHARE_VIEW_SPLIT
+        || isHtmlPreviewFullscreenActive();
+}
+
+function scheduleHtmlPreviewVisibleRefresh(options) {
+    const opts = options || {};
+    const requestId = ++htmlPreviewVisibleRefreshRequestId;
+
+    function runRefresh() {
+        if (requestId !== htmlPreviewVisibleRefreshRequestId || !isHtmlPreviewVisibleForRefresh()) {
+            return;
+        }
+        refreshHtmlPreview(true, {forceFrame: opts.forceFrame === true});
+        const writeToken = String(htmlPreviewFrameWriteToken || "");
+        setTimeout(function () {
+            const frame = document.getElementById("htmlPreviewFrame");
+            if (requestId !== htmlPreviewVisibleRefreshRequestId
+                || !frame
+                || !isHtmlPreviewVisibleForRefresh()
+                || !writeToken) {
+                return;
+            }
+            if (frame.dataset.codemarkPreviewWriteToken === writeToken
+                && frame.dataset.codemarkPreviewLoadedToken !== writeToken) {
+                refreshHtmlPreview(true, {forceFrame: true});
+            }
+        }, 900);
+    }
+
+    if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(runRefresh);
+        });
+    } else {
+        setTimeout(runRefresh, 0);
+    }
+}
+
 function showSplitPreviewPane() {
     const assetViewer = document.getElementById("assetViewer");
     const editorElement = document.getElementById("editor");
@@ -279,15 +321,20 @@ function applyShareViewToWorkspace(options) {
     if (shareViewMode === SHARE_VIEW_PREVIEW && canPreview) {
         showHtmlPreviewPane();
         if (!opts.skipRefresh) {
-            refreshHtmlPreview(opts.immediate === true);
+            refreshHtmlPreview(opts.immediate === true, {forceFrame: opts.forceFrame === true});
+            scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
         }
     } else if (shareViewMode === SHARE_VIEW_SPLIT && canPreview) {
         showSplitPreviewPane();
         if (!opts.skipRefresh) {
-            refreshHtmlPreview(opts.immediate === true);
+            refreshHtmlPreview(opts.immediate === true, {forceFrame: opts.forceFrame === true});
+            scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
         }
     } else {
         showSourcePaneForActiveFile();
+        if (canPreview && !opts.skipRefresh) {
+            refreshHtmlPreview(opts.immediate === true, {allowHidden: true});
+        }
     }
     if (opts.updateUrl) {
         updateCurrentShareViewUrl();
@@ -304,6 +351,7 @@ function setShareViewMode(nextMode, options) {
     setShareViewSelectors(shareViewMode);
     applyShareViewToWorkspace({
         immediate: true,
+        forceFrame: true,
         updateUrl: opts.updateUrl !== false
     });
     scheduleSharecodeDraftCacheSave();
@@ -896,14 +944,48 @@ function buildHtmlPreviewDocument(file) {
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
 
-function refreshHtmlPreview(immediate) {
+function resetHtmlPreviewFrame(frame) {
+    if (!frame || !frame.parentNode) {
+        return frame;
+    }
+    // A fresh browsing context avoids retained blank srcdoc renders after file or view switches.
+    const replacement = frame.cloneNode(false);
+    replacement.removeAttribute("src");
+    replacement.removeAttribute("srcdoc");
+    replacement.removeAttribute("data-codemark-preview-write-token");
+    replacement.removeAttribute("data-codemark-preview-loaded-token");
+    frame.parentNode.replaceChild(replacement, frame);
+    return replacement;
+}
+
+function writeHtmlPreviewFrame(frame, html, options) {
+    const opts = options || {};
+    let targetFrame = frame;
+    if (opts.forceFrame) {
+        targetFrame = resetHtmlPreviewFrame(frame);
+    }
+    if (!targetFrame) {
+        return;
+    }
+
+    const writeToken = String(++htmlPreviewFrameWriteToken);
+    targetFrame.dataset.codemarkPreviewWriteToken = writeToken;
+    targetFrame.dataset.codemarkPreviewLoadedToken = "";
+    targetFrame.addEventListener("load", function () {
+        targetFrame.dataset.codemarkPreviewLoadedToken = writeToken;
+    }, {once: true});
+    targetFrame.srcdoc = html;
+}
+
+function refreshHtmlPreview(immediate, options) {
+    const opts = options || {};
     if (htmlPreviewRefreshTimer) {
         clearTimeout(htmlPreviewRefreshTimer);
         htmlPreviewRefreshTimer = null;
     }
     const runRefresh = function () {
         const effectiveMode = getEffectiveShareViewMode();
-        if (effectiveMode !== SHARE_VIEW_PREVIEW && effectiveMode !== SHARE_VIEW_SPLIT) {
+        if (!opts.allowHidden && effectiveMode !== SHARE_VIEW_PREVIEW && effectiveMode !== SHARE_VIEW_SPLIT) {
             return;
         }
         syncActiveEditorToProject();
@@ -915,9 +997,10 @@ function refreshHtmlPreview(immediate) {
         if (!frame) {
             return;
         }
-        frame.srcdoc = shouldBuildReactPreviewDocument(active)
+        const previewHtml = shouldBuildReactPreviewDocument(active)
             ? buildReactPreviewDocument(active)
             : buildHtmlPreviewDocument(active);
+        writeHtmlPreviewFrame(frame, previewHtml, {forceFrame: opts.forceFrame === true});
     };
     if (immediate) {
         runRefresh();
@@ -928,7 +1011,9 @@ function refreshHtmlPreview(immediate) {
 
 function refreshHtmlPreviewSoon() {
     const effectiveMode = getEffectiveShareViewMode();
-    if (effectiveMode === SHARE_VIEW_PREVIEW || effectiveMode === SHARE_VIEW_SPLIT) {
-        refreshHtmlPreview(false);
+    if (isHtmlPreviewableFile(getActiveProjectFile())) {
+        refreshHtmlPreview(false, {
+            allowHidden: effectiveMode !== SHARE_VIEW_PREVIEW && effectiveMode !== SHARE_VIEW_SPLIT
+        });
     }
 }
