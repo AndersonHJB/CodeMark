@@ -68,7 +68,6 @@ function renderActiveLineHighlights() {
     }
 
     const highlightedLines = clampHighlightedLinesToEditor(active.highlighted_lines);
-    active.highlighted_lines = highlightedLines;
     if (!highlightedLines.length) {
         return;
     }
