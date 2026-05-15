@@ -397,6 +397,7 @@ function resetWorkspaceForEmptyProject(language, options) {
         setEditorLang(emptyLanguage);
         window.editor.resize();
     }
+    clearActiveLineHighlightMarkers();
     renderProjectFileTree();
     updatePythonRunButtonVisibility();
     updateHtmlShareViewControls();
@@ -428,7 +429,8 @@ function createProjectFileFromEditorInput() {
         kind: "text",
         path: filePath,
         content: content,
-        language: language
+        language: language,
+        highlighted_lines: []
     });
     activeFilePath = filePath;
     setLanguageSelectors(language);
@@ -441,6 +443,7 @@ function createProjectFileFromEditorInput() {
 
 function handleEditorContentChange() {
     createProjectFileFromEditorInput();
+    refreshActiveLineHighlights();
     refreshHtmlPreviewSoon();
     scheduleSharecodeDraftCacheSave();
 }
@@ -469,6 +472,7 @@ function refreshProjectAfterMutation(preferredActivePath, options) {
             window.editor.setValue("", -1);
             window.editor.resize();
         }
+        clearActiveLineHighlightMarkers();
         hideHtmlPreviewPane();
         renderProjectFileTree();
         updatePythonRunButtonVisibility();
@@ -634,7 +638,8 @@ function commitProjectTreeCreate(kind, parentPath, rawName) {
             kind: "text",
             path: filePath,
             content: "",
-            language: detectLanguageFromFilename(filePath) || selectedLanguage
+            language: detectLanguageFromFilename(filePath) || selectedLanguage,
+            highlighted_lines: []
         }, true);
         updateSidebarVisibilityByFileCount(false);
         scheduleSharecodeDraftCacheSave();

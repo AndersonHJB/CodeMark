@@ -27,6 +27,7 @@ app = Flask(__name__)
 FILENAME_MARKER = "__FILENAME___="
 ASSET_MARKER = "__ASSET___="
 FOLDER_MARKER = "__FOLDER___="
+LINE_HIGHLIGHTS_MARKER = "__LINE_HIGHLIGHTS___="
 
 LANGUAGE_FILE_EXTENSIONS = {
     "python": "py",
@@ -123,13 +124,37 @@ def decode_base64_payload(raw_payload: str):
         return None
 
 
+def normalize_highlighted_lines(raw_lines):
+    """Normalize selected code line numbers for storage and replay."""
+    if raw_lines is None:
+        return []
+    if isinstance(raw_lines, str):
+        raw_items = re.split(r"[\s,]+", raw_lines.strip())
+    elif isinstance(raw_lines, (list, tuple, set)):
+        raw_items = raw_lines
+    else:
+        return []
+
+    normalized = set()
+    for raw_item in raw_items:
+        try:
+            line_number = int(raw_item)
+        except (TypeError, ValueError):
+            continue
+        if line_number > 0:
+            normalized.add(line_number)
+    return sorted(normalized)
+
+
 def parse_project_sections(body_lines, project_id=None):
     """
     解析 sharecode 文本中的多文件标记。
     若不存在标记，则 has_markers=False，raw_content 为原文本。
     """
     has_markers = any(
-        line.startswith(FILENAME_MARKER) or line.startswith(ASSET_MARKER) or line.startswith(FOLDER_MARKER)
+        line.startswith(FILENAME_MARKER)
+        or line.startswith(ASSET_MARKER)
+        or line.startswith(FOLDER_MARKER)
         for line in body_lines
     )
     raw_content = "".join(body_lines)
@@ -147,20 +172,24 @@ def parse_project_sections(body_lines, project_id=None):
     folders = []
     current_path = None
     current_language = "python"
+    current_highlighted_lines = []
     current_content_lines = []
 
     def flush_current_file():
-        nonlocal current_path, current_language, current_content_lines
+        nonlocal current_path, current_language, current_highlighted_lines, current_content_lines
         if not current_path:
+            current_highlighted_lines = []
             current_content_lines = []
             return
         text_files.append({
             "path": current_path,
             "content": "".join(current_content_lines),
             "language": current_language,
+            "highlighted_lines": normalize_highlighted_lines(current_highlighted_lines),
         })
         current_path = None
         current_language = "python"
+        current_highlighted_lines = []
         current_content_lines = []
 
     for line in body_lines:
@@ -172,6 +201,13 @@ def parse_project_sections(body_lines, project_id=None):
                 safe_path = default_filename_for_language("python")
             current_path = safe_path
             current_language = detect_language_from_filename(safe_path)
+            current_highlighted_lines = []
+            continue
+
+        if line.startswith(LINE_HIGHLIGHTS_MARKER):
+            if current_path is not None:
+                raw_highlighted_lines = line.split("=", 1)[1].strip()
+                current_highlighted_lines = normalize_highlighted_lines(raw_highlighted_lines)
             continue
 
         if line.startswith(FOLDER_MARKER):
@@ -253,10 +289,14 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
                 continue
             raw_content = file_item.get("content", "")
             content = raw_content if isinstance(raw_content, str) else str(raw_content)
+            highlighted_lines = normalize_highlighted_lines(
+                file_item.get("highlighted_lines", file_item.get("line_highlights", []))
+            )
             text_files.append({
                 "path": safe_path,
                 "content": content,
                 "language": detect_language_from_filename(safe_path),
+                "highlighted_lines": highlighted_lines,
             })
 
     if not text_files and not folders:
@@ -265,6 +305,7 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
             "path": fallback_path,
             "content": code or "",
             "language": detect_language_from_filename(fallback_path),
+            "highlighted_lines": [],
         })
 
     asset_folder = os.path.join("sharecode", "assets", project_id)
@@ -331,6 +372,9 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
             f.write(f"{FOLDER_MARKER}{folder_path}\n")
         for text_file in text_files:
             f.write(f"{FILENAME_MARKER}{text_file['path']}\n")
+            highlighted_lines = normalize_highlighted_lines(text_file.get("highlighted_lines", []))
+            if highlighted_lines:
+                f.write(f"{LINE_HIGHLIGHTS_MARKER}{','.join(str(line) for line in highlighted_lines)}\n")
             f.write(text_file["content"])
             if not text_file["content"].endswith("\n"):
                 f.write("\n")
@@ -795,6 +839,7 @@ def show_shared_code(project_id):
                                 "path": fallback_path,
                                 "content": code_content,
                                 "language": detect_language_from_filename(fallback_path),
+                                "highlighted_lines": [],
                             }],
                             "assets": [],
                             "folders": [],

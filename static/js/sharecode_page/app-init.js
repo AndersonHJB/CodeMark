@@ -31,6 +31,7 @@ window.addEventListener("load", async function () {
         enableSnippets: true,
     });
 
+    bindEditorLineHighlightSelection();
     bindSelectorSync();
     bindProjectTreeContextMenu();
     bindProjectUploadDialog();

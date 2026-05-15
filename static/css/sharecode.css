@@ -35,6 +35,23 @@ html, body {
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
 }
 
+.ace_editor .ace_gutter-cell {
+    cursor: pointer;
+}
+
+.ace_editor .ace_gutter-cell.codemark-line-highlight-gutter {
+    background: rgba(255, 209, 102, 0.18);
+    color: #ffd166;
+    font-weight: 700;
+}
+
+.ace_editor .ace_marker-layer .codemark-line-highlight {
+    position: absolute;
+    background: rgba(255, 209, 102, 0.2);
+    border-left: 3px solid rgba(255, 209, 102, 0.95);
+    box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.14);
+}
+
 #appRoot {
     height: 100vh;
     width: 100vw;

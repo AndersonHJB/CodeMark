@@ -72,7 +72,8 @@ function saveSharecodeDraftCache() {
             .map(f => ({
                 path: f.path,
                 content: f.content,
-                language: f.language || detectLanguageFromFilename(f.path)
+                language: f.language || detectLanguageFromFilename(f.path),
+                highlighted_lines: normalizeHighlightedLines(f.highlighted_lines)
             }));
 
         localStorage.setItem(SHARECODE_DRAFT_CACHE_KEY, JSON.stringify({
@@ -153,6 +154,13 @@ function upsertProjectFile(fileObj, activate) {
     }
     const nextFile = Object.assign({}, fileObj, {path: safePath});
     const existingIndex = projectFiles.findIndex(f => f.path === safePath);
+    if (nextFile.kind === "text") {
+        const existingLines = existingIndex >= 0 ? projectFiles[existingIndex].highlighted_lines : [];
+        const incomingLines = Object.prototype.hasOwnProperty.call(nextFile, "highlighted_lines")
+            ? nextFile.highlighted_lines
+            : existingLines;
+        nextFile.highlighted_lines = normalizeHighlightedLines(incomingLines);
+    }
     if (existingIndex >= 0) {
         projectFiles[existingIndex] = Object.assign({}, projectFiles[existingIndex], nextFile);
     } else {
@@ -200,6 +208,7 @@ function syncActiveEditorToProject() {
     if (currentFile && currentFile.kind === "text") {
         currentFile.content = window.editor.getValue();
         currentFile.language = currentFile.language || detectLanguageFromFilename(currentFile.path);
+        currentFile.highlighted_lines = normalizeHighlightedLines(currentFile.highlighted_lines);
     }
 }
 
@@ -219,10 +228,13 @@ function openProjectFile(path) {
         window.editor.setValue(targetFile.content || "", -1);
         const lang = targetFile.language || detectLanguageFromFilename(targetFile.path);
         targetFile.language = lang;
+        targetFile.highlighted_lines = normalizeHighlightedLines(targetFile.highlighted_lines);
         setLanguageSelectors(lang);
         setEditorLang(lang);
+        renderActiveLineHighlights();
         applyShareViewToWorkspace({immediate: true, forceFrame: true});
     } else {
+        clearActiveLineHighlightMarkers();
         showAssetPreview(targetFile);
         updateHtmlShareViewControls();
     }

@@ -446,6 +446,13 @@ function upsertProjectFileSilently(fileObj) {
     }
     const nextFile = Object.assign({}, fileObj, {path: safePath});
     const existingIndex = projectFiles.findIndex(f => f.path === safePath);
+    if (nextFile.kind === "text") {
+        const existingLines = existingIndex >= 0 ? projectFiles[existingIndex].highlighted_lines : [];
+        const incomingLines = Object.prototype.hasOwnProperty.call(nextFile, "highlighted_lines")
+            ? nextFile.highlighted_lines
+            : existingLines;
+        nextFile.highlighted_lines = normalizeHighlightedLines(incomingLines);
+    }
     if (existingIndex >= 0) {
         projectFiles[existingIndex] = Object.assign({}, projectFiles[existingIndex], nextFile);
     } else {
@@ -504,7 +511,8 @@ async function importProjectUploadItems(uploadItems, targetFolderPath, options) 
                     kind: "text",
                     path: projectPath,
                     content: textContent,
-                    language: detectLanguageFromFilename(projectPath)
+                    language: detectLanguageFromFilename(projectPath),
+                    highlighted_lines: []
                 });
                 if (!firstAddedPath) {
                     firstAddedPath = projectPath;

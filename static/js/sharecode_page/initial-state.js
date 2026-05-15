@@ -36,7 +36,8 @@ function normalizeServerProject(rawProject) {
             kind: "text",
             path,
             content,
-            language
+            language,
+            highlighted_lines: normalizeHighlightedLines(item.highlighted_lines || item.line_highlights)
         });
     }
 
@@ -101,7 +102,8 @@ function resolveInitialState() {
                 kind: "text",
                 path: fallbackPath,
                 content: fallbackContent,
-                language: looksLikeReactCode(fallbackContent) ? "javascript" : fallbackLang
+                language: looksLikeReactCode(fallbackContent) ? "javascript" : fallbackLang,
+                highlighted_lines: []
             });
             project.activeFile = fallbackPath;
         }
@@ -120,7 +122,8 @@ function resolveInitialState() {
                 kind: "text",
                 path: filePath,
                 content: server_pre_code,
-                language: looksLikeReactCode(server_pre_code) ? "javascript" : lang
+                language: looksLikeReactCode(server_pre_code) ? "javascript" : lang,
+                highlighted_lines: []
             });
             project.activeFile = filePath;
         }
@@ -131,7 +134,8 @@ function resolveInitialState() {
                 kind: "text",
                 path: filePath,
                 content: buildDefaultCode(),
-                language: lang
+                language: lang,
+                highlighted_lines: []
             });
             project.activeFile = filePath;
         }

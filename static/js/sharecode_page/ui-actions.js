@@ -483,7 +483,8 @@ function buildSharePayload() {
         .map(f => ({
             path: f.path,
             content: f.content || "",
-            language: f.language || detectLanguageFromFilename(f.path)
+            language: f.language || detectLanguageFromFilename(f.path),
+            highlighted_lines: normalizeHighlightedLines(f.highlighted_lines)
         }));
 
     const assets = projectFiles.filter(f => f.kind === "asset").map(f => ({
