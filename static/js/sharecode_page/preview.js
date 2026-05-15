@@ -790,6 +790,94 @@ function appendProjectCssToDocument(doc, resourceMap) {
     }
 }
 
+function appendPreviewHashNavigationRuntime(doc) {
+    const body = doc.body || doc.documentElement;
+    if (!body || doc.getElementById("codemark-preview-hash-navigation")) {
+        return;
+    }
+    const script = doc.createElement("script");
+    script.id = "codemark-preview-hash-navigation";
+    setInlineScriptContent(script, `
+(function () {
+    function findAnchorTarget(eventTarget) {
+        var node = eventTarget && eventTarget.nodeType === 1 ? eventTarget : eventTarget && eventTarget.parentElement;
+        if (!node || !node.closest) {
+            return null;
+        }
+        return node.closest("a[href]");
+    }
+
+    function decodeHashId(hash) {
+        var raw = String(hash || "").replace(/^#/, "");
+        try {
+            return decodeURIComponent(raw);
+        } catch (e) {
+            return raw;
+        }
+    }
+
+    function updateHash(hash) {
+        if (!hash || hash === "#") {
+            return;
+        }
+        try {
+            var previous = window.location.href;
+            window.history.pushState(null, "", hash);
+            if (typeof HashChangeEvent === "function") {
+                window.dispatchEvent(new HashChangeEvent("hashchange", {
+                    oldURL: previous,
+                    newURL: window.location.href
+                }));
+            } else {
+                window.dispatchEvent(new Event("hashchange"));
+            }
+        } catch (e) {
+        }
+    }
+
+    function scrollToHash(hash) {
+        if (!hash || hash === "#") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+        var id = decodeHashId(hash);
+        var target = document.getElementById(id) || document.getElementsByName(id)[0];
+        updateHash(hash);
+        if (!target) {
+            return;
+        }
+        var behavior = "auto";
+        try {
+            behavior = getComputedStyle(document.documentElement).scrollBehavior === "smooth" ? "smooth" : "auto";
+        } catch (e) {
+        }
+        try {
+            target.scrollIntoView({ behavior: behavior, block: "start" });
+        } catch (e) {
+            target.scrollIntoView();
+        }
+    }
+
+    document.addEventListener("click", function (event) {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+        var anchor = findAnchorTarget(event.target);
+        if (!anchor) {
+            return;
+        }
+        var href = (anchor.getAttribute("href") || "").trim();
+        if (!href || href.charAt(0) !== "#") {
+            return;
+        }
+        event.preventDefault();
+        scrollToHash(href);
+    });
+})();
+`);
+    body.appendChild(script);
+}
+
 function buildReactPreviewDocument(file) {
     const resourceMap = buildPreviewResourceMap();
     const doc = document.implementation.createHTMLDocument("Preview");
@@ -818,6 +906,7 @@ function buildReactPreviewDocument(file) {
     script.setAttribute("data-presets", getBabelPresetsForPath(file.path));
     setInlineScriptContent(script, prepareReactPreviewCode(file.content || ""));
     doc.body.appendChild(script);
+    appendPreviewHashNavigationRuntime(doc);
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
 
@@ -941,6 +1030,7 @@ function buildHtmlPreviewDocument(file) {
             tailwind: needsTailwindRuntime
         });
     }
+    appendPreviewHashNavigationRuntime(doc);
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
 
