@@ -47,9 +47,18 @@ html, body {
 
 .ace_editor .ace_marker-layer .codemark-line-highlight {
     position: absolute;
+    z-index: 2;
     background: rgba(255, 209, 102, 0.2);
     border-left: 3px solid rgba(255, 209, 102, 0.95);
     box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.14);
+}
+
+.ace_editor .ace_marker-layer .ace_active-line {
+    z-index: 1;
+}
+
+.ace_editor .ace_marker-layer .ace_selection {
+    z-index: 3;
 }
 
 #appRoot {
