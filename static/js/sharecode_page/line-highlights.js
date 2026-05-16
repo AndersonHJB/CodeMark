@@ -95,7 +95,25 @@ function refreshActiveLineHighlights() {
     renderActiveLineHighlights();
 }
 
-function toggleActiveLineHighlight(lineNumber) {
+function getLineHighlightRange(startLine, endLine, lineCount) {
+    const start = Math.max(1, Math.min(startLine, endLine));
+    const end = Math.min(lineCount, Math.max(startLine, endLine));
+    const lines = [];
+    for (let line = start; line <= end; line++) {
+        lines.push(line);
+    }
+    return lines;
+}
+
+function getActiveLineHighlightAnchor(active, lineCount) {
+    const anchorLine = Number(active && active.line_highlight_anchor);
+    if (!Number.isInteger(anchorLine) || anchorLine < 1 || anchorLine > lineCount) {
+        return 0;
+    }
+    return anchorLine;
+}
+
+function toggleActiveLineHighlight(lineNumber, options) {
     const active = getActiveProjectFile();
     if (!active || active.kind !== "text") {
         return;
@@ -103,15 +121,25 @@ function toggleActiveLineHighlight(lineNumber) {
 
     syncActiveEditorToProject();
     const targetLine = Number(lineNumber);
-    if (!Number.isInteger(targetLine) || targetLine < 1 || targetLine > getEditorDocumentLineCount()) {
+    const lineCount = getEditorDocumentLineCount();
+    if (!Number.isInteger(targetLine) || targetLine < 1 || targetLine > lineCount) {
         return;
     }
 
     const highlightedSet = new Set(clampHighlightedLinesToEditor(active.highlighted_lines));
-    if (highlightedSet.has(targetLine)) {
-        highlightedSet.delete(targetLine);
+    const opts = options || {};
+    const anchorLine = getActiveLineHighlightAnchor(active, lineCount);
+    if (opts.rangeSelect && anchorLine) {
+        getLineHighlightRange(anchorLine, targetLine, lineCount).forEach(line => {
+            highlightedSet.add(line);
+        });
     } else {
-        highlightedSet.add(targetLine);
+        if (highlightedSet.has(targetLine)) {
+            highlightedSet.delete(targetLine);
+        } else {
+            highlightedSet.add(targetLine);
+        }
+        active.line_highlight_anchor = targetLine;
     }
     active.highlighted_lines = Array.from(highlightedSet).sort((a, b) => a - b);
     renderActiveLineHighlights();
@@ -143,7 +171,7 @@ function handleEditorGutterLineHighlightClick(e) {
         return;
     }
 
-    toggleActiveLineHighlight(row + 1);
+    toggleActiveLineHighlight(row + 1, {rangeSelect: !!domEvent.shiftKey});
     if (typeof e.stop === "function") {
         e.stop();
     } else {
