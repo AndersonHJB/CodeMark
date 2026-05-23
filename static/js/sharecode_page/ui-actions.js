@@ -340,6 +340,20 @@ function buildFolderDownloadPayload(folderPath) {
     };
 }
 
+function buildFileSharePayload(filePath) {
+    const safePath = safeNormalizePath(filePath);
+    const payload = buildSharePayload();
+    const textFiles = payload.text_files.filter(file => safeNormalizePath(file.path) === safePath);
+    const assets = payload.assets.filter(file => safeNormalizePath(file.path) === safePath);
+    const firstFile = textFiles[0] || assets[0] || null;
+    return {
+        text_files: textFiles,
+        assets: assets,
+        folders: [],
+        active_file: firstFile ? firstFile.path : ""
+    };
+}
+
 function buildSelectedProjectArchivePayload() {
     if (!hasSelectedProjectTreeItems()) {
         return null;
@@ -505,6 +519,48 @@ function buildSharePayload() {
 }
 
 function share() {
+    openShareModalWithPayload(null);
+}
+
+function shareProjectTreeItem(kind, path) {
+    const safePath = safeNormalizePath(path);
+    if (!safePath) {
+        return;
+    }
+
+    let payload = null;
+    let emptyMessage = "";
+    if (kind === "folder") {
+        if (!projectFolderExists(safePath)) {
+            showProjectNotice("未找到要分享的文件夹。");
+            return;
+        }
+        createProjectFileFromEditorInput();
+        syncActiveEditorToProject();
+        payload = buildFolderDownloadPayload(safePath);
+        emptyMessage = "文件夹中没有可分享的内容。";
+    } else if (kind === "file") {
+        if (!projectFiles.some(f => f.path === safePath)) {
+            showProjectNotice("未找到要分享的文件。");
+            return;
+        }
+        syncActiveEditorToProject();
+        payload = buildFileSharePayload(safePath);
+        emptyMessage = "未找到要分享的文件。";
+    } else {
+        return;
+    }
+
+    if (!projectPayloadHasDownloadItems(payload)) {
+        showProjectNotice(emptyMessage);
+        return;
+    }
+
+    hideProjectTreeContextMenu();
+    openShareModalWithPayload(payload);
+}
+
+function openShareModalWithPayload(payloadOverride) {
     hideFloatingMenuIfOpen();
     $('#qrcode').empty();
     $('#share-link-input').val('');
@@ -516,16 +572,30 @@ function share() {
     }
 
     $('#share-modal').modal('show');
-    generateShareLink();
+    generateShareLink(payloadOverride);
 }
 
-function generateShareLink() {
-    const payload = buildSharePayload();
-    const active = getActiveProjectFile();
-    const language = active && active.kind === "text"
-        ? (active.language || detectLanguageFromFilename(active.path))
-        : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
-    const code = active && active.kind === "text" ? (active.content || "") : "";
+function generateShareLink(payloadOverride) {
+    const payload = payloadOverride || buildSharePayload();
+    let language;
+    let code;
+    if (payloadOverride) {
+        const scopedTextFiles = Array.isArray(payload.text_files) ? payload.text_files : [];
+        const primaryTextFile = scopedTextFiles.find(f => f.path === payload.active_file) || scopedTextFiles[0] || null;
+        if (primaryTextFile) {
+            language = primaryTextFile.language || detectLanguageFromFilename(primaryTextFile.path);
+            code = primaryTextFile.content || "";
+        } else {
+            language = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+            code = "";
+        }
+    } else {
+        const active = getActiveProjectFile();
+        language = active && active.kind === "text"
+            ? (active.language || detectLanguageFromFilename(active.path))
+            : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
+        code = active && active.kind === "text" ? (active.content || "") : "";
+    }
 
     $.ajax({
         type: 'POST',

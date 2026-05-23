@@ -1358,6 +1358,7 @@ function showProjectTreeContextMenu(x, y, kind, path) {
     const uploadFileButton = menu.querySelector('[data-action="upload-file"]');
     const uploadFolderButton = menu.querySelector('[data-action="upload-folder"]');
     const downloadButton = menu.querySelector('[data-action="download"]');
+    const shareButton = menu.querySelector('[data-action="share"]');
     const renameButton = menu.querySelector('[data-action="rename"]');
     const deleteButton = menu.querySelector('[data-action="delete"]');
     const itemOnlyElements = menu.querySelectorAll('[data-item-only="true"]');
@@ -1389,6 +1390,9 @@ function showProjectTreeContextMenu(x, y, kind, path) {
     }
     if (downloadButton) {
         downloadButton.textContent = targetKind === "folder" ? "下载文件夹" : "下载文件";
+    }
+    if (shareButton) {
+        shareButton.textContent = targetKind === "folder" ? "分享文件夹" : "分享文件";
     }
     if (renameButton) {
         renameButton.textContent = targetKind === "folder" ? "重命名文件夹" : "重命名文件";
@@ -1487,6 +1491,8 @@ function bindProjectTreeContextMenu() {
             openProjectFolderUploadDialog(getContextTargetParentPath(target));
         } else if (action === "download") {
             downloadProjectTreeItem(target.kind, target.path);
+        } else if (action === "share") {
+            shareProjectTreeItem(target.kind, target.path);
         } else if (action === "rename") {
             beginRenameTreeItem(target.kind, target.path);
         } else if (action === "delete") {
