@@ -299,11 +299,12 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
                 "highlighted_lines": highlighted_lines,
             })
 
-    if not text_files and not folders:
+    # 仅当有真实代码内容时，才补一个兜底文件；否则保留“无内容分享”的状态
+    if code and not text_files and not folders:
         fallback_path = default_filename_for_language(language)
         text_files.append({
             "path": fallback_path,
-            "content": code or "",
+            "content": code,
             "language": detect_language_from_filename(fallback_path),
             "highlighted_lines": [],
         })
@@ -832,7 +833,8 @@ def show_shared_code(project_id):
                     }
                 else:
                     code_content = parsed_project["raw_content"]
-                    if template_type == "sharecode":
+                    # 仅当存在实际代码内容时才构造兜底单文件项目；空内容时让前端直接呈现“空项目”
+                    if template_type == "sharecode" and code_content:
                         fallback_path = default_filename_for_language(lang)
                         pre_project = {
                             "text_files": [{

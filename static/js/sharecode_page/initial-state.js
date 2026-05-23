@@ -94,9 +94,10 @@ function resolveInitialState() {
 
     if (isSharedCodePage) {
         project = normalizeServerProject(server_pre_project);
-        if (!project.files.length && !project.folders.length) {
+        // 仅当服务端确实带回代码时才补一个兜底文件；空分享直接展示空状态
+        const fallbackContent = typeof server_pre_code === "string" ? server_pre_code : "";
+        if (!project.files.length && !project.folders.length && fallbackContent) {
             const fallbackLang = server_pre_lang || SHARECODE_DEFAULT_LANG;
-            const fallbackContent = typeof server_pre_code === "string" ? server_pre_code : "";
             const fallbackPath = defaultFilenameForContent(fallbackLang, fallbackContent);
             project.files.push({
                 kind: "text",

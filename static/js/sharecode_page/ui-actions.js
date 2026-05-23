@@ -597,16 +597,20 @@ function generateShareLink(payloadOverride) {
         code = active && active.kind === "text" ? (active.content || "") : "";
     }
 
+    const requestData = {
+        language: language,
+        template: 'sharecode',
+        project_payload: JSON.stringify(payload)
+    };
+    if (code) {
+        requestData.code = code;
+    }
+
     $.ajax({
         type: 'POST',
         url: '/upload_code',
         dataType: 'json',
-        data: {
-            code: code,
-            language: language,
-            template: 'sharecode',
-            project_payload: JSON.stringify(payload)
-        },
+        data: requestData,
         success: function (d) {
             let shareLink = appendShareViewToLink(d.share_link);
             $('#qrcode').empty();
