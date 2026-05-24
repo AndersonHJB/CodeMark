@@ -1,4 +1,6 @@
-/* Sharecode HTML/React preview rendering and resource rewriting. */
+/* Sharecode HTML/React/Markdown preview rendering and resource rewriting. */
+let markdownItRenderer = null;
+
 function escapeHtml(raw) {
     return String(raw || "")
         .replace(/&/g, "&amp;")
@@ -130,6 +132,15 @@ function isHtmlDocumentFile(file) {
     return language === "html" || ext === "html" || ext === "htm";
 }
 
+function isMarkdownDocumentFile(file) {
+    if (!file || file.kind !== "text") {
+        return false;
+    }
+    const ext = getPathExtension(file.path);
+    const language = file.language || detectLanguageFromFilename(file.path);
+    return language === "markdown" || ["md", "markdown", "mdown", "mkdn", "mkd"].includes(ext);
+}
+
 function looksLikeReactCode(content) {
     const code = String(content || "");
     return /(?:from\s+["']react["']|ReactDOM|createRoot\s*\(|<[A-Z][A-Za-z0-9.]*[\s/>])/.test(code);
@@ -158,7 +169,7 @@ function shouldBuildReactPreviewDocument(file) {
 }
 
 function isHtmlPreviewableFile(file) {
-    return isHtmlDocumentFile(file) || isReactPreviewFile(file);
+    return isHtmlDocumentFile(file) || isReactPreviewFile(file) || isMarkdownDocumentFile(file);
 }
 
 function updateHtmlShareViewControls() {
@@ -376,6 +387,7 @@ function getTextResourceMimeType(file) {
     const ext = getPathExtension(file && file.path);
     if (ext === "css" || ext === "scss" || ext === "less") return "text/css";
     if (ext === "html" || ext === "htm") return "text/html";
+    if (["md", "markdown", "mdown", "mkdn", "mkd"].includes(ext)) return "text/markdown";
     if (ext === "svg") return "image/svg+xml";
     if (ext === "json") return "application/json";
     if (ext === "js" || ext === "jsx" || ext === "ts" || ext === "tsx") return "text/javascript";
@@ -878,6 +890,628 @@ function appendPreviewHashNavigationRuntime(doc) {
     body.appendChild(script);
 }
 
+function resolvePreviewDocumentUrl(rawUrl) {
+    try {
+        return new URL(rawUrl, window.location.href).toString();
+    } catch (e) {
+        return rawUrl;
+    }
+}
+
+function normalizeMarkdownHighlightLanguage(rawLanguage) {
+    const lang = String(rawLanguage || "").trim().toLowerCase();
+    const aliases = {
+        "c++": "cpp",
+        c_cpp: "cpp",
+        golang: "go",
+        html: "xml",
+        js: "javascript",
+        jsx: "javascript",
+        py: "python",
+        python3: "python",
+        ts: "typescript",
+        tsx: "typescript"
+    };
+    return aliases[lang] || lang;
+}
+
+function highlightMarkdownCode(code, rawLanguage) {
+    if (!window.hljs) {
+        return escapeHtml(code);
+    }
+    const language = normalizeMarkdownHighlightLanguage(rawLanguage);
+    try {
+        if (language && window.hljs.getLanguage && window.hljs.getLanguage(language)) {
+            return window.hljs.highlight(String(code || ""), {
+                language,
+                ignoreIllegals: true
+            }).value;
+        }
+        return window.hljs.highlightAuto(String(code || "")).value;
+    } catch (e) {
+        return escapeHtml(code);
+    }
+}
+
+function getMarkdownPlugin(pluginNames) {
+    for (const pluginName of pluginNames) {
+        if (typeof window[pluginName] === "function") {
+            return window[pluginName];
+        }
+    }
+    return null;
+}
+
+function useMarkdownPlugin(markdownRenderer, pluginNames, options) {
+    const plugin = getMarkdownPlugin(pluginNames);
+    if (!plugin) {
+        return false;
+    }
+    try {
+        markdownRenderer.use(plugin, options || {});
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function slugifyMarkdownHeading(rawText) {
+    const text = String(rawText || "")
+        .trim()
+        .toLowerCase()
+        .replace(/<[^>]+>/g, "")
+        .replace(/[^\w\u00a0-\uffff -]+/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    return text || "section";
+}
+
+function installMarkdownFenceRenderer(markdownRenderer) {
+    const defaultFence = markdownRenderer.renderer.rules.fence || function (tokens, idx, options, env, slf) {
+        return slf.renderToken(tokens, idx, options);
+    };
+    markdownRenderer.renderer.rules.fence = function (tokens, idx, options, env, slf) {
+        const token = tokens[idx];
+        const info = token.info ? token.info.trim() : "";
+        const language = info.split(/\s+/)[0].toLowerCase();
+        if (language === "mermaid") {
+            return `<div class="mermaid">${escapeHtml(token.content)}</div>\n`;
+        }
+        return defaultFence(tokens, idx, options, env, slf);
+    };
+}
+
+function getMarkdownRenderer() {
+    if (markdownItRenderer) {
+        return markdownItRenderer;
+    }
+    if (typeof window.markdownit !== "function") {
+        markdownItRenderer = {
+            render: function (source) {
+                return `<pre><code>${escapeHtml(source)}</code></pre>`;
+            }
+        };
+        return markdownItRenderer;
+    }
+
+    const renderer = window.markdownit({
+        html: true,
+        linkify: true,
+        typographer: true,
+        breaks: false,
+        highlight: function (code, rawLanguage) {
+            return highlightMarkdownCode(code, rawLanguage);
+        }
+    });
+
+    useMarkdownPlugin(renderer, ["markdownItAnchor", "markdownitAnchor"], {
+        slugify: slugifyMarkdownHeading
+    });
+    useMarkdownPlugin(renderer, ["markdownitFootnote", "markdownItFootnote"]);
+    useMarkdownPlugin(renderer, ["markdownitDeflist", "markdownItDeflist"]);
+    useMarkdownPlugin(renderer, ["markdownitAbbr", "markdownItAbbr"]);
+    useMarkdownPlugin(renderer, ["markdownitSub", "markdownItSub"]);
+    useMarkdownPlugin(renderer, ["markdownitSup", "markdownItSup"]);
+    useMarkdownPlugin(renderer, ["markdownitMark", "markdownItMark"]);
+    useMarkdownPlugin(renderer, ["markdownitTaskLists", "markdownItTaskLists"], {
+        enabled: true,
+        label: true,
+        labelAfter: true
+    });
+    useMarkdownPlugin(renderer, ["markdownItAttrs", "markdownitAttrs"]);
+    useMarkdownPlugin(renderer, ["markdownitAdmon", "markdownItAdmon"]);
+    useMarkdownPlugin(renderer, ["markdownitEmoji", "markdownItEmoji"]);
+    installMarkdownFenceRenderer(renderer);
+
+    markdownItRenderer = renderer;
+    return markdownItRenderer;
+}
+
+function fallbackSanitizeMarkdownHtml(markup) {
+    const template = document.createElement("template");
+    template.innerHTML = String(markup || "");
+    template.content.querySelectorAll("script, iframe, object, embed, form, meta, base").forEach(node => {
+        node.remove();
+    });
+    template.content.querySelectorAll("*").forEach(node => {
+        Array.from(node.attributes || []).forEach(attr => {
+            const name = attr.name.toLowerCase();
+            const value = String(attr.value || "").trim();
+            if (name.startsWith("on") || /^(?:javascript|vbscript):/i.test(value)) {
+                node.removeAttribute(attr.name);
+            }
+        });
+    });
+    return template.innerHTML;
+}
+
+function sanitizeMarkdownHtml(markup) {
+    if (window.DOMPurify && typeof window.DOMPurify.sanitize === "function") {
+        return window.DOMPurify.sanitize(String(markup || ""), {
+            USE_PROFILES: {html: true},
+            ADD_TAGS: ["input"],
+            ADD_ATTR: [
+                "align",
+                "aria-hidden",
+                "checked",
+                "class",
+                "disabled",
+                "id",
+                "name",
+                "rel",
+                "target",
+                "type"
+            ]
+        });
+    }
+    return fallbackSanitizeMarkdownHtml(markup);
+}
+
+function appendMarkdownPreviewStyles(doc) {
+    const head = doc.head || doc.documentElement;
+    const highlightCssPath = SHARECODE_STATIC_PATHS.highlightCssPath || "/static/css/default.min.css";
+    if (highlightCssPath) {
+        const highlightStyle = doc.createElement("link");
+        highlightStyle.rel = "stylesheet";
+        highlightStyle.href = resolvePreviewDocumentUrl(highlightCssPath);
+        head.appendChild(highlightStyle);
+    }
+
+    const style = doc.createElement("style");
+    style.textContent = `
+:root {
+    color-scheme: light;
+}
+html {
+    scroll-behavior: smooth;
+}
+body {
+    margin: 0;
+    background: #f6f7f2;
+    color: #22251f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.markdown-body {
+    width: min(100% - 48px, 980px);
+    margin: 0 auto;
+    padding: 42px 0 64px;
+    font-size: 16px;
+    line-height: 1.78;
+}
+.markdown-body > :first-child {
+    margin-top: 0;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+    color: #151812;
+    font-weight: 750;
+    line-height: 1.25;
+    margin: 1.8em 0 0.7em;
+}
+.markdown-body h1 {
+    padding-bottom: 0.32em;
+    border-bottom: 1px solid #d8dccf;
+    font-size: 2.2em;
+}
+.markdown-body h2 {
+    padding-bottom: 0.24em;
+    border-bottom: 1px solid #e3e6dc;
+    font-size: 1.58em;
+}
+.markdown-body h3 {
+    font-size: 1.26em;
+}
+.markdown-body h4 {
+    font-size: 1.08em;
+}
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body table,
+.markdown-body blockquote,
+.markdown-body pre,
+.markdown-body details,
+.markdown-body .admonition {
+    margin-top: 0;
+    margin-bottom: 1.05em;
+}
+.markdown-body a {
+    color: #1666b1;
+    text-decoration: none;
+}
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+.markdown-body .heading-anchor {
+    margin-left: 0.35em;
+    color: #9aa395;
+    opacity: 0;
+    font-size: 0.75em;
+    text-decoration: none;
+}
+.markdown-body h1:hover .heading-anchor,
+.markdown-body h2:hover .heading-anchor,
+.markdown-body h3:hover .heading-anchor,
+.markdown-body h4:hover .heading-anchor,
+.markdown-body h5:hover .heading-anchor,
+.markdown-body h6:hover .heading-anchor {
+    opacity: 1;
+}
+.markdown-body img,
+.markdown-body video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+.markdown-body audio {
+    width: 100%;
+}
+.markdown-body table {
+    display: block;
+    width: 100%;
+    overflow: auto;
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+.markdown-body th,
+.markdown-body td {
+    padding: 8px 12px;
+    border: 1px solid #d8dccf;
+}
+.markdown-body th {
+    background: #ecefe5;
+    font-weight: 700;
+}
+.markdown-body tr:nth-child(2n) {
+    background: #fafbf7;
+}
+.markdown-body blockquote {
+    padding: 0 1em;
+    color: #5f685c;
+    border-left: 4px solid #b7c1ad;
+}
+.markdown-body code,
+.markdown-body kbd {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.92em;
+}
+.markdown-body :not(pre) > code {
+    padding: 0.16em 0.36em;
+    border-radius: 4px;
+    background: #e9ece3;
+    color: #b4374b;
+}
+.markdown-body pre {
+    overflow: auto;
+    padding: 16px;
+    border-radius: 8px;
+    background: #1f221b;
+    color: #f4f5f0;
+}
+.markdown-body pre code {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 0.9em;
+}
+.markdown-body hr {
+    height: 1px;
+    padding: 0;
+    margin: 28px 0;
+    background: #d8dccf;
+    border: 0;
+}
+.markdown-body dl {
+    padding: 0;
+}
+.markdown-body dt {
+    margin-top: 12px;
+    font-weight: 700;
+}
+.markdown-body dd {
+    margin-left: 20px;
+}
+.markdown-body mark {
+    padding: 0.08em 0.22em;
+    border-radius: 3px;
+    background: #fff1a6;
+}
+.markdown-body .contains-task-list {
+    padding-left: 1.35em;
+}
+.markdown-body .task-list-item {
+    list-style: none;
+}
+.markdown-body .task-list-item input[type="checkbox"] {
+    margin: 0 0.5em 0 -1.35em;
+    vertical-align: -0.1em;
+}
+.markdown-body .footnotes {
+    margin-top: 2.4em;
+    padding-top: 1em;
+    border-top: 1px solid #d8dccf;
+    color: #555f53;
+    font-size: 0.92em;
+}
+.markdown-toc {
+    padding: 14px 16px;
+    border: 1px solid #d8dccf;
+    border-radius: 8px;
+    background: #ffffff;
+}
+.markdown-toc-title {
+    margin-bottom: 8px;
+    color: #50584c;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.markdown-toc ol {
+    margin: 0;
+    padding-left: 1.4em;
+}
+.markdown-toc li + li {
+    margin-top: 4px;
+}
+.admonition {
+    padding: 13px 15px;
+    border-left: 4px solid #4f8fda;
+    border-radius: 8px;
+    background: #eef6fb;
+}
+.admonition-title {
+    margin: 0 0 6px;
+    font-weight: 800;
+}
+.admonition.warning,
+.admonition.caution,
+.admonition.danger,
+.admonition.error {
+    border-left-color: #d86b4a;
+    background: #fff2ed;
+}
+.admonition.tip,
+.admonition.success {
+    border-left-color: #6a9f45;
+    background: #f0f7e8;
+}
+.mermaid {
+    margin: 1.2em 0;
+    padding: 16px;
+    border: 1px solid #d8dccf;
+    border-radius: 8px;
+    background: #ffffff;
+    text-align: center;
+}
+@media (max-width: 720px) {
+    .markdown-body {
+        width: min(100% - 28px, 980px);
+        padding: 28px 0 46px;
+        font-size: 15px;
+    }
+    .markdown-body h1 {
+        font-size: 1.72em;
+    }
+    .markdown-body h2 {
+        font-size: 1.36em;
+    }
+}
+`;
+    head.appendChild(style);
+}
+
+function addMarkdownHeadingIdsAndToc(doc) {
+    const body = doc.querySelector(".markdown-body");
+    if (!body) {
+        return;
+    }
+    const usedIds = new Set();
+    const headings = Array.from(body.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+    const headingEntries = headings.map((heading, index) => {
+        let id = heading.id || slugifyMarkdownHeading(heading.textContent || `section-${index + 1}`);
+        let uniqueId = id;
+        let suffix = 2;
+        while (usedIds.has(uniqueId)) {
+            uniqueId = `${id}-${suffix}`;
+            suffix += 1;
+        }
+        usedIds.add(uniqueId);
+        heading.id = uniqueId;
+        if (!heading.querySelector(".heading-anchor")) {
+            const anchor = doc.createElement("a");
+            anchor.className = "heading-anchor";
+            anchor.href = `#${encodeURIComponent(uniqueId)}`;
+            anchor.setAttribute("aria-hidden", "true");
+            anchor.textContent = "#";
+            heading.appendChild(anchor);
+        }
+        return {
+            id: uniqueId,
+            level: Number((heading.tagName || "H1").slice(1)) || 1,
+            text: (heading.textContent || "").replace(/#$/, "").trim() || uniqueId
+        };
+    });
+
+    body.querySelectorAll("p").forEach(paragraph => {
+        const text = (paragraph.textContent || "").trim().toLowerCase();
+        if (text !== "[toc]" && text !== "[[toc]]") {
+            return;
+        }
+        const nav = doc.createElement("nav");
+        nav.className = "markdown-toc";
+        const title = doc.createElement("div");
+        title.className = "markdown-toc-title";
+        title.textContent = "Contents";
+        nav.appendChild(title);
+        const list = doc.createElement("ol");
+        headingEntries.forEach(entry => {
+            const item = doc.createElement("li");
+            item.style.marginLeft = `${Math.max(0, entry.level - 1) * 12}px`;
+            const link = doc.createElement("a");
+            link.href = `#${encodeURIComponent(entry.id)}`;
+            link.textContent = entry.text;
+            item.appendChild(link);
+            list.appendChild(item);
+        });
+        nav.appendChild(list);
+        paragraph.parentNode.replaceChild(nav, paragraph);
+    });
+}
+
+function rewriteMarkdownPreviewResources(doc, file, resourceMap) {
+    ["src", "poster", "href", "data"].forEach(attr => {
+        doc.querySelectorAll(`[${attr}]`).forEach(el => {
+            const tagName = (el.tagName || "").toLowerCase();
+            if (tagName === "a" && attr === "href") {
+                return;
+            }
+            const value = el.getAttribute(attr) || "";
+            const nextUrl = getPreviewResourceUrl(value, file.path, resourceMap);
+            if (nextUrl) {
+                el.setAttribute(attr, nextUrl);
+            }
+        });
+    });
+    ["srcset", "imagesrcset"].forEach(attr => {
+        doc.querySelectorAll(`[${attr}]`).forEach(el => {
+            const value = el.getAttribute(attr) || "";
+            const nextValue = rewritePreviewSrcset(value, file.path, resourceMap);
+            if (nextValue && nextValue !== value) {
+                el.setAttribute(attr, nextValue);
+            }
+        });
+    });
+    doc.querySelectorAll("[style]").forEach(el => {
+        el.setAttribute("style", rewriteCssResourceReferences(el.getAttribute("style") || "", file.path, resourceMap));
+    });
+}
+
+function updateMarkdownLinkTargets(doc) {
+    doc.querySelectorAll(".markdown-body a[href]").forEach(link => {
+        const href = (link.getAttribute("href") || "").trim();
+        if (!href || href.startsWith("#")) {
+            return;
+        }
+        if (href.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(href)) {
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+        }
+    });
+}
+
+function hasMarkdownMath(source) {
+    const content = String(source || "");
+    return /\\\(|\\\[|(^|[^\\])\$\$[\s\S]+?\$\$|(^|[^\\])\$[^\s$][^\n$]*[^\s$]\$/m.test(content);
+}
+
+function appendMarkdownMathRuntime(doc) {
+    const head = doc.head || doc.documentElement;
+    const configScript = doc.createElement("script");
+    setInlineScriptContent(configScript, `
+window.MathJax = {
+    tex: {
+        inlineMath: [["$", "$"], ["\\\\(", "\\\\)"]],
+        displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]],
+        processEscapes: true
+    },
+    options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+    }
+};
+`);
+    head.appendChild(configScript);
+    const mathScript = doc.createElement("script");
+    mathScript.async = true;
+    mathScript.src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full.min.js";
+    head.appendChild(mathScript);
+}
+
+function appendMarkdownMermaidRuntime(doc) {
+    const body = doc.body || doc.documentElement;
+    if (!body || !doc.querySelector(".mermaid")) {
+        return;
+    }
+    const initScript = doc.createElement("script");
+    setInlineScriptContent(initScript, `
+(function () {
+    function renderMermaid() {
+        if (!window.mermaid) {
+            window.setTimeout(renderMermaid, 60);
+            return;
+        }
+        try {
+            window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+            window.mermaid.run({ querySelector: ".mermaid" }).catch(function () {});
+        } catch (e) {
+        }
+    }
+    renderMermaid();
+})();
+`);
+    const mermaidScript = doc.createElement("script");
+    mermaidScript.src = "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js";
+    mermaidScript.crossOrigin = "anonymous";
+    body.appendChild(mermaidScript);
+    body.appendChild(initScript);
+}
+
+function buildMarkdownPreviewDocument(file) {
+    const resourceMap = buildPreviewResourceMap();
+    const rawMarkdown = file.content || "";
+    const renderer = getMarkdownRenderer();
+    const renderedHtml = renderer.render(rawMarkdown);
+    const doc = document.implementation.createHTMLDocument(getProjectPathBaseName(file.path) || "Markdown Preview");
+    const meta = doc.createElement("meta");
+    meta.setAttribute("charset", "UTF-8");
+    doc.head.appendChild(meta);
+    const viewport = doc.createElement("meta");
+    viewport.name = "viewport";
+    viewport.content = "width=device-width, initial-scale=1.0";
+    doc.head.appendChild(viewport);
+    appendMarkdownPreviewStyles(doc);
+
+    const main = doc.createElement("main");
+    main.className = "markdown-body";
+    main.innerHTML = sanitizeMarkdownHtml(renderedHtml);
+    doc.body.appendChild(main);
+
+    rewriteMarkdownPreviewResources(doc, file, resourceMap);
+    addMarkdownHeadingIdsAndToc(doc);
+    updateMarkdownLinkTargets(doc);
+    if (hasMarkdownMath(rawMarkdown)) {
+        appendMarkdownMathRuntime(doc);
+    }
+    appendMarkdownMermaidRuntime(doc);
+    appendPreviewHashNavigationRuntime(doc);
+    return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+}
+
 function buildReactPreviewDocument(file) {
     const resourceMap = buildPreviewResourceMap();
     const doc = document.implementation.createHTMLDocument("Preview");
@@ -1087,9 +1721,11 @@ function refreshHtmlPreview(immediate, options) {
         if (!frame) {
             return;
         }
-        const previewHtml = shouldBuildReactPreviewDocument(active)
-            ? buildReactPreviewDocument(active)
-            : buildHtmlPreviewDocument(active);
+        const previewHtml = isMarkdownDocumentFile(active)
+            ? buildMarkdownPreviewDocument(active)
+            : (shouldBuildReactPreviewDocument(active)
+                ? buildReactPreviewDocument(active)
+                : buildHtmlPreviewDocument(active));
         writeHtmlPreviewFrame(frame, previewHtml, {forceFrame: opts.forceFrame === true});
     };
     if (immediate) {

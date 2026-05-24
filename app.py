@@ -28,6 +28,7 @@ FILENAME_MARKER = "__FILENAME___="
 ASSET_MARKER = "__ASSET___="
 FOLDER_MARKER = "__FOLDER___="
 LINE_HIGHLIGHTS_MARKER = "__LINE_HIGHLIGHTS___="
+FILE_LANGUAGE_MARKER = "__FILE_LANG___="
 
 LANGUAGE_FILE_EXTENSIONS = {
     "python": "py",
@@ -59,6 +60,10 @@ EXTENSION_LANGUAGE_MAP = {
     "htm": "html",
     "css": "css",
     "md": "markdown",
+    "markdown": "markdown",
+    "mdown": "markdown",
+    "mkd": "markdown",
+    "mkdn": "markdown",
     "jsx": "javascript",
     "ts": "javascript",
     "tsx": "javascript",
@@ -99,6 +104,13 @@ def detect_language_from_filename(filename: str) -> str:
         return "python"
     ext = basename.rsplit(".", 1)[1].lower()
     return EXTENSION_LANGUAGE_MAP.get(ext, "python")
+
+
+def normalize_language(language: str, fallback: str = "python") -> str:
+    raw_language = (language or "").strip().lower()
+    if raw_language in LANGUAGE_FILE_EXTENSIONS:
+        return raw_language
+    return fallback if fallback in LANGUAGE_FILE_EXTENSIONS else "python"
 
 
 def default_filename_for_language(language: str) -> str:
@@ -204,6 +216,12 @@ def parse_project_sections(body_lines, project_id=None):
             current_highlighted_lines = []
             continue
 
+        if line.startswith(FILE_LANGUAGE_MARKER):
+            if current_path is not None:
+                raw_language = line.split("=", 1)[1].strip()
+                current_language = normalize_language(raw_language, current_language)
+            continue
+
         if line.startswith(LINE_HIGHLIGHTS_MARKER):
             if current_path is not None:
                 raw_highlighted_lines = line.split("=", 1)[1].strip()
@@ -292,10 +310,12 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
             highlighted_lines = normalize_highlighted_lines(
                 file_item.get("highlighted_lines", file_item.get("line_highlights", []))
             )
+            detected_language = detect_language_from_filename(safe_path)
+            file_language = normalize_language(file_item.get("language", ""), detected_language)
             text_files.append({
                 "path": safe_path,
                 "content": content,
-                "language": detect_language_from_filename(safe_path),
+                "language": file_language,
                 "highlighted_lines": highlighted_lines,
             })
 
@@ -305,7 +325,7 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
         text_files.append({
             "path": fallback_path,
             "content": code,
-            "language": detect_language_from_filename(fallback_path),
+            "language": normalize_language(language, detect_language_from_filename(fallback_path)),
             "highlighted_lines": [],
         })
 
@@ -373,6 +393,7 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
             f.write(f"{FOLDER_MARKER}{folder_path}\n")
         for text_file in text_files:
             f.write(f"{FILENAME_MARKER}{text_file['path']}\n")
+            f.write(f"{FILE_LANGUAGE_MARKER}{normalize_language(text_file.get('language', ''))}\n")
             highlighted_lines = normalize_highlighted_lines(text_file.get("highlighted_lines", []))
             if highlighted_lines:
                 f.write(f"{LINE_HIGHLIGHTS_MARKER}{','.join(str(line) for line in highlighted_lines)}\n")

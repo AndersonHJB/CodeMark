@@ -32,7 +32,8 @@ const LANGUAGE_TO_EXTENSION = {
 };
 const TEXT_EXTENSIONS = new Set([
     "py", "js", "ts", "tsx", "jsx", "java", "cpp", "cc", "c", "h", "hpp",
-    "php", "rb", "go", "html", "htm", "css", "scss", "less", "md", "txt", "json",
+    "php", "rb", "go", "html", "htm", "css", "scss", "less", "md", "markdown",
+    "mdown", "mkdn", "mkd", "txt", "json",
     "yaml", "yml", "xml", "sh", "ini", "toml", "sql", "rs", "swift", "kt", "dart"
 ]);
 const SHARECODE_STATIC_PATHS = window.SHARECODE_STATIC_PATHS || {};
