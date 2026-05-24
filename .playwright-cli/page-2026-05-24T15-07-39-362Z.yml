@@ -1,0 +1,118 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - button "点击展开边栏" [ref=e5] [cursor=pointer]:
+          - img [ref=e6]
+        - generic: Project Files
+      - generic [ref=e18]:
+        - button "new file" [ref=e19] [cursor=pointer]:
+          - img [ref=e21]
+          - generic: new file
+        - button "upload" [ref=e23] [cursor=pointer]:
+          - img [ref=e25]
+          - generic: upload
+        - button "upload folder" [ref=e27] [cursor=pointer]:
+          - img [ref=e29]
+          - generic: upload folder
+        - button "select" [ref=e31] [cursor=pointer]:
+          - img [ref=e33]
+          - generic: select
+        - button "clear all" [ref=e35] [cursor=pointer]:
+          - img [ref=e37]
+          - generic: clear all
+      - text: 
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - textbox [ref=e42]
+          - generic [ref=e44]:
+            - generic [ref=e45] [cursor=pointer]: "1"
+            - generic [ref=e46] [cursor=pointer]: "2"
+            - generic [ref=e47] [cursor=pointer]: "3"
+            - generic [ref=e48] [cursor=pointer]: "4"
+            - generic [ref=e49] [cursor=pointer]: "5"
+          - generic [ref=e51]:
+            - generic:
+              - generic: "# -*- coding: utf-8 -*-"
+              - generic:
+                - generic:
+                  - text: "#"
+                  - generic: 欢
+                  - generic: 迎
+                  - generic: 使
+                  - generic: 用
+                  - text: CodeMark
+              - generic:
+                - generic:
+                  - text: "#"
+                  - generic: 支
+                  - generic: 持
+                  - generic: 多
+                  - generic: 文
+                  - generic: 件
+                  - generic: 与
+                  - generic: 项
+                  - generic: 目
+                  - generic: 化
+                  - generic: 分
+                  - generic: 享
+              - generic:
+                - generic:
+                  - text: "#"
+                  - generic: 你
+                  - generic: 可
+                  - generic: 以
+                  - generic: 在
+                  - generic: 左
+                  - generic: 侧
+                  - generic: 创
+                  - generic: 建
+                  - generic: 文
+                  - generic: 件
+                  - generic: ，
+                  - generic: 或
+                  - generic: 上
+                  - generic: 传
+                  - generic: 文
+                  - generic: 件
+                  - generic: 夹
+        - text:     
+      - generic [ref=e52]:
+        - button "save" [ref=e53] [cursor=pointer]
+        - button "open" [ref=e54] [cursor=pointer]
+        - button "folder" [ref=e55] [cursor=pointer]
+        - button "zip" [ref=e56] [cursor=pointer]
+        - button "share" [ref=e57] [cursor=pointer]
+        - button "py-run" [ref=e58] [cursor=pointer]
+        - button "home" [ref=e59] [cursor=pointer]
+        - generic [ref=e60]:
+          - generic [ref=e61]: Language
+          - combobox [ref=e62]:
+            - option "Python" [selected]
+            - option "JavaScript"
+            - option "C/C++"
+            - option "Java"
+            - option "PHP"
+            - option "Ruby"
+            - option "Go"
+            - option "HTML"
+            - option "CSS"
+            - option "Markdown"
+        - generic [ref=e63]:
+          - generic [ref=e64]: Theme
+          - combobox [ref=e65]:
+            - option "monokai" [selected]
+            - option "github"
+            - option "tomorrow"
+            - option "kuroir"
+            - option "twilight"
+            - option "vibrant_ink"
+            - option "xcode"
+            - option "textmate"
+            - option "terminal"
+            - option "solarized_dark"
+            - option "solarized_light"
+        - link "About" [ref=e66] [cursor=pointer]:
+          - /url: "#"
+  - text:     
