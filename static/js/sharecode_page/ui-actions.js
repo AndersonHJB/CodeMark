@@ -562,7 +562,7 @@ function shareProjectTreeItem(kind, path) {
 
 function openShareModalWithPayload(payloadOverride) {
     hideFloatingMenuIfOpen();
-    $('#qrcode').empty();
+    prepareHiddenShareQrSource();
     $('#share-link-input').val('');
     $('#share-modal .modal-title').text('Share your code');
     $('#copy-success').hide();
@@ -613,7 +613,7 @@ function generateShareLink(payloadOverride) {
         data: requestData,
         success: function (d) {
             let shareLink = appendShareViewToLink(d.share_link);
-            $('#qrcode').empty();
+            prepareHiddenShareQrSource();
             $('#qrcode').qrcode({
                 text: shareLink,
                 width: 200,
@@ -644,14 +644,24 @@ function generateShareLink(payloadOverride) {
             document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
             html2canvas(document.querySelector("#editorArea")).then(canvas => {
-                const ctx = canvas.getContext('2d');
                 const qrImg = new Image();
                 qrImg.src = qrcodeSrc;
                 qrImg.onload = function () {
-                    const qrSize = 120;
-                    ctx.drawImage(qrImg, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+                    const finalCanvas = document.createElement("canvas");
+                    finalCanvas.width = canvas.width;
+                    finalCanvas.height = canvas.height;
+                    const ctx = finalCanvas.getContext("2d");
+                    ctx.drawImage(canvas, 0, 0);
+
+                    const qrSize = getShareImageQrSize(finalCanvas);
+                    const qrMargin = Math.max(12, Math.round(qrSize * 0.08));
+                    const qrX = finalCanvas.width - qrSize - qrMargin;
+                    const qrY = qrMargin;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+                    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
                     const finalImg = document.createElement("img");
-                    finalImg.src = canvas.toDataURL('image/png');
+                    finalImg.src = finalCanvas.toDataURL('image/png');
                     finalImg.style.maxWidth = "90%";
                     finalImageContainer.appendChild(finalImg);
                 };
@@ -661,6 +671,33 @@ function generateShareLink(payloadOverride) {
             $('#share-modal').modal('show');
         }
     });
+}
+
+function prepareHiddenShareQrSource() {
+    $('#qrcode')
+        .empty()
+        .attr('aria-hidden', 'true')
+        .css({
+            display: 'block',
+            position: 'absolute',
+            left: '-9999px',
+            top: '0',
+            width: '200px',
+            height: '200px',
+            margin: '0',
+            overflow: 'hidden',
+            opacity: '0',
+            pointerEvents: 'none'
+        });
+}
+
+function getShareImageQrSize(canvas) {
+    const fallbackSize = 160;
+    if (!canvas || !canvas.width || !canvas.height) {
+        return fallbackSize;
+    }
+    const shorterSide = Math.min(canvas.width, canvas.height);
+    return Math.max(120, Math.min(240, Math.round(shorterSide * 0.18)));
 }
 
 function goPythonRunPage() {
