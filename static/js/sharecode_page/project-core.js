@@ -179,7 +179,12 @@ function ensureUniquePath(path) {
     if (!safePath) {
         return "";
     }
-    if (!projectFiles.some(f => f.path === safePath)) {
+    const pathConflicts = function (candidatePath) {
+        const conflictsWithFile = projectFiles.some(f => f.path === candidatePath);
+        const conflictsWithFolder = typeof projectFolderExists === "function" && projectFolderExists(candidatePath);
+        return conflictsWithFile || conflictsWithFolder;
+    };
+    if (!pathConflicts(safePath)) {
         return safePath;
     }
     let base = safePath;
@@ -190,7 +195,7 @@ function ensureUniquePath(path) {
         suffix = safePath.slice(dotIndex);
     }
     let index = 1;
-    while (projectFiles.some(f => f.path === `${base}_${index}${suffix}`)) {
+    while (pathConflicts(`${base}_${index}${suffix}`)) {
         index += 1;
     }
     return `${base}_${index}${suffix}`;

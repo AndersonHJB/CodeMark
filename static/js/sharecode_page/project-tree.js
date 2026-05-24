@@ -254,7 +254,8 @@ function projectFolderExists(folderPath) {
     if (!safeFolderPath) {
         return false;
     }
-    return projectFolders.includes(safeFolderPath) || projectFiles.some(f => isPathInsideFolder(f.path, safeFolderPath));
+    return projectFolders.some(path => isSameOrInsideFolder(path, safeFolderPath))
+        || projectFiles.some(f => isPathInsideFolder(f.path, safeFolderPath));
 }
 
 function projectPathConflictsWithFile(path) {
@@ -567,7 +568,9 @@ function beginProjectTreeCreate(kind, parentPath) {
     if (kind !== "file" && kind !== "folder") {
         return;
     }
-    const safeParentPath = safeNormalizePath(parentPath || "");
+    const safeParentPath = typeof parentPath === "string"
+        ? getProjectUploadTargetPath(parentPath)
+        : getSelectedProjectUploadTargetPath();
     if (safeParentPath) {
         setProjectTreeSelectedFolderPath(safeParentPath);
     }
@@ -595,11 +598,12 @@ function resolveProjectTreeCreatePath(target, rawName, fallbackName) {
     const safeParentPath = safeNormalizePath((target && target.parentPath) || "");
     const rawValue = typeof rawName === "string" ? rawName.trim() : "";
     const nameValue = rawValue || fallbackName || "";
+    const isExplicitProjectPath = nameValue.replace(/\\/g, "/").indexOf("/") >= 0;
     const safeNamePath = safeNormalizePath(nameValue);
     if (!safeNamePath) {
         return "";
     }
-    if (safeParentPath && (safeNamePath === safeParentPath || safeNamePath.startsWith(safeParentPath + "/"))) {
+    if (safeParentPath && isExplicitProjectPath && safeNamePath.startsWith(safeParentPath + "/")) {
         return safeNamePath;
     }
     return safeNormalizePath(joinProjectPath(safeParentPath, safeNamePath));
@@ -730,6 +734,10 @@ function renameProjectFile(oldPath, newName) {
         showProjectNotice("已存在同名文件或路径，请换一个名称。");
         return false;
     }
+    if (projectFolderExists(newPath)) {
+        showProjectNotice("已存在同名文件夹或路径，请换一个名称。");
+        return false;
+    }
 
     syncActiveEditorToProject();
     targetFile.path = newPath;
@@ -841,7 +849,8 @@ function canMoveProjectTreeItemToParent(kind, path, targetParentPath) {
         if (!projectFiles.some(f => f.path === safePath) || !nextPath || nextPath === safePath) {
             return false;
         }
-        return !projectFiles.some(f => f.path === nextPath && f.path !== safePath);
+        return !projectFiles.some(f => f.path === nextPath && f.path !== safePath)
+            && !projectFolderExists(nextPath);
     }
 
     if (!projectFolderExists(safePath) || !nextPath || nextPath === safePath) {
@@ -867,6 +876,10 @@ function moveProjectFileToParent(oldPath, targetParentPath) {
     }
     if (projectFiles.some(f => f.path === newPath && f.path !== safeOldPath)) {
         showProjectNotice("目标位置已存在同名文件。");
+        return false;
+    }
+    if (projectFolderExists(newPath)) {
+        showProjectNotice("目标位置已存在同名文件夹。");
         return false;
     }
 
