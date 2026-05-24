@@ -1714,10 +1714,17 @@ body.sidebar-resizing #projectSidebar {
 
 #final-image-container {
     margin-top: 20px;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 #final-image-container img {
     max-width: 90%;
+    max-height: min(52vh, 560px);
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
     border-radius: 8px;
     border: 1px solid #e3e5e8;
 }
@@ -1741,6 +1748,11 @@ body.sidebar-resizing #projectSidebar {
     #share-modal .modal-dialog {
         max-width: 95% !important;
         margin: 1rem auto;
+    }
+
+    #final-image-container img {
+        max-width: 100%;
+        max-height: 42vh;
     }
 }
 
