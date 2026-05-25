@@ -1099,6 +1099,22 @@ body {
     font-size: 16px;
     line-height: 1.78;
 }
+.markdown-preview-shell {
+    width: min(100% - 48px, 1240px);
+    margin: 0 auto;
+    padding: 42px 0 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 36px;
+    align-items: start;
+}
+.markdown-preview-shell .markdown-body {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
 .markdown-body > :first-child {
     margin-top: 0;
 }
@@ -1112,6 +1128,7 @@ body {
     font-weight: 750;
     line-height: 1.25;
     margin: 1.8em 0 0.7em;
+    scroll-margin-top: 24px;
 }
 .markdown-body h1 {
     padding-bottom: 0.32em;
@@ -1279,6 +1296,58 @@ body {
 .markdown-toc li + li {
     margin-top: 4px;
 }
+.markdown-outline {
+    position: sticky;
+    top: 76px;
+    max-height: calc(100vh - 104px);
+    overflow: auto;
+    padding: 14px 0 16px 18px;
+    border-left: 1px solid #d6dccf;
+    color: #596253;
+    scrollbar-width: thin;
+    scrollbar-color: #c5cebd transparent;
+}
+.markdown-outline-title {
+    margin-bottom: 10px;
+    color: #2d3329;
+    font-size: 12px;
+    font-weight: 850;
+}
+.markdown-outline-list {
+    display: grid;
+    gap: 2px;
+}
+.markdown-outline-link {
+    position: relative;
+    display: block;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: #6a735f;
+    font-size: 13px;
+    line-height: 1.35;
+    text-decoration: none;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.markdown-outline-link:hover {
+    background: #edf1e6;
+    color: #26301f;
+    text-decoration: none;
+}
+.markdown-outline-link.is-active {
+    background: #e7f0d4;
+    color: #1f3216;
+    font-weight: 750;
+}
+.markdown-outline-link.is-active::before {
+    content: "";
+    position: absolute;
+    left: -19px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 999px;
+    background: #88a52f;
+}
 .admonition {
     padding: 13px 15px;
     border-left: 4px solid #4f8fda;
@@ -1322,6 +1391,24 @@ body {
         font-size: 1.36em;
     }
 }
+@media (max-width: 1080px) {
+    .markdown-preview-shell {
+        display: block;
+        width: min(100% - 48px, 980px);
+    }
+    .markdown-preview-shell .markdown-body {
+        width: auto;
+    }
+    .markdown-outline {
+        display: none;
+    }
+}
+@media (max-width: 720px) {
+    .markdown-preview-shell {
+        width: min(100% - 28px, 980px);
+        padding: 28px 0 46px;
+    }
+}
 `;
     head.appendChild(style);
 }
@@ -1329,7 +1416,7 @@ body {
 function addMarkdownHeadingIdsAndToc(doc) {
     const body = doc.querySelector(".markdown-body");
     if (!body) {
-        return;
+        return [];
     }
     const usedIds = new Set();
     const headings = Array.from(body.querySelectorAll("h1, h2, h3, h4, h5, h6"));
@@ -1382,6 +1469,164 @@ function addMarkdownHeadingIdsAndToc(doc) {
         nav.appendChild(list);
         paragraph.parentNode.replaceChild(nav, paragraph);
     });
+
+    return headingEntries;
+}
+
+function addMarkdownOutline(doc, headingEntries) {
+    const body = doc.body || doc.documentElement;
+    const main = doc.querySelector(".markdown-body");
+    const entries = Array.isArray(headingEntries) ? headingEntries : [];
+    if (!body || !main || entries.length < 1) {
+        return;
+    }
+
+    const shell = doc.createElement("div");
+    shell.className = "markdown-preview-shell";
+    main.parentNode.insertBefore(shell, main);
+    shell.appendChild(main);
+
+    const outline = doc.createElement("aside");
+    outline.className = "markdown-outline";
+    outline.setAttribute("aria-label", "Markdown 大纲");
+
+    const title = doc.createElement("div");
+    title.className = "markdown-outline-title";
+    title.textContent = "大纲";
+    outline.appendChild(title);
+
+    const list = doc.createElement("nav");
+    list.className = "markdown-outline-list";
+    const baseLevel = entries.reduce((minLevel, entry) => Math.min(minLevel, entry.level || 1), 6);
+
+    entries.forEach(entry => {
+        const link = doc.createElement("a");
+        link.className = "markdown-outline-link";
+        link.href = `#${encodeURIComponent(entry.id)}`;
+        link.textContent = entry.text;
+        link.dataset.targetId = entry.id;
+        const depth = Math.max(0, (entry.level || baseLevel) - baseLevel);
+        link.style.paddingLeft = `${8 + depth * 13}px`;
+        list.appendChild(link);
+    });
+
+    outline.appendChild(list);
+    shell.appendChild(outline);
+}
+
+function appendMarkdownOutlineRuntime(doc) {
+    const body = doc.body || doc.documentElement;
+    if (!body || doc.getElementById("codemark-markdown-outline-runtime") || !doc.querySelector(".markdown-outline")) {
+        return;
+    }
+    const script = doc.createElement("script");
+    script.id = "codemark-markdown-outline-runtime";
+    setInlineScriptContent(script, `
+(function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll(".markdown-outline-link"));
+    if (!links.length) {
+        return;
+    }
+    var headings = links.map(function (link) {
+        return document.getElementById(link.dataset.targetId || "");
+    }).filter(Boolean);
+    var activeId = "";
+    var ticking = false;
+
+    function decodeHashId(hash) {
+        var raw = String(hash || "").replace(/^#/, "");
+        try {
+            return decodeURIComponent(raw);
+        } catch (e) {
+            return raw;
+        }
+    }
+
+    function setActive(id) {
+        if (!id || id === activeId) {
+            return;
+        }
+        activeId = id;
+        links.forEach(function (link) {
+            link.classList.toggle("is-active", link.dataset.targetId === id);
+        });
+    }
+
+    function updateActiveHeading() {
+        ticking = false;
+        if (!headings.length) {
+            return;
+        }
+        var currentId = headings[0].id;
+        var topBoundary = 16;
+        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        var scrollElement = document.scrollingElement || document.documentElement;
+        var isNearBottom = viewportHeight > 0
+            && scrollElement
+            && Math.ceil(scrollElement.scrollTop + viewportHeight) >= scrollElement.scrollHeight - 4;
+        if (isNearBottom) {
+            for (var bottomIndex = 0; bottomIndex < headings.length; bottomIndex += 1) {
+                var bottomRect = headings[bottomIndex].getBoundingClientRect();
+                if (bottomRect.bottom > topBoundary && bottomRect.top < viewportHeight - 24) {
+                    currentId = headings[bottomIndex].id;
+                }
+            }
+            setActive(currentId);
+            return;
+        }
+        var switchBoundary = Math.min(Math.max(viewportHeight * 0.42, 260), 520);
+        for (var i = 0; i < headings.length; i += 1) {
+            var rect = headings[i].getBoundingClientRect();
+            if (rect.bottom > topBoundary && rect.top <= switchBoundary) {
+                currentId = headings[i].id;
+                break;
+            }
+            if (rect.top <= topBoundary) {
+                currentId = headings[i].id;
+            }
+        }
+        setActive(currentId);
+    }
+
+    function requestUpdate() {
+        if (ticking) {
+            return;
+        }
+        ticking = true;
+        window.requestAnimationFrame(updateActiveHeading);
+    }
+
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+    window.addEventListener("hashchange", function () {
+        setActive(decodeHashId(window.location.hash));
+        requestUpdate();
+    });
+    window.addEventListener("load", requestUpdate);
+    if (typeof ResizeObserver === "function") {
+        try {
+            new ResizeObserver(requestUpdate).observe(document.querySelector(".markdown-body"));
+        } catch (e) {
+        }
+    }
+    if (typeof MutationObserver === "function") {
+        try {
+            new MutationObserver(requestUpdate).observe(document.querySelector(".markdown-body"), {
+                childList: true,
+                subtree: true
+            });
+        } catch (e) {
+        }
+    }
+    window.setTimeout(requestUpdate, 250);
+    window.setTimeout(requestUpdate, 800);
+    if (window.location.hash) {
+        setActive(decodeHashId(window.location.hash));
+    }
+    requestUpdate();
+})();
+`);
+    body.appendChild(script);
 }
 
 function rewriteMarkdownPreviewResources(doc, file, resourceMap) {
@@ -1502,12 +1747,14 @@ function buildMarkdownPreviewDocument(file) {
     doc.body.appendChild(main);
 
     rewriteMarkdownPreviewResources(doc, file, resourceMap);
-    addMarkdownHeadingIdsAndToc(doc);
+    const headingEntries = addMarkdownHeadingIdsAndToc(doc);
+    addMarkdownOutline(doc, headingEntries);
     updateMarkdownLinkTargets(doc);
     if (hasMarkdownMath(rawMarkdown)) {
         appendMarkdownMathRuntime(doc);
     }
     appendMarkdownMermaidRuntime(doc);
+    appendMarkdownOutlineRuntime(doc);
     appendPreviewHashNavigationRuntime(doc);
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
