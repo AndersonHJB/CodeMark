@@ -1,5 +1,12 @@
 /* Sharecode HTML/React/Markdown preview rendering and resource rewriting. */
 let markdownItRenderer = null;
+let markdownSplitScrollSyncBound = false;
+let markdownSplitEditorScrollFrame = null;
+let markdownSplitPreviewScrollFrame = null;
+let markdownSplitScrollSyncLock = "";
+let markdownSplitScrollSyncUnlockTimer = null;
+let markdownSplitPendingPreviewSourceLine = 1;
+let markdownSplitLastEditorSyncAt = 0;
 
 function escapeHtml(raw) {
     return String(raw || "")
@@ -292,8 +299,212 @@ function showSplitPreviewPane() {
     if (window.editor) {
         setTimeout(function () {
             window.editor.resize();
+            updateMarkdownSplitScrollSyncState();
+            requestSyncMarkdownPreviewToEditor();
         }, 0);
     }
+}
+
+function isMarkdownSplitScrollSyncActive() {
+    return getEffectiveShareViewMode() === SHARE_VIEW_SPLIT
+        && isMarkdownDocumentFile(getActiveProjectFile())
+        && !isHtmlPreviewFullscreenActive();
+}
+
+function getMarkdownSplitPreviewFrame() {
+    return document.getElementById("htmlPreviewFrame");
+}
+
+function getEditorDocumentRowForScreenRow(screenRow) {
+    if (!window.editor || !window.editor.session) {
+        return screenRow;
+    }
+    const session = window.editor.session;
+    if (typeof session.screenToDocumentPosition === "function") {
+        return session.screenToDocumentPosition(screenRow, 0).row;
+    }
+    if (typeof session.screenToDocumentRow === "function") {
+        return session.screenToDocumentRow(screenRow, 0);
+    }
+    return screenRow;
+}
+
+function getEditorScreenRowForDocumentRow(documentRow) {
+    if (!window.editor || !window.editor.session) {
+        return documentRow;
+    }
+    const session = window.editor.session;
+    if (typeof session.documentToScreenPosition === "function") {
+        return session.documentToScreenPosition(documentRow, 0).row;
+    }
+    if (typeof session.documentToScreenRow === "function") {
+        return session.documentToScreenRow(documentRow, 0);
+    }
+    return documentRow;
+}
+
+function getEditorLineHeight() {
+    if (!window.editor || !window.editor.renderer) {
+        return 16;
+    }
+    return window.editor.renderer.lineHeight
+        || (window.editor.renderer.layerConfig && window.editor.renderer.layerConfig.lineHeight)
+        || 16;
+}
+
+function getEditorVisibleMarkdownLineInfo() {
+    if (!window.editor || !window.editor.renderer || !window.editor.session) {
+        return null;
+    }
+    const renderer = window.editor.renderer;
+    const session = window.editor.session;
+    const lineHeight = getEditorLineHeight();
+    const scrollTop = typeof session.getScrollTop === "function" ? session.getScrollTop() : (renderer.scrollTop || 0);
+    const scrollerHeight = (renderer.$size && renderer.$size.scrollerHeight)
+        || (renderer.container && renderer.container.clientHeight)
+        || 0;
+    const rawScreenTop = lineHeight > 0 ? scrollTop / lineHeight : 0;
+    const firstScreenRow = Math.max(0, Math.floor(rawScreenTop));
+    const nextScreenRow = firstScreenRow + 1;
+    const lastScreenRow = Math.max(firstScreenRow, Math.floor((scrollTop + scrollerHeight) / lineHeight));
+    const firstDocumentRow = Math.max(0, getEditorDocumentRowForScreenRow(firstScreenRow));
+    const nextDocumentRow = Math.max(firstDocumentRow, getEditorDocumentRowForScreenRow(nextScreenRow));
+    const lastDocumentRow = Math.max(firstDocumentRow, getEditorDocumentRowForScreenRow(lastScreenRow));
+    const screenProgress = Math.max(0, Math.min(1, rawScreenTop - firstScreenRow));
+    const sourceLine = firstDocumentRow + 1 + (nextDocumentRow - firstDocumentRow) * screenProgress;
+    return {
+        line: sourceLine,
+        lastLine: lastDocumentRow + 1,
+        totalLines: window.editor.session.getLength ? window.editor.session.getLength() : 1
+    };
+}
+
+function getEditorScreenTopForSourceLine(sourceLine) {
+    if (!window.editor || !window.editor.session) {
+        return 0;
+    }
+    const maxRow = Math.max(0, window.editor.session.getLength() - 1);
+    const rawRow = Math.max(0, Math.min((Number(sourceLine) || 1) - 1, maxRow));
+    const rowStart = Math.floor(rawRow);
+    const rowEnd = Math.min(maxRow, rowStart + 1);
+    const progress = rawRow - rowStart;
+    const screenStart = getEditorScreenRowForDocumentRow(rowStart);
+    const screenEnd = getEditorScreenRowForDocumentRow(rowEnd);
+    return (screenStart + (screenEnd - screenStart) * progress) * getEditorLineHeight();
+}
+
+function setMarkdownSplitSyncLock(source) {
+    markdownSplitScrollSyncLock = source;
+    if (markdownSplitScrollSyncUnlockTimer) {
+        clearTimeout(markdownSplitScrollSyncUnlockTimer);
+    }
+    markdownSplitScrollSyncUnlockTimer = setTimeout(function () {
+        markdownSplitScrollSyncLock = "";
+        markdownSplitScrollSyncUnlockTimer = null;
+    }, 80);
+}
+
+function syncMarkdownPreviewScrollToEditor() {
+    markdownSplitEditorScrollFrame = null;
+    if (!isMarkdownSplitScrollSyncActive() || markdownSplitScrollSyncLock === "preview") {
+        return;
+    }
+    const frame = getMarkdownSplitPreviewFrame();
+    const editorInfo = getEditorVisibleMarkdownLineInfo();
+    if (!frame || !frame.contentWindow || !editorInfo) {
+        return;
+    }
+
+    setMarkdownSplitSyncLock("editor");
+    markdownSplitLastEditorSyncAt = Date.now();
+    frame.contentWindow.postMessage({
+        type: "codemark:markdown-sync-source-line",
+        sourceLine: editorInfo.line,
+        lastLine: editorInfo.lastLine,
+        totalLines: editorInfo.totalLines
+    }, "*");
+}
+
+function syncMarkdownEditorScrollToPreview() {
+    markdownSplitPreviewScrollFrame = null;
+    if (!isMarkdownSplitScrollSyncActive() || markdownSplitScrollSyncLock === "editor") {
+        return;
+    }
+    if (!window.editor || !window.editor.session) {
+        return;
+    }
+
+    const sourceLine = Math.max(1, Number(markdownSplitPendingPreviewSourceLine) || 1);
+    const targetTop = getEditorScreenTopForSourceLine(sourceLine);
+
+    setMarkdownSplitSyncLock("preview");
+    if (typeof window.editor.session.setScrollTop === "function") {
+        if (Math.abs(window.editor.session.getScrollTop() - targetTop) > 1) {
+            window.editor.session.setScrollTop(targetTop);
+        }
+    } else if (typeof window.editor.scrollToLine === "function") {
+        window.editor.scrollToLine(Math.max(0, Math.round(sourceLine - 1)), false, false);
+    }
+}
+
+function requestSyncMarkdownPreviewToEditor() {
+    if (!isMarkdownSplitScrollSyncActive() || markdownSplitEditorScrollFrame) {
+        return;
+    }
+    markdownSplitEditorScrollFrame = window.requestAnimationFrame
+        ? window.requestAnimationFrame(syncMarkdownPreviewScrollToEditor)
+        : setTimeout(syncMarkdownPreviewScrollToEditor, 16);
+}
+
+function requestSyncMarkdownEditorToPreview() {
+    if (!isMarkdownSplitScrollSyncActive() || markdownSplitPreviewScrollFrame) {
+        return;
+    }
+    markdownSplitPreviewScrollFrame = window.requestAnimationFrame
+        ? window.requestAnimationFrame(syncMarkdownEditorScrollToPreview)
+        : setTimeout(syncMarkdownEditorScrollToPreview, 16);
+}
+
+function handleMarkdownSplitPreviewMessage(event) {
+    const frame = getMarkdownSplitPreviewFrame();
+    if (!frame || event.source !== frame.contentWindow) {
+        return;
+    }
+    const data = event.data || {};
+    if (data.type === "codemark:markdown-preview-ready") {
+        requestSyncMarkdownPreviewToEditor();
+        return;
+    }
+    if (data.type !== "codemark:markdown-preview-scroll") {
+        return;
+    }
+    const sourceLine = Number(data.sourceLine);
+    if (!Number.isFinite(sourceLine) || sourceLine < 1) {
+        return;
+    }
+    if (Date.now() - markdownSplitLastEditorSyncAt < 180) {
+        return;
+    }
+    markdownSplitPendingPreviewSourceLine = sourceLine;
+    requestSyncMarkdownEditorToPreview();
+}
+
+function updateMarkdownSplitScrollSyncState() {
+    bindMarkdownSplitScrollSync();
+    if (isMarkdownSplitScrollSyncActive()) {
+        requestSyncMarkdownPreviewToEditor();
+    }
+}
+
+function bindMarkdownSplitScrollSync() {
+    if (markdownSplitScrollSyncBound || !window.editor || !window.editor.session) {
+        return;
+    }
+    markdownSplitScrollSyncBound = true;
+    window.editor.session.on("changeScrollTop", function () {
+        requestSyncMarkdownPreviewToEditor();
+    });
+    window.addEventListener("message", handleMarkdownSplitPreviewMessage);
 }
 
 function getEffectiveShareViewMode() {
@@ -976,10 +1187,38 @@ function installMarkdownFenceRenderer(markdownRenderer) {
         const info = token.info ? token.info.trim() : "";
         const language = info.split(/\s+/)[0].toLowerCase();
         if (language === "mermaid") {
-            return `<div class="mermaid">${escapeHtml(token.content)}</div>\n`;
+            const sourceLine = token.attrGet ? token.attrGet("data-codemark-source-line") : "";
+            const sourceLineAttr = sourceLine ? ` data-codemark-source-line="${escapeHtml(sourceLine)}"` : "";
+            return `<div class="mermaid"${sourceLineAttr}>${escapeHtml(token.content)}</div>\n`;
         }
         return defaultFence(tokens, idx, options, env, slf);
     };
+}
+
+function shouldMarkMarkdownTokenSourceLine(token) {
+    if (!token || !token.map || !token.map.length || !token.tag || token.type === "inline") {
+        return false;
+    }
+    return token.nesting !== -1;
+}
+
+function renderMarkdownWithSourceLineMarkers(markdownRenderer, source) {
+    if (!markdownRenderer
+        || typeof markdownRenderer.parse !== "function"
+        || !markdownRenderer.renderer
+        || typeof markdownRenderer.renderer.render !== "function") {
+        return markdownRenderer && typeof markdownRenderer.render === "function"
+            ? markdownRenderer.render(source)
+            : `<pre data-codemark-source-line="1"><code>${escapeHtml(source)}</code></pre>`;
+    }
+    const env = {};
+    const tokens = markdownRenderer.parse(String(source || ""), env);
+    tokens.forEach(token => {
+        if (shouldMarkMarkdownTokenSourceLine(token) && typeof token.attrSet === "function") {
+            token.attrSet("data-codemark-source-line", String(token.map[0] + 1));
+        }
+    });
+    return markdownRenderer.renderer.render(tokens, markdownRenderer.options, env);
 }
 
 function getMarkdownRenderer() {
@@ -1056,6 +1295,7 @@ function sanitizeMarkdownHtml(markup) {
                 "aria-hidden",
                 "checked",
                 "class",
+                "data-codemark-source-line",
                 "disabled",
                 "id",
                 "name",
@@ -1629,6 +1869,332 @@ function appendMarkdownOutlineRuntime(doc) {
     body.appendChild(script);
 }
 
+function appendMarkdownSplitScrollRuntime(doc) {
+    const body = doc.body || doc.documentElement;
+    if (!body || doc.getElementById("codemark-markdown-split-scroll-runtime")) {
+        return;
+    }
+    const script = doc.createElement("script");
+    script.id = "codemark-markdown-split-scroll-runtime";
+    setInlineScriptContent(script, `
+(function () {
+    var messageTypes = {
+        align: "codemark:markdown-sync-source-line",
+        scroll: "codemark:markdown-preview-scroll",
+        ready: "codemark:markdown-preview-ready"
+    };
+    var scrollLock = false;
+    var unlockTimer = null;
+    var pendingAlignFrame = null;
+    var pendingAlignData = null;
+    var pendingScrollFrame = null;
+    var lastPostedLine = 0;
+    var lastRequestedLine = 1;
+    var lastRequestedLastLine = 1;
+    var lastRequestedTotalLines = 1;
+    var anchorsDirty = true;
+    var anchorCache = [];
+    var userScrollUntil = 0;
+
+    function getScrollElement() {
+        return document.scrollingElement || document.documentElement || document.body;
+    }
+
+    function getClientHeight(scrollElement) {
+        return scrollElement.clientHeight || window.innerHeight || 0;
+    }
+
+    function getMaxScrollTop(scrollElement) {
+        return Math.max(0, (scrollElement.scrollHeight || 0) - getClientHeight(scrollElement));
+    }
+
+    function setScrollTop(scrollElement, top) {
+        var targetTop = Math.max(0, Math.min(top, getMaxScrollTop(scrollElement)));
+        var rootStyle = document.documentElement && document.documentElement.style;
+        var bodyStyle = document.body && document.body.style;
+        var previousRootScrollBehavior = rootStyle ? rootStyle.scrollBehavior : "";
+        var previousBodyScrollBehavior = bodyStyle ? bodyStyle.scrollBehavior : "";
+        if (rootStyle) {
+            rootStyle.scrollBehavior = "auto";
+        }
+        if (bodyStyle) {
+            bodyStyle.scrollBehavior = "auto";
+        }
+        scrollElement.scrollTop = targetTop;
+        if (document.documentElement && document.documentElement !== scrollElement) {
+            document.documentElement.scrollTop = targetTop;
+        }
+        if (document.body && document.body !== scrollElement) {
+            document.body.scrollTop = targetTop;
+        }
+        window.requestAnimationFrame(function () {
+            if (rootStyle) {
+                rootStyle.scrollBehavior = previousRootScrollBehavior;
+            }
+            if (bodyStyle) {
+                bodyStyle.scrollBehavior = previousBodyScrollBehavior;
+            }
+        });
+    }
+
+    function getElementTop(element, scrollElement) {
+        return element.getBoundingClientRect().top + scrollElement.scrollTop;
+    }
+
+    function markAnchorsDirty() {
+        anchorsDirty = true;
+    }
+
+    function rebuildAnchors() {
+        var scrollElement = getScrollElement();
+        if (!scrollElement) {
+            anchorCache = [];
+            anchorsDirty = false;
+            return anchorCache;
+        }
+        var seenLines = Object.create(null);
+        anchorCache = Array.prototype.slice.call(document.querySelectorAll("[data-codemark-source-line]"))
+            .map(function (element) {
+                return {
+                    line: Number(element.getAttribute("data-codemark-source-line")),
+                    top: getElementTop(element, scrollElement)
+                };
+            })
+            .filter(function (item) {
+                if (!Number.isFinite(item.line) || item.line < 1 || seenLines[item.line]) {
+                    return false;
+                }
+                seenLines[item.line] = true;
+                return true;
+            })
+            .sort(function (a, b) {
+                return a.line - b.line;
+            });
+        anchorsDirty = false;
+        return anchorCache;
+    }
+
+    function getAnchors() {
+        return anchorsDirty ? rebuildAnchors() : anchorCache;
+    }
+
+    function findAnchorIndexByLine(anchors, sourceLine) {
+        var low = 0;
+        var high = anchors.length - 1;
+        var result = 0;
+        while (low <= high) {
+            var mid = Math.floor((low + high) / 2);
+            if (anchors[mid].line <= sourceLine) {
+                result = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return result;
+    }
+
+    function findAnchorIndexByTop(anchors, targetTop) {
+        var low = 0;
+        var high = anchors.length - 1;
+        var result = 0;
+        while (low <= high) {
+            var mid = Math.floor((low + high) / 2);
+            if (anchors[mid].top <= targetTop) {
+                result = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return result;
+    }
+
+    function getTargetTopForSourceLine(scrollElement, sourceLine) {
+        var anchors = getAnchors();
+        if (!anchors.length || sourceLine <= anchors[0].line) {
+            return 0;
+        }
+
+        var previousIndex = findAnchorIndexByLine(anchors, sourceLine);
+        var previous = anchors[previousIndex];
+        var next = anchors[previousIndex + 1] || null;
+        if (!next) {
+            return previous.top;
+        }
+        var lineSpan = Math.max(1, next.line - previous.line);
+        var progress = Math.max(0, Math.min(1, (sourceLine - previous.line) / lineSpan));
+        return previous.top + (next.top - previous.top) * progress;
+    }
+
+    function setLock() {
+        scrollLock = true;
+        if (unlockTimer) {
+            window.clearTimeout(unlockTimer);
+        }
+        unlockTimer = window.setTimeout(function () {
+            scrollLock = false;
+            unlockTimer = null;
+        }, 80);
+    }
+
+    function markUserScrollIntent() {
+        userScrollUntil = Date.now() + 900;
+    }
+
+    function alignToSourceLine(data) {
+        var scrollElement = getScrollElement();
+        if (!scrollElement) {
+            return;
+        }
+        lastRequestedLine = Math.max(1, Number(data.sourceLine) || 1);
+        lastRequestedLastLine = Math.max(lastRequestedLine, Number(data.lastLine) || lastRequestedLine);
+        lastRequestedTotalLines = Math.max(1, Number(data.totalLines) || lastRequestedLastLine);
+
+        var nearEditorBottom = lastRequestedTotalLines > 0 && lastRequestedLastLine >= lastRequestedTotalLines - 1;
+        var targetTop = nearEditorBottom
+            ? getMaxScrollTop(scrollElement)
+            : getTargetTopForSourceLine(scrollElement, lastRequestedLine) - 12;
+
+        setLock();
+        if (Math.abs((scrollElement.scrollTop || 0) - targetTop) > 1) {
+            setScrollTop(scrollElement, targetTop);
+        }
+    }
+
+    function requestAlignToSourceLine(data) {
+        pendingAlignData = data || {
+            sourceLine: lastRequestedLine,
+            lastLine: lastRequestedLastLine,
+            totalLines: lastRequestedTotalLines
+        };
+        if (pendingAlignFrame) {
+            return;
+        }
+        pendingAlignFrame = window.requestAnimationFrame
+            ? window.requestAnimationFrame(function () {
+                pendingAlignFrame = null;
+                alignToSourceLine(pendingAlignData || {});
+                pendingAlignData = null;
+            })
+            : window.setTimeout(function () {
+                pendingAlignFrame = null;
+                alignToSourceLine(pendingAlignData || {});
+                pendingAlignData = null;
+            }, 16);
+    }
+
+    function getSourceLineForScroll(scrollElement) {
+        var anchors = getAnchors();
+        if (!anchors.length) {
+            return 1;
+        }
+        var scrollTop = scrollElement.scrollTop || 0;
+        var maxScrollTop = getMaxScrollTop(scrollElement);
+        if (getClientHeight(scrollElement) > 0 && scrollTop >= maxScrollTop - 3) {
+            return Math.max(1, lastRequestedTotalLines || anchors[anchors.length - 1].line);
+        }
+
+        var targetTop = scrollTop + 16;
+        var previousIndex = findAnchorIndexByTop(anchors, targetTop);
+        var previous = anchors[previousIndex];
+        var next = anchors[previousIndex + 1] || null;
+        if (!next) {
+            return previous.line;
+        }
+        var topSpan = Math.max(1, next.top - previous.top);
+        var progress = Math.max(0, Math.min(1, (targetTop - previous.top) / topSpan));
+        return previous.line + (next.line - previous.line) * progress;
+    }
+
+    function postScrollLine() {
+        pendingScrollFrame = null;
+        if (scrollLock || !window.parent) {
+            return;
+        }
+        if (Date.now() > userScrollUntil) {
+            return;
+        }
+        var scrollElement = getScrollElement();
+        if (!scrollElement) {
+            return;
+        }
+        var sourceLine = getSourceLineForScroll(scrollElement);
+        if (Math.abs(sourceLine - lastPostedLine) < 0.2) {
+            return;
+        }
+        lastPostedLine = sourceLine;
+        window.parent.postMessage({
+            type: messageTypes.scroll,
+            sourceLine: sourceLine
+        }, "*");
+    }
+
+    function requestPostScrollLine() {
+        if (pendingScrollFrame) {
+            return;
+        }
+        pendingScrollFrame = window.requestAnimationFrame
+            ? window.requestAnimationFrame(postScrollLine)
+            : window.setTimeout(postScrollLine, 16);
+    }
+
+    window.addEventListener("message", function (event) {
+        var data = event.data || {};
+        if (data.type === messageTypes.align) {
+            requestAlignToSourceLine(data);
+        }
+    });
+    window.addEventListener("wheel", markUserScrollIntent, { passive: true });
+    window.addEventListener("touchstart", markUserScrollIntent, { passive: true });
+    window.addEventListener("touchmove", markUserScrollIntent, { passive: true });
+    window.addEventListener("pointerdown", markUserScrollIntent, { passive: true });
+    window.addEventListener("mousedown", markUserScrollIntent, { passive: true });
+    window.addEventListener("keydown", markUserScrollIntent);
+    window.addEventListener("scroll", requestPostScrollLine, { passive: true });
+    window.addEventListener("load", function () {
+        markAnchorsDirty();
+        window.parent.postMessage({ type: messageTypes.ready }, "*");
+        requestPostScrollLine();
+    });
+    window.addEventListener("resize", function () {
+        markAnchorsDirty();
+        requestAlignToSourceLine({
+            sourceLine: lastRequestedLine,
+            lastLine: lastRequestedLastLine,
+            totalLines: lastRequestedTotalLines
+        });
+    });
+    if (typeof ResizeObserver === "function" && document.body) {
+        try {
+            new ResizeObserver(function () {
+                markAnchorsDirty();
+                requestAlignToSourceLine({
+                    sourceLine: lastRequestedLine,
+                    lastLine: lastRequestedLastLine,
+                    totalLines: lastRequestedTotalLines
+                });
+            }).observe(document.body);
+        } catch (e) {
+        }
+    }
+    if (typeof MutationObserver === "function") {
+        try {
+            new MutationObserver(function () {
+                markAnchorsDirty();
+            }).observe(document.body || document.documentElement, {
+                childList: true,
+                subtree: true
+            });
+        } catch (e) {
+        }
+    }
+    window.parent.postMessage({ type: messageTypes.ready }, "*");
+})();
+`);
+    body.appendChild(script);
+}
+
 function rewriteMarkdownPreviewResources(doc, file, resourceMap) {
     ["src", "poster", "href", "data"].forEach(attr => {
         doc.querySelectorAll(`[${attr}]`).forEach(el => {
@@ -1730,7 +2296,7 @@ function buildMarkdownPreviewDocument(file) {
     const resourceMap = buildPreviewResourceMap();
     const rawMarkdown = file.content || "";
     const renderer = getMarkdownRenderer();
-    const renderedHtml = renderer.render(rawMarkdown);
+    const renderedHtml = renderMarkdownWithSourceLineMarkers(renderer, rawMarkdown);
     const doc = document.implementation.createHTMLDocument(getProjectPathBaseName(file.path) || "Markdown Preview");
     const meta = doc.createElement("meta");
     meta.setAttribute("charset", "UTF-8");
@@ -1755,6 +2321,7 @@ function buildMarkdownPreviewDocument(file) {
     }
     appendMarkdownMermaidRuntime(doc);
     appendMarkdownOutlineRuntime(doc);
+    appendMarkdownSplitScrollRuntime(doc);
     appendPreviewHashNavigationRuntime(doc);
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
@@ -1944,6 +2511,8 @@ function writeHtmlPreviewFrame(frame, html, options) {
     targetFrame.dataset.codemarkPreviewLoadedToken = "";
     targetFrame.addEventListener("load", function () {
         targetFrame.dataset.codemarkPreviewLoadedToken = writeToken;
+        updateMarkdownSplitScrollSyncState();
+        requestSyncMarkdownPreviewToEditor();
     }, {once: true});
     targetFrame.srcdoc = html;
 }

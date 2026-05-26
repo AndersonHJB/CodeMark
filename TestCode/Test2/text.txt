@@ -33,9 +33,7 @@ def parse_sort_key(filename):
         # 如果你想每次都相同随机顺序，可自行改为其他逻辑
         return random.randint(100000, 999999)
 
-
-def get_title_from_filename(filename):
-    """
+o;'l;"""""'
     去掉文件的扩展名和开头的数字序号后，作为文章展示标题。
     比如 '01-hello.md' -> 'hello'; 'readme.md' -> 'readme'
     你也可以在这里做更精细的标题提取，比如读取 markdown 第一行的 # 标题等。
