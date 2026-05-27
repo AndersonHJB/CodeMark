@@ -1195,6 +1195,181 @@ function installMarkdownFenceRenderer(markdownRenderer) {
     };
 }
 
+function createMarkdownMathPlaceholder(segments, type, content, openDelimiter, closeDelimiter, sourceLine) {
+    const index = segments.length;
+    segments.push({
+        type,
+        content: String(content || ""),
+        openDelimiter,
+        closeDelimiter,
+        sourceLine: Math.max(1, Number(sourceLine) || 1)
+    });
+    const tagName = type === "display" ? "div" : "span";
+    const typeClass = type === "display" ? "codemark-math-display" : "codemark-math-inline";
+    return `<${tagName} class="codemark-math-placeholder ${typeClass}" data-codemark-math-index="${index}" data-codemark-source-line="${sourceLine}"></${tagName}>`;
+}
+
+function isEscapedMarkdownDelimiter(text, index) {
+    let backslashCount = 0;
+    for (let i = index - 1; i >= 0 && text[i] === "\\"; i--) {
+        backslashCount++;
+    }
+    return backslashCount % 2 === 1;
+}
+
+function findInlineMathEnd(line, startIndex, delimiter) {
+    for (let i = startIndex; i < line.length; i++) {
+        if (line.startsWith(delimiter, i) && !isEscapedMarkdownDelimiter(line, i)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function protectMarkdownInlineMath(line, sourceLine, segments) {
+    let output = "";
+    let index = 0;
+    const text = String(line || "");
+    while (index < text.length) {
+        if (text.startsWith("\\(", index) && !isEscapedMarkdownDelimiter(text, index)) {
+            const end = findInlineMathEnd(text, index + 2, "\\)");
+            if (end >= 0) {
+                output += createMarkdownMathPlaceholder(segments, "inline", text.slice(index + 2, end), "\\(", "\\)", sourceLine);
+                index = end + 2;
+                continue;
+            }
+        }
+        if (text[index] === "$"
+            && text[index + 1] !== "$"
+            && !isEscapedMarkdownDelimiter(text, index)) {
+            const previousChar = index > 0 ? text[index - 1] : "";
+            const nextChar = index + 1 < text.length ? text[index + 1] : "";
+            if (!/\s/.test(nextChar || " ") && previousChar !== "\\") {
+                const end = findInlineMathEnd(text, index + 1, "$");
+                if (end > index + 1) {
+                    const beforeClose = text[end - 1] || "";
+                    const afterClose = text[end + 1] || "";
+                    if (!/\s/.test(beforeClose) && afterClose !== "$") {
+                        output += createMarkdownMathPlaceholder(segments, "inline", text.slice(index + 1, end), "$", "$", sourceLine);
+                        index = end + 1;
+                        continue;
+                    }
+                }
+            }
+        }
+        output += text[index];
+        index++;
+    }
+    return output;
+}
+
+function protectMarkdownMath(source) {
+    const segments = [];
+    const lines = String(source || "").split("\n");
+    const outputLines = [];
+    let inFence = false;
+    let fenceMarker = "";
+
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const line = lines[lineIndex];
+        const sourceLine = lineIndex + 1;
+        const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})/);
+        if (fenceMatch) {
+            const marker = fenceMatch[1];
+            if (!inFence) {
+                inFence = true;
+                fenceMarker = marker;
+            } else if (marker[0] === fenceMarker[0] && marker.length >= fenceMarker.length) {
+                inFence = false;
+                fenceMarker = "";
+            }
+            outputLines.push(line);
+            continue;
+        }
+        if (inFence) {
+            outputLines.push(line);
+            continue;
+        }
+
+        const displayDollarMatch = line.match(/^\s*\$\$\s*$/);
+        if (displayDollarMatch) {
+            const contentLines = [];
+            let closeIndex = -1;
+            for (let nextIndex = lineIndex + 1; nextIndex < lines.length; nextIndex++) {
+                if (/^\s*\$\$\s*$/.test(lines[nextIndex])) {
+                    closeIndex = nextIndex;
+                    break;
+                }
+                contentLines.push(lines[nextIndex]);
+            }
+            if (closeIndex >= 0) {
+                outputLines.push(createMarkdownMathPlaceholder(segments, "display", contentLines.join("\n"), "$$", "$$", sourceLine));
+                for (let blankIndex = lineIndex; blankIndex < closeIndex; blankIndex++) {
+                    outputLines.push("");
+                }
+                lineIndex = closeIndex;
+                continue;
+            }
+        }
+
+        const displayBracketMatch = line.match(/^\s*\\\[\s*$/);
+        if (displayBracketMatch) {
+            const contentLines = [];
+            let closeIndex = -1;
+            for (let nextIndex = lineIndex + 1; nextIndex < lines.length; nextIndex++) {
+                if (/^\s*\\\]\s*$/.test(lines[nextIndex])) {
+                    closeIndex = nextIndex;
+                    break;
+                }
+                contentLines.push(lines[nextIndex]);
+            }
+            if (closeIndex >= 0) {
+                outputLines.push(createMarkdownMathPlaceholder(segments, "display", contentLines.join("\n"), "\\[", "\\]", sourceLine));
+                for (let blankIndex = lineIndex; blankIndex < closeIndex; blankIndex++) {
+                    outputLines.push("");
+                }
+                lineIndex = closeIndex;
+                continue;
+            }
+        }
+
+        const singleLineDisplay = line.match(/^(\s*)\$\$([\s\S]+)\$\$(\s*)$/);
+        if (singleLineDisplay && !isEscapedMarkdownDelimiter(line, line.indexOf("$$"))) {
+            outputLines.push(singleLineDisplay[1]
+                + createMarkdownMathPlaceholder(segments, "display", singleLineDisplay[2], "$$", "$$", sourceLine)
+                + singleLineDisplay[3]);
+            continue;
+        }
+
+        outputLines.push(protectMarkdownInlineMath(line, sourceLine, segments));
+    }
+
+    return {
+        source: outputLines.join("\n"),
+        segments
+    };
+}
+
+function restoreMarkdownMathPlaceholders(root, segments) {
+    if (!root || !Array.isArray(segments) || !segments.length) {
+        return;
+    }
+    root.querySelectorAll(".codemark-math-placeholder[data-codemark-math-index]").forEach(placeholder => {
+        const index = Number(placeholder.getAttribute("data-codemark-math-index"));
+        const segment = Number.isInteger(index) ? segments[index] : null;
+        if (!segment) {
+            return;
+        }
+        placeholder.textContent = segment.type === "display"
+            ? `${segment.openDelimiter}\n${segment.content}\n${segment.closeDelimiter}`
+            : `${segment.openDelimiter}${segment.content}${segment.closeDelimiter}`;
+        placeholder.classList.remove("codemark-math-placeholder");
+        if (segment.sourceLine) {
+            placeholder.setAttribute("data-codemark-source-line", String(segment.sourceLine));
+        }
+    });
+}
+
 function shouldMarkMarkdownTokenSourceLine(token) {
     if (!token || !token.map || !token.map.length || !token.tag || token.type === "inline") {
         return false;
@@ -1295,6 +1470,7 @@ function sanitizeMarkdownHtml(markup) {
                 "aria-hidden",
                 "checked",
                 "class",
+                "data-codemark-math-index",
                 "data-codemark-source-line",
                 "disabled",
                 "id",
@@ -2296,7 +2472,8 @@ function buildMarkdownPreviewDocument(file) {
     const resourceMap = buildPreviewResourceMap();
     const rawMarkdown = file.content || "";
     const renderer = getMarkdownRenderer();
-    const renderedHtml = renderMarkdownWithSourceLineMarkers(renderer, rawMarkdown);
+    const protectedMarkdown = protectMarkdownMath(rawMarkdown);
+    const renderedHtml = renderMarkdownWithSourceLineMarkers(renderer, protectedMarkdown.source);
     const doc = document.implementation.createHTMLDocument(getProjectPathBaseName(file.path) || "Markdown Preview");
     const meta = doc.createElement("meta");
     meta.setAttribute("charset", "UTF-8");
@@ -2310,6 +2487,7 @@ function buildMarkdownPreviewDocument(file) {
     const main = doc.createElement("main");
     main.className = "markdown-body";
     main.innerHTML = sanitizeMarkdownHtml(renderedHtml);
+    restoreMarkdownMathPlaceholders(main, protectedMarkdown.segments);
     doc.body.appendChild(main);
 
     rewriteMarkdownPreviewResources(doc, file, resourceMap);
