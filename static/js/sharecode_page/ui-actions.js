@@ -643,28 +643,15 @@ function generateShareLink(payloadOverride) {
             finalImageContainer.style.marginTop = "20px";
             document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-            html2canvas(document.querySelector("#editorArea")).then(canvas => {
-                const qrImg = new Image();
-                qrImg.src = qrcodeSrc;
-                qrImg.onload = function () {
-                    const finalCanvas = document.createElement("canvas");
-                    finalCanvas.width = canvas.width;
-                    finalCanvas.height = canvas.height;
-                    const ctx = finalCanvas.getContext("2d");
-                    ctx.drawImage(canvas, 0, 0);
-
-                    const qrSize = getShareImageQrSize(finalCanvas);
-                    const qrMargin = Math.max(12, Math.round(qrSize * 0.08));
-                    const qrX = finalCanvas.width - qrSize - qrMargin;
-                    const qrY = qrMargin;
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(qrX, qrY, qrSize, qrSize);
-                    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-                    const finalImg = document.createElement("img");
-                    finalImg.src = finalCanvas.toDataURL('image/png');
-                    finalImg.style.maxWidth = "90%";
-                    finalImageContainer.appendChild(finalImg);
-                };
+            createShareEditorAreaCanvas().catch(function () {
+                return html2canvas(document.querySelector("#editorArea"), {useCORS: true});
+            }).then(canvas => {
+                return appendQrToShareCanvas(canvas, qrcodeSrc);
+            }).then(finalCanvas => {
+                const finalImg = document.createElement("img");
+                finalImg.src = finalCanvas.toDataURL('image/png');
+                finalImg.style.maxWidth = "90%";
+                finalImageContainer.appendChild(finalImg);
             });
 
             copyToClipboard(shareLink);
@@ -698,6 +685,365 @@ function getShareImageQrSize(canvas) {
     }
     const shorterSide = Math.min(canvas.width, canvas.height);
     return Math.max(120, Math.min(240, Math.round(shorterSide * 0.18)));
+}
+
+function waitForShareImageFrame() {
+    return new Promise(resolve => {
+        if (window.requestAnimationFrame) {
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(resolve);
+            });
+        } else {
+            setTimeout(resolve, 32);
+        }
+    });
+}
+
+function waitForShareImageTimeout(timeoutMs) {
+    return new Promise(resolve => {
+        setTimeout(resolve, timeoutMs);
+    });
+}
+
+function waitForShareImageLoadEvent(target, timeoutMs) {
+    return new Promise(resolve => {
+        let settled = false;
+        let timer = null;
+
+        function done() {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            if (timer) {
+                clearTimeout(timer);
+            }
+            target.removeEventListener("load", done);
+            target.removeEventListener("error", done);
+            resolve();
+        }
+
+        target.addEventListener("load", done, {once: true});
+        target.addEventListener("error", done, {once: true});
+        timer = setTimeout(done, timeoutMs);
+    });
+}
+
+function getVisibleSharePreviewFrame() {
+    const previewPane = document.getElementById("htmlPreviewPane");
+    const frame = document.getElementById("htmlPreviewFrame");
+    if (!previewPane || !frame) {
+        return null;
+    }
+    const paneStyle = window.getComputedStyle ? window.getComputedStyle(previewPane) : null;
+    const frameStyle = window.getComputedStyle ? window.getComputedStyle(frame) : null;
+    const paneRect = previewPane.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    if ((paneStyle && paneStyle.display === "none")
+        || (frameStyle && frameStyle.display === "none")
+        || paneRect.width <= 0
+        || paneRect.height <= 0
+        || frameRect.width <= 0
+        || frameRect.height <= 0) {
+        return null;
+    }
+    return frame;
+}
+
+async function waitForSharePreviewFrameReady(frame) {
+    if (!frame) {
+        return;
+    }
+
+    const writeToken = frame.dataset.codemarkPreviewWriteToken || "";
+    const loadedToken = frame.dataset.codemarkPreviewLoadedToken || "";
+    if (writeToken && loadedToken !== writeToken) {
+        await waitForShareImageLoadEvent(frame, 1400);
+    }
+    await waitForShareImageFrame();
+}
+
+async function refreshVisibleSharePreviewFrameForCapture() {
+    const frame = getVisibleSharePreviewFrame();
+    if (!frame || typeof refreshHtmlPreview !== "function") {
+        return frame;
+    }
+    const active = typeof getActiveProjectFile === "function" ? getActiveProjectFile() : null;
+    if (typeof isHtmlPreviewableFile === "function" && !isHtmlPreviewableFile(active)) {
+        return frame;
+    }
+    refreshHtmlPreview(true, {forceFrame: false});
+    const nextFrame = getVisibleSharePreviewFrame();
+    await waitForSharePreviewFrameReady(nextFrame);
+    return nextFrame;
+}
+
+function getShareFrameScrollPosition(frame) {
+    let frameDocument = null;
+    let frameWindow = null;
+    try {
+        frameDocument = frame.contentDocument;
+        frameWindow = frame.contentWindow;
+    } catch (e) {
+        return {x: 0, y: 0};
+    }
+    const docEl = frameDocument && frameDocument.documentElement;
+    const body = frameDocument && frameDocument.body;
+    return {
+        x: Math.max(0, (frameWindow && frameWindow.scrollX) || (docEl && docEl.scrollLeft) || (body && body.scrollLeft) || 0),
+        y: Math.max(0, (frameWindow && frameWindow.scrollY) || (docEl && docEl.scrollTop) || (body && body.scrollTop) || 0)
+    };
+}
+
+function buildSharePreviewCaptureHtml() {
+    if (typeof getActiveProjectFile !== "function") {
+        return "";
+    }
+    const active = getActiveProjectFile();
+    if (typeof isHtmlPreviewableFile === "function" && !isHtmlPreviewableFile(active)) {
+        return "";
+    }
+    if (typeof isMarkdownDocumentFile === "function" && isMarkdownDocumentFile(active)) {
+        return buildMarkdownPreviewDocument(active);
+    }
+    if (typeof shouldBuildReactPreviewDocument === "function" && shouldBuildReactPreviewDocument(active)) {
+        return buildReactPreviewDocument(active);
+    }
+    if (typeof buildHtmlPreviewDocument === "function") {
+        return buildHtmlPreviewDocument(active);
+    }
+    return "";
+}
+
+function stripSharePreviewCaptureScripts(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(String(html || ""), "text/html");
+    doc.querySelectorAll("script").forEach(script => {
+        script.remove();
+    });
+    return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+}
+
+async function waitForShareCaptureFrameReady(frame) {
+    if (!frame) {
+        return;
+    }
+    const frameDocument = frame.contentDocument;
+    if (!frameDocument) {
+        return;
+    }
+
+    const waits = [];
+    if (frameDocument.fonts && frameDocument.fonts.ready) {
+        waits.push(frameDocument.fonts.ready.catch(function () {
+        }));
+    }
+    Array.from(frameDocument.images || []).forEach(img => {
+        if (!img.complete) {
+            waits.push(waitForShareImageLoadEvent(img, 900));
+        }
+    });
+    if (waits.length > 0) {
+        await Promise.race([
+            Promise.all(waits),
+            waitForShareImageTimeout(1800)
+        ]);
+    }
+    await waitForShareImageFrame();
+}
+
+function syncShareCaptureFrameScroll(frame) {
+    if (!frame || !frame.contentDocument) {
+        return;
+    }
+    const active = typeof getActiveProjectFile === "function" ? getActiveProjectFile() : null;
+    const frameDocument = frame.contentDocument;
+    const scrollElement = frameDocument.scrollingElement || frameDocument.documentElement || frameDocument.body;
+    if (!scrollElement) {
+        return;
+    }
+    if (typeof isMarkdownDocumentFile !== "function"
+        || !isMarkdownDocumentFile(active)
+        || typeof getEditorVisibleMarkdownLineInfo !== "function") {
+        scrollElement.scrollTop = 0;
+        return;
+    }
+
+    const editorInfo = getEditorVisibleMarkdownLineInfo();
+    if (!editorInfo) {
+        scrollElement.scrollTop = 0;
+        return;
+    }
+
+    const sourceLine = Math.max(1, Number(editorInfo.line) || 1);
+    const markers = Array.from(frameDocument.querySelectorAll("[data-codemark-source-line]"));
+    let target = null;
+    markers.forEach(marker => {
+        const markerLine = Number(marker.getAttribute("data-codemark-source-line")) || 0;
+        if (markerLine <= sourceLine) {
+            target = marker;
+        }
+    });
+    if (target) {
+        scrollElement.scrollTop = Math.max(0, target.offsetTop - 24);
+    }
+}
+
+async function createSharePreviewCaptureFrame(sourceFrame) {
+    const rawHtml = buildSharePreviewCaptureHtml();
+    if (!rawHtml) {
+        return null;
+    }
+    const html = stripSharePreviewCaptureScripts(rawHtml);
+    const frameRect = sourceFrame.getBoundingClientRect();
+    const captureFrame = document.createElement("iframe");
+    captureFrame.setAttribute("sandbox", "allow-same-origin");
+    captureFrame.style.position = "fixed";
+    captureFrame.style.left = "-10000px";
+    captureFrame.style.top = "0";
+    captureFrame.style.width = `${Math.max(1, Math.round(frameRect.width))}px`;
+    captureFrame.style.height = `${Math.max(1, Math.round(frameRect.height))}px`;
+    captureFrame.style.border = "0";
+    captureFrame.style.opacity = "0";
+    captureFrame.style.pointerEvents = "none";
+    document.body.appendChild(captureFrame);
+    const ready = waitForShareImageLoadEvent(captureFrame, 1200);
+    captureFrame.srcdoc = html;
+    await ready;
+    await waitForShareCaptureFrameReady(captureFrame);
+    syncShareCaptureFrameScroll(captureFrame);
+    await waitForShareImageFrame();
+    return captureFrame;
+}
+
+async function captureSharePreviewFrame(frame) {
+    if (!frame) {
+        return null;
+    }
+    let captureFrame = null;
+    try {
+        captureFrame = await createSharePreviewCaptureFrame(frame);
+        if (!captureFrame || !captureFrame.contentDocument || !captureFrame.contentDocument.documentElement) {
+            return null;
+        }
+        const frameRect = frame.getBoundingClientRect();
+        const scroll = getShareFrameScrollPosition(captureFrame);
+        return await html2canvas(captureFrame.contentDocument.documentElement, {
+            backgroundColor: "#ffffff",
+            useCORS: true,
+            x: scroll.x,
+            y: scroll.y,
+            width: Math.max(1, Math.round(frameRect.width)),
+            height: Math.max(1, Math.round(frameRect.height)),
+            windowWidth: Math.max(1, Math.round(frameRect.width)),
+            windowHeight: Math.max(1, Math.round(frameRect.height)),
+            scrollX: scroll.x,
+            scrollY: scroll.y
+        });
+    } finally {
+        if (captureFrame && captureFrame.parentNode) {
+            captureFrame.parentNode.removeChild(captureFrame);
+        }
+    }
+}
+
+function drawCanvasAtElementRect(targetCanvas, sourceCanvas, rootElement, element) {
+    if (!targetCanvas || !sourceCanvas || !rootElement || !element) {
+        return;
+    }
+    const rootRect = rootElement.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+    if (!rootRect.width || !rootRect.height || !elementRect.width || !elementRect.height) {
+        return;
+    }
+    const scaleX = targetCanvas.width / rootRect.width;
+    const scaleY = targetCanvas.height / rootRect.height;
+    const ctx = targetCanvas.getContext("2d");
+    ctx.drawImage(
+        sourceCanvas,
+        0,
+        0,
+        sourceCanvas.width,
+        sourceCanvas.height,
+        Math.round((elementRect.left - rootRect.left) * scaleX),
+        Math.round((elementRect.top - rootRect.top) * scaleY),
+        Math.round(elementRect.width * scaleX),
+        Math.round(elementRect.height * scaleY)
+    );
+}
+
+async function paintSharePreviewFrameOntoCanvas(canvas, editorArea, frame) {
+    if (!canvas || !editorArea || !frame) {
+        return canvas;
+    }
+    try {
+        const frameCanvas = await captureSharePreviewFrame(frame);
+        drawCanvasAtElementRect(canvas, frameCanvas, editorArea, frame);
+    } catch (e) {
+    }
+    return canvas;
+}
+
+async function paintSharePreviewControlsOntoCanvas(canvas, editorArea) {
+    const controls = document.getElementById("editorPreviewControls");
+    if (!controls || !editorArea) {
+        return canvas;
+    }
+    const style = window.getComputedStyle ? window.getComputedStyle(controls) : null;
+    const rect = controls.getBoundingClientRect();
+    if ((style && style.display === "none") || rect.width <= 0 || rect.height <= 0) {
+        return canvas;
+    }
+    try {
+        const controlsCanvas = await html2canvas(controls, {
+            backgroundColor: null,
+            useCORS: true
+        });
+        drawCanvasAtElementRect(canvas, controlsCanvas, editorArea, controls);
+    } catch (e) {
+    }
+    return canvas;
+}
+
+async function createShareEditorAreaCanvas() {
+    const editorArea = document.querySelector("#editorArea");
+    if (!editorArea) {
+        throw new Error("Missing editor area.");
+    }
+    const frame = await refreshVisibleSharePreviewFrameForCapture();
+    const canvas = await html2canvas(editorArea, {useCORS: true});
+    await paintSharePreviewFrameOntoCanvas(canvas, editorArea, frame);
+    await paintSharePreviewControlsOntoCanvas(canvas, editorArea);
+    return canvas;
+}
+
+function loadShareImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = function () {
+            resolve(img);
+        };
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+async function appendQrToShareCanvas(canvas, qrcodeSrc) {
+    const qrImg = await loadShareImage(qrcodeSrc);
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = canvas.width;
+    finalCanvas.height = canvas.height;
+    const ctx = finalCanvas.getContext("2d");
+    ctx.drawImage(canvas, 0, 0);
+
+    const qrSize = getShareImageQrSize(finalCanvas);
+    const qrMargin = Math.max(12, Math.round(qrSize * 0.08));
+    const qrX = finalCanvas.width - qrSize - qrMargin;
+    const qrY = qrMargin;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+    return finalCanvas;
 }
 
 function goPythonRunPage() {
