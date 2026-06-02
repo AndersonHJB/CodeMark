@@ -1932,22 +1932,18 @@ function addMarkdownOutline(doc, headingEntries) {
 
 function appendMarkdownOutlineRuntime(doc) {
     const body = doc.body || doc.documentElement;
-    if (!body || doc.getElementById("codemark-markdown-outline-runtime") || !doc.querySelector(".markdown-outline")) {
+    if (!body || doc.getElementById("codemark-markdown-outline-runtime")) {
         return;
     }
     const script = doc.createElement("script");
     script.id = "codemark-markdown-outline-runtime";
     setInlineScriptContent(script, `
 (function () {
-    var links = Array.prototype.slice.call(document.querySelectorAll(".markdown-outline-link"));
-    if (!links.length) {
-        return;
-    }
-    var headings = links.map(function (link) {
-        return document.getElementById(link.dataset.targetId || "");
-    }).filter(Boolean);
+    var links = [];
+    var headings = [];
     var activeId = "";
     var ticking = false;
+    var bodyResizeObserver = null;
 
     function decodeHashId(hash) {
         var raw = String(hash || "").replace(/^#/, "");
@@ -2012,34 +2008,51 @@ function appendMarkdownOutlineRuntime(doc) {
         window.requestAnimationFrame(updateActiveHeading);
     }
 
+    function observeBody() {
+        if (typeof ResizeObserver !== "function") {
+            return;
+        }
+        if (bodyResizeObserver) {
+            bodyResizeObserver.disconnect();
+            bodyResizeObserver = null;
+        }
+        var bodyEl = document.querySelector(".markdown-body");
+        if (!bodyEl) {
+            return;
+        }
+        try {
+            bodyResizeObserver = new ResizeObserver(requestUpdate);
+            bodyResizeObserver.observe(bodyEl);
+        } catch (e) {
+        }
+    }
+
+    function refresh() {
+        links = Array.prototype.slice.call(document.querySelectorAll(".markdown-outline-link"));
+        headings = links.map(function (link) {
+            return document.getElementById(link.dataset.targetId || "");
+        }).filter(Boolean);
+        activeId = "";
+        observeBody();
+        if (window.location.hash) {
+            setActive(decodeHashId(window.location.hash));
+        }
+        requestUpdate();
+        window.setTimeout(requestUpdate, 250);
+    }
+
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", requestUpdate);
     window.addEventListener("hashchange", function () {
         setActive(decodeHashId(window.location.hash));
         requestUpdate();
     });
-    window.addEventListener("load", requestUpdate);
-    if (typeof ResizeObserver === "function") {
-        try {
-            new ResizeObserver(requestUpdate).observe(document.querySelector(".markdown-body"));
-        } catch (e) {
-        }
-    }
-    if (typeof MutationObserver === "function") {
-        try {
-            new MutationObserver(requestUpdate).observe(document.querySelector(".markdown-body"), {
-                childList: true,
-                subtree: true
-            });
-        } catch (e) {
-        }
-    }
-    window.setTimeout(requestUpdate, 250);
-    window.setTimeout(requestUpdate, 800);
-    if (window.location.hash) {
-        setActive(decodeHashId(window.location.hash));
-    }
-    requestUpdate();
+    window.addEventListener("load", function () {
+        refresh();
+        window.setTimeout(requestUpdate, 800);
+    });
+    window.__codemarkRefreshMarkdownOutline = refresh;
+    refresh();
 })();
 `);
     body.appendChild(script);
@@ -2371,6 +2384,184 @@ function appendMarkdownSplitScrollRuntime(doc) {
     body.appendChild(script);
 }
 
+function appendMarkdownLiveUpdateRuntime(doc) {
+    const body = doc.body || doc.documentElement;
+    if (!body || doc.getElementById("codemark-markdown-live-update-runtime")) {
+        return;
+    }
+    const script = doc.createElement("script");
+    script.id = "codemark-markdown-live-update-runtime";
+    setInlineScriptContent(script, `
+(function () {
+    var UPDATE_TYPE = "codemark:markdown-update-content";
+    var MATH_SELECTOR = ".codemark-math-inline, .codemark-math-display";
+    var MATHJAX_SRC = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full.min.js";
+    var MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js";
+
+    function ensureMathJax(callback) {
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            callback();
+            return;
+        }
+        if (!window.MathJax) {
+            window.MathJax = {
+                tex: {
+                    inlineMath: [["$", "$"], ["\\\\(", "\\\\)"]],
+                    displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]],
+                    processEscapes: true
+                },
+                options: {
+                    skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+                }
+            };
+        }
+        if (!document.getElementById("codemark-preview-mathjax-script")) {
+            var loader = document.createElement("script");
+            loader.id = "codemark-preview-mathjax-script";
+            loader.async = true;
+            loader.src = MATHJAX_SRC;
+            (document.head || document.documentElement).appendChild(loader);
+        }
+        var waitReady = function () {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                callback();
+            } else {
+                window.setTimeout(waitReady, 60);
+            }
+        };
+        waitReady();
+    }
+
+    function getMathElements(node) {
+        if (!node || !node.querySelectorAll) {
+            return [];
+        }
+        return Array.prototype.slice.call(node.querySelectorAll(MATH_SELECTOR));
+    }
+
+    function setMathVisibility(elements, value) {
+        elements.forEach(function (el) {
+            el.style.visibility = value;
+        });
+    }
+
+    function typesetMath(node) {
+        var elements = getMathElements(node);
+        if (!elements.length) {
+            return;
+        }
+        // Keep raw "$...$" source hidden so it never flashes before MathJax renders it.
+        setMathVisibility(elements, "hidden");
+        var revealed = false;
+        var reveal = function () {
+            if (revealed) {
+                return;
+            }
+            revealed = true;
+            setMathVisibility(elements, "");
+        };
+        var safetyTimer = window.setTimeout(reveal, 2500);
+        ensureMathJax(function () {
+            try {
+                if (window.MathJax.typesetClear) {
+                    window.MathJax.typesetClear();
+                }
+                window.MathJax.typesetPromise([node]).then(function () {
+                    window.clearTimeout(safetyTimer);
+                    reveal();
+                }).catch(function () {
+                    window.clearTimeout(safetyTimer);
+                    reveal();
+                });
+            } catch (e) {
+                window.clearTimeout(safetyTimer);
+                reveal();
+            }
+        });
+    }
+
+    function ensureMermaid(callback) {
+        if (window.mermaid) {
+            callback();
+            return;
+        }
+        if (!document.getElementById("codemark-preview-mermaid-script")) {
+            var loader = document.createElement("script");
+            loader.id = "codemark-preview-mermaid-script";
+            loader.src = MERMAID_SRC;
+            loader.crossOrigin = "anonymous";
+            (document.body || document.documentElement).appendChild(loader);
+        }
+        var waitReady = function () {
+            if (window.mermaid) {
+                callback();
+            } else {
+                window.setTimeout(waitReady, 60);
+            }
+        };
+        waitReady();
+    }
+
+    function runMermaid(node) {
+        if (!node || !node.querySelectorAll) {
+            return;
+        }
+        var blocks = Array.prototype.slice.call(node.querySelectorAll(".mermaid:not([data-processed])"));
+        if (!blocks.length) {
+            return;
+        }
+        ensureMermaid(function () {
+            try {
+                window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+                window.mermaid.run({ nodes: blocks }).catch(function () {});
+            } catch (e) {
+            }
+        });
+    }
+
+    function refreshOutline() {
+        if (typeof window.__codemarkRefreshMarkdownOutline === "function") {
+            try {
+                window.__codemarkRefreshMarkdownOutline();
+            } catch (e) {
+            }
+        }
+    }
+
+    function applyUpdate(html) {
+        var current = document.querySelector(".markdown-preview-shell")
+            || document.querySelector(".markdown-body");
+        if (!current || !current.parentNode) {
+            return;
+        }
+        var holder = document.createElement("div");
+        holder.innerHTML = String(html || "");
+        var next = holder.firstElementChild;
+        if (!next) {
+            return;
+        }
+        current.parentNode.replaceChild(next, current);
+        var contentRoot = next.querySelector(".markdown-body") || next;
+        typesetMath(contentRoot);
+        runMermaid(contentRoot);
+        refreshOutline();
+    }
+
+    window.addEventListener("message", function (event) {
+        if (event.source !== window.parent) {
+            return;
+        }
+        var data = event.data || {};
+        if (data.type !== UPDATE_TYPE) {
+            return;
+        }
+        applyUpdate(data.html);
+    });
+})();
+`);
+    body.appendChild(script);
+}
+
 function rewriteMarkdownPreviewResources(doc, file, resourceMap) {
     ["src", "poster", "href", "data"].forEach(attr => {
         doc.querySelectorAll(`[${attr}]`).forEach(el => {
@@ -2433,7 +2624,11 @@ window.MathJax = {
 };
 `);
     head.appendChild(configScript);
+    if (doc.getElementById("codemark-preview-mathjax-script")) {
+        return;
+    }
     const mathScript = doc.createElement("script");
+    mathScript.id = "codemark-preview-mathjax-script";
     mathScript.async = true;
     mathScript.src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full.min.js";
     head.appendChild(mathScript);
@@ -2462,28 +2657,17 @@ function appendMarkdownMermaidRuntime(doc) {
 })();
 `);
     const mermaidScript = doc.createElement("script");
+    mermaidScript.id = "codemark-preview-mermaid-script";
     mermaidScript.src = "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js";
     mermaidScript.crossOrigin = "anonymous";
     body.appendChild(mermaidScript);
     body.appendChild(initScript);
 }
 
-function buildMarkdownPreviewDocument(file) {
-    const resourceMap = buildPreviewResourceMap();
-    const rawMarkdown = file.content || "";
+function appendMarkdownPreviewContent(doc, file, resourceMap) {
     const renderer = getMarkdownRenderer();
-    const protectedMarkdown = protectMarkdownMath(rawMarkdown);
+    const protectedMarkdown = protectMarkdownMath(file.content || "");
     const renderedHtml = renderMarkdownWithSourceLineMarkers(renderer, protectedMarkdown.source);
-    const doc = document.implementation.createHTMLDocument(getProjectPathBaseName(file.path) || "Markdown Preview");
-    const meta = doc.createElement("meta");
-    meta.setAttribute("charset", "UTF-8");
-    doc.head.appendChild(meta);
-    const viewport = doc.createElement("meta");
-    viewport.name = "viewport";
-    viewport.content = "width=device-width, initial-scale=1.0";
-    doc.head.appendChild(viewport);
-    appendMarkdownPreviewStyles(doc);
-
     const main = doc.createElement("main");
     main.className = "markdown-body";
     main.innerHTML = sanitizeMarkdownHtml(renderedHtml);
@@ -2494,12 +2678,41 @@ function buildMarkdownPreviewDocument(file) {
     const headingEntries = addMarkdownHeadingIdsAndToc(doc);
     addMarkdownOutline(doc, headingEntries);
     updateMarkdownLinkTargets(doc);
+    return doc.querySelector(".markdown-preview-shell") || main;
+}
+
+function renderMarkdownPreviewContentHtml(file) {
+    const resourceMap = buildPreviewResourceMap();
+    const work = document.implementation.createHTMLDocument("");
+    const node = appendMarkdownPreviewContent(work, file, resourceMap);
+    return {
+        html: node ? node.outerHTML : "",
+        hasMath: hasMarkdownMath(file.content || "")
+    };
+}
+
+function buildMarkdownPreviewDocument(file) {
+    const resourceMap = buildPreviewResourceMap();
+    const rawMarkdown = file.content || "";
+    const doc = document.implementation.createHTMLDocument(getProjectPathBaseName(file.path) || "Markdown Preview");
+    const meta = doc.createElement("meta");
+    meta.setAttribute("charset", "UTF-8");
+    doc.head.appendChild(meta);
+    const viewport = doc.createElement("meta");
+    viewport.name = "viewport";
+    viewport.content = "width=device-width, initial-scale=1.0";
+    doc.head.appendChild(viewport);
+    appendMarkdownPreviewStyles(doc);
+
+    appendMarkdownPreviewContent(doc, file, resourceMap);
+
     if (hasMarkdownMath(rawMarkdown)) {
         appendMarkdownMathRuntime(doc);
     }
     appendMarkdownMermaidRuntime(doc);
     appendMarkdownOutlineRuntime(doc);
     appendMarkdownSplitScrollRuntime(doc);
+    appendMarkdownLiveUpdateRuntime(doc);
     appendPreviewHashNavigationRuntime(doc);
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
@@ -2695,6 +2908,41 @@ function writeHtmlPreviewFrame(frame, html, options) {
     targetFrame.srcdoc = html;
 }
 
+function tryIncrementalMarkdownPreviewUpdate(frame, file) {
+    if (!frame || !file) {
+        return false;
+    }
+    if (frame.dataset.codemarkPreviewKind !== "markdown"
+        || frame.dataset.codemarkPreviewPath !== (file.path || "")) {
+        return false;
+    }
+    const writeToken = frame.dataset.codemarkPreviewWriteToken || "";
+    const loadedToken = frame.dataset.codemarkPreviewLoadedToken || "";
+    if (!writeToken || loadedToken !== writeToken || !frame.contentWindow) {
+        // The base document is still loading; let the full rebuild path handle it.
+        return false;
+    }
+    let content;
+    try {
+        content = renderMarkdownPreviewContentHtml(file);
+    } catch (e) {
+        return false;
+    }
+    if (!content || typeof content.html !== "string") {
+        return false;
+    }
+    try {
+        frame.contentWindow.postMessage({
+            type: "codemark:markdown-update-content",
+            html: content.html
+        }, "*");
+    } catch (e) {
+        return false;
+    }
+    requestSyncMarkdownPreviewToEditor();
+    return true;
+}
+
 function refreshHtmlPreview(immediate, options) {
     const opts = options || {};
     if (htmlPreviewRefreshTimer) {
@@ -2715,11 +2963,22 @@ function refreshHtmlPreview(immediate, options) {
         if (!frame) {
             return;
         }
-        const previewHtml = isMarkdownDocumentFile(active)
+        const isMarkdown = isMarkdownDocumentFile(active);
+        const canIncrementalMarkdown = opts.incremental
+            && !opts.forceFrame
+            && isMarkdown
+            && (effectiveMode === SHARE_VIEW_PREVIEW || effectiveMode === SHARE_VIEW_SPLIT);
+        if (canIncrementalMarkdown && tryIncrementalMarkdownPreviewUpdate(frame, active)) {
+            return;
+        }
+        const isReact = !isMarkdown && shouldBuildReactPreviewDocument(active);
+        const previewHtml = isMarkdown
             ? buildMarkdownPreviewDocument(active)
-            : (shouldBuildReactPreviewDocument(active)
+            : (isReact
                 ? buildReactPreviewDocument(active)
                 : buildHtmlPreviewDocument(active));
+        frame.dataset.codemarkPreviewKind = isMarkdown ? "markdown" : (isReact ? "react" : "html");
+        frame.dataset.codemarkPreviewPath = active.path || "";
         writeHtmlPreviewFrame(frame, previewHtml, {forceFrame: opts.forceFrame === true});
     };
     if (immediate) {
@@ -2733,7 +2992,8 @@ function refreshHtmlPreviewSoon() {
     const effectiveMode = getEffectiveShareViewMode();
     if (isHtmlPreviewableFile(getActiveProjectFile())) {
         refreshHtmlPreview(false, {
-            allowHidden: effectiveMode !== SHARE_VIEW_PREVIEW && effectiveMode !== SHARE_VIEW_SPLIT
+            allowHidden: effectiveMode !== SHARE_VIEW_PREVIEW && effectiveMode !== SHARE_VIEW_SPLIT,
+            incremental: true
         });
     }
 }
