@@ -1479,6 +1479,29 @@ function clearAllProjectFiles() {
     showProjectNotice(`已清空所有文件，继续输入将自动创建 ${defaultFilenameForLanguage(emptyLanguage)}。`);
 }
 
+function copyProjectTreeItemPath(kind, path) {
+    const safePath = safeNormalizePath(path);
+    if (!safePath) {
+        showProjectNotice("未找到要复制的路径。");
+        return;
+    }
+    if (kind === "folder" && !projectFolderExists(safePath)) {
+        showProjectNotice("未找到要复制路径的文件夹。");
+        return;
+    }
+    if (kind === "file" && !projectFiles.some(f => f.path === safePath)) {
+        showProjectNotice("未找到要复制路径的文件。");
+        return;
+    }
+    if (kind !== "folder" && kind !== "file") {
+        return;
+    }
+
+    copyToClipboard(safePath, function () {
+        showProjectNotice("路径已复制。");
+    });
+}
+
 function showProjectTreeContextMenu(x, y, kind, path) {
     const menu = document.getElementById("projectTreeContextMenu");
     if (!menu) {
@@ -1490,6 +1513,7 @@ function showProjectTreeContextMenu(x, y, kind, path) {
     const newFolderButton = menu.querySelector('[data-action="new-folder"]');
     const uploadFileButton = menu.querySelector('[data-action="upload-file"]');
     const uploadFolderButton = menu.querySelector('[data-action="upload-folder"]');
+    const copyPathButton = menu.querySelector('[data-action="copy-path"]');
     const downloadButton = menu.querySelector('[data-action="download"]');
     const shareButton = menu.querySelector('[data-action="share"]');
     const renameButton = menu.querySelector('[data-action="rename"]');
@@ -1520,6 +1544,9 @@ function showProjectTreeContextMenu(x, y, kind, path) {
         uploadFolderButton.textContent = targetKind === "folder"
             ? "上传文件夹到此文件夹"
             : (targetKind === "file" ? "上传同级文件夹" : "上传文件夹到根目录");
+    }
+    if (copyPathButton) {
+        copyPathButton.textContent = targetKind === "folder" ? "复制文件夹路径" : "复制文件路径";
     }
     if (downloadButton) {
         downloadButton.textContent = targetKind === "folder" ? "下载文件夹" : "下载文件";
@@ -1622,6 +1649,8 @@ function bindProjectTreeContextMenu() {
             beginProjectUpload("file-input", getContextTargetParentPath(target));
         } else if (action === "upload-folder") {
             openProjectFolderUploadDialog(getContextTargetParentPath(target));
+        } else if (action === "copy-path") {
+            copyProjectTreeItemPath(target.kind, target.path);
         } else if (action === "download") {
             downloadProjectTreeItem(target.kind, target.path);
         } else if (action === "share") {

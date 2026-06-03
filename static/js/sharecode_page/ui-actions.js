@@ -1444,22 +1444,23 @@ function goPythonRunPage() {
     });
 }
 
-function copyToClipboard(text) {
+function copyToClipboard(text, onSuccess) {
     if (!text) {
         return;
     }
+    const successCallback = typeof onSuccess === "function" ? onSuccess : showCopySuccess;
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(function () {
-            showCopySuccess();
+            successCallback();
         }).catch(function () {
-            fallbackCopyToClipboard(text);
+            fallbackCopyToClipboard(text, successCallback);
         });
     } else {
-        fallbackCopyToClipboard(text);
+        fallbackCopyToClipboard(text, successCallback);
     }
 }
 
-function fallbackCopyToClipboard(text) {
+function fallbackCopyToClipboard(text, onSuccess) {
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
@@ -1469,7 +1470,9 @@ function fallbackCopyToClipboard(text) {
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
-    showCopySuccess();
+    if (typeof onSuccess === "function") {
+        onSuccess();
+    }
 }
 
 function copyLinkManually() {
