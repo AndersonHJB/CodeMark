@@ -145,6 +145,75 @@ function hasSelectedProjectTreeItems() {
     return selectedProjectFilePaths.size > 0 || selectedProjectFolderPaths.size > 0;
 }
 
+function getEffectiveSelectedProjectFolderPaths() {
+    pruneProjectTreeSelection();
+    const selectedFolders = Array.from(selectedProjectFolderPaths)
+        .map(safeNormalizePath)
+        .filter(Boolean)
+        .sort((a, b) => {
+            const depthDiff = a.split("/").length - b.split("/").length;
+            return depthDiff || a.localeCompare(b);
+        });
+    const effectiveFolders = [];
+    for (const folderPath of selectedFolders) {
+        if (!effectiveFolders.some(parentPath => isSameOrInsideFolder(folderPath, parentPath))) {
+            effectiveFolders.push(folderPath);
+        }
+    }
+    return effectiveFolders;
+}
+
+function getSelectedProjectDeleteSummary() {
+    pruneProjectTreeSelection();
+    const folderTargets = getEffectiveSelectedProjectFolderPaths();
+    const allFolderPaths = getAllProjectFolderPaths();
+    const folderPaths = new Set();
+    const filePaths = new Set();
+
+    folderTargets.forEach(folderPath => {
+        folderPaths.add(folderPath);
+        allFolderPaths.forEach(path => {
+            if (isSameOrInsideFolder(path, folderPath)) {
+                folderPaths.add(path);
+            }
+        });
+    });
+
+    projectFiles.forEach(file => {
+        const filePath = safeNormalizePath(file && file.path);
+        if (!filePath) {
+            return;
+        }
+        if (selectedProjectFilePaths.has(filePath) || folderTargets.some(folderPath => isPathInsideFolder(filePath, folderPath))) {
+            filePaths.add(filePath);
+        }
+    });
+
+    return {
+        folderTargets: folderTargets,
+        folderPaths: folderPaths,
+        filePaths: filePaths,
+        totalCount: folderPaths.size + filePaths.size
+    };
+}
+
+function updateProjectSelectedDeleteButton() {
+    const button = document.getElementById("projectSelectedDeleteButton");
+    if (!button) {
+        return;
+    }
+    const summary = getSelectedProjectDeleteSummary();
+    const hasSelection = summary.totalCount > 0;
+    button.disabled = !hasSelection;
+    button.title = hasSelection
+        ? `删除选中的 ${summary.folderPaths.size} 个文件夹和 ${summary.filePaths.size} 个文件`
+        : "先选择要删除的文件或文件夹";
+    const text = button.querySelector(".sidebar-action-text");
+    if (text) {
+        text.textContent = hasSelection ? `delete (${summary.totalCount})` : "delete selected";
+    }
+}
+
 function getProjectTreeFolderSelectionState(folderPath) {
     const safeFolderPath = safeNormalizePath(folderPath);
     if (!safeFolderPath) {
@@ -1255,6 +1324,57 @@ function deleteProjectTreeItemNow(kind, path) {
     showProjectNotice("文件已删除。");
 }
 
+function deleteSelectedProjectTreeItemsNow() {
+    const summary = getSelectedProjectDeleteSummary();
+    if (!summary.totalCount) {
+        updateProjectSelectedDeleteButton();
+        showProjectNotice("请先选择要删除的文件或文件夹。");
+        return;
+    }
+
+    syncActiveEditorToProject();
+    const removedActiveFile = !!(activeFilePath && summary.filePaths.has(activeFilePath));
+    projectFiles = projectFiles.filter(file => !summary.filePaths.has(safeNormalizePath(file && file.path)));
+    projectFolders = projectFolders.filter(path => {
+        const safePath = safeNormalizePath(path);
+        return !!safePath && !summary.folderTargets.some(folderPath => isSameOrInsideFolder(safePath, folderPath));
+    });
+    collapsedFolderPaths = new Set(Array.from(collapsedFolderPaths).filter(path => {
+        return !summary.folderTargets.some(folderPath => isSameOrInsideFolder(path, folderPath));
+    }));
+    if (summary.folderTargets.some(folderPath => isSameOrInsideFolder(projectTreeSelectedFolderPath, folderPath))) {
+        projectTreeSelectedFolderPath = "";
+    }
+    if (summary.folderTargets.some(folderPath => isSameOrInsideFolder(pendingProjectUploadTargetPath, folderPath))) {
+        pendingProjectUploadTargetPath = "";
+    }
+    selectedProjectFilePaths.clear();
+    selectedProjectFolderPaths.clear();
+    projectTreeRenameTarget = null;
+    projectTreeInlineDeleteTarget = null;
+    projectTreeCreateTarget = null;
+    refreshProjectAfterMutation(removedActiveFile ? "" : activeFilePath, {preserveSidebar: true});
+    updateProjectSelectedDeleteButton();
+    showProjectNotice(`已删除选中的 ${summary.folderPaths.size} 个文件夹和 ${summary.filePaths.size} 个文件。`);
+}
+
+function deleteSelectedProjectTreeItems() {
+    hideFloatingMenuIfOpen();
+    hideProjectTreeContextMenu();
+    const summary = getSelectedProjectDeleteSummary();
+    if (!summary.totalCount) {
+        updateProjectSelectedDeleteButton();
+        showProjectNotice("请先选择要删除的文件或文件夹。");
+        return;
+    }
+    openProjectConfirmDialog(
+        "删除选中项",
+        `确定删除选中的 ${summary.folderPaths.size} 个文件夹和 ${summary.filePaths.size} 个文件吗？`,
+        "删除",
+        deleteSelectedProjectTreeItemsNow
+    );
+}
+
 function requestInlineDeleteTreeItem(kind, path) {
     const safePath = safeNormalizePath(path);
     if (!safePath) {
@@ -1600,6 +1720,7 @@ function renderProjectFileTree() {
     const emptyEl = document.getElementById("projectTreeEmpty");
     treeEl.innerHTML = "";
     pruneProjectTreeSelection();
+    updateProjectSelectedDeleteButton();
 
     if (!hasProjectTreeItems() && !projectTreeCreateTarget) {
         collapsedFolderPaths.clear();

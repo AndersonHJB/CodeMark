@@ -102,6 +102,14 @@
                 </span>
                 <span class="sidebar-action-text">select</span>
             </button>
+            <button id="projectSelectedDeleteButton" class="sidebar-action selection-delete" type="button" title="先选择要删除的文件或文件夹" disabled onclick="deleteSelectedProjectTreeItems()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M8.5 2.75a1.75 1.75 0 0 0-1.67 1.25H4.25a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5h-2.58a1.75 1.75 0 0 0-1.67-1.25h-3Zm-.08 4.5a.75.75 0 0 1 .78.72l.28 6.5a.75.75 0 0 1-1.5.06l-.28-6.5a.75.75 0 0 1 .72-.78Zm3.16 0a.75.75 0 0 1 .72.78l-.28 6.5a.75.75 0 0 1-1.5-.06l.28-6.5a.75.75 0 0 1 .78-.72ZM5.5 6.5a.75.75 0 0 1 .75.7l.57 8.04a1.25 1.25 0 0 0 1.25 1.16h3.86a1.25 1.25 0 0 0 1.25-1.16l.57-8.04a.75.75 0 1 1 1.5.1l-.57 8.05a2.75 2.75 0 0 1-2.74 2.55H8.07a2.75 2.75 0 0 1-2.74-2.55L4.75 7.3a.75.75 0 0 1 .75-.8Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">delete selected</span>
+            </button>
             <button class="sidebar-action clear" type="button" title="清空所有文件" onclick="clearAllProjectFiles()">
                 <span class="sidebar-action-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">

@@ -337,6 +337,30 @@ body.sidebar-resizing #projectSidebar {
     color: #eaffff;
 }
 
+.sidebar-action.selection-delete {
+    display: none;
+    color: #ffb4a8;
+}
+
+#appRoot.project-selection-visible .sidebar-action.selection-delete {
+    display: inline-flex;
+}
+
+.sidebar-action.selection-delete:hover:not(:disabled) {
+    background: rgba(245, 56, 85, 0.14);
+    color: #ffd2cb;
+}
+
+.sidebar-action.selection-delete:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.sidebar-action.selection-delete:disabled:hover {
+    background: transparent;
+    color: #ffb4a8;
+}
+
 .sidebar-action.clear {
     color: #ffb4a8;
 }

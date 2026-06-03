@@ -79,6 +79,9 @@ function setProjectTreeSelectionVisible(visible) {
         appRoot.classList.toggle("project-selection-visible", projectTreeSelectionVisible);
     }
     updateProjectSelectionToggleButton();
+    if (typeof updateProjectSelectedDeleteButton === "function") {
+        updateProjectSelectedDeleteButton();
+    }
 }
 
 function toggleProjectTreeSelectionVisible() {
