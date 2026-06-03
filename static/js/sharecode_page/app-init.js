@@ -36,6 +36,9 @@ window.addEventListener("load", async function () {
     bindProjectTreeContextMenu();
     bindProjectUploadDialog();
     bindGlobalProjectExternalUpload();
+    if (typeof bindMarkdownImagePaste === "function") {
+        bindMarkdownImagePaste();
+    }
     setProjectTreeSelectionVisible(false);
 
     const initialState = resolveInitialState();
