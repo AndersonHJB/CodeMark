@@ -799,6 +799,38 @@ body.sidebar-resizing #projectSidebar {
     z-index: 1;
 }
 
+#markdownImageHoverPreview {
+    position: fixed;
+    left: 12px;
+    top: 12px;
+    z-index: 10045;
+    display: none;
+    max-width: min(360px, calc(100vw - 24px));
+    max-height: min(300px, calc(100vh - 24px));
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(31, 34, 27, 0.94);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+#markdownImageHoverPreview.is-visible {
+    display: block;
+}
+
+#markdownImageHoverPreview img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(340px, calc(100vw - 42px));
+    max-height: min(280px, calc(100vh - 42px));
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
+    object-fit: contain;
+}
+
 #htmlPreviewPane {
     position: absolute;
     inset: 0;

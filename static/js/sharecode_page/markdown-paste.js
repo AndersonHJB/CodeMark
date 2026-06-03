@@ -1,5 +1,9 @@
 /* Markdown image paste support for the Sharecode Ace editor. */
 let markdownPasteImageSequence = 0;
+let markdownImageHoverPreviewElement = null;
+let markdownImageHoverPreviewImage = null;
+let markdownImageHoverLastKey = "";
+let markdownImageHoverLastMouse = {x: 0, y: 0};
 
 function getClipboardImageFiles(event) {
     const clipboardData = event && event.clipboardData;
@@ -231,9 +235,202 @@ function handleMarkdownImagePaste(event) {
 }
 
 function bindMarkdownImagePaste() {
-    if (!window.editor || !window.editor.container || window.editor.container.dataset.codemarkMarkdownPasteBound === "true") {
+    if (!window.editor || !window.editor.container) {
         return;
     }
-    window.editor.container.dataset.codemarkMarkdownPasteBound = "true";
-    window.editor.container.addEventListener("paste", handleMarkdownImagePaste, true);
+    if (window.editor.container.dataset.codemarkMarkdownPasteBound !== "true") {
+        window.editor.container.dataset.codemarkMarkdownPasteBound = "true";
+        window.editor.container.addEventListener("paste", handleMarkdownImagePaste, true);
+    }
+    bindMarkdownImageHoverPreview();
+}
+
+function parseMarkdownImageReferenceAt(line, column) {
+    const text = String(line || "");
+    const patterns = [
+        /!\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g,
+        /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi
+    ];
+    for (const pattern of patterns) {
+        let match;
+        while ((match = pattern.exec(text)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+            if (column < start || column > end) {
+                continue;
+            }
+            const url = match[1] || match[2] || match[3] || "";
+            if (url) {
+                return {
+                    url,
+                    start,
+                    end
+                };
+            }
+        }
+    }
+    return null;
+}
+
+function getImageExtensionFromReference(rawUrl) {
+    const parts = typeof splitPreviewUrl === "function"
+        ? splitPreviewUrl(rawUrl)
+        : {path: String(rawUrl || "").split(/[?#]/)[0]};
+    const path = String(parts.path || "").replace(/\\/g, "/");
+    const filename = path.split("/").pop() || "";
+    const dotIndex = filename.lastIndexOf(".");
+    if (dotIndex <= 0 || dotIndex === filename.length - 1) {
+        return "";
+    }
+    return filename.slice(dotIndex + 1).toLowerCase();
+}
+
+function isImageReferenceUrl(rawUrl) {
+    const value = String(rawUrl || "").trim();
+    if (!value) {
+        return false;
+    }
+    if (/^data:image\//i.test(value) || /^blob:/i.test(value)) {
+        return true;
+    }
+    return IMAGE_EXTENSIONS.has(getImageExtensionFromReference(value));
+}
+
+function resolveMarkdownHoverImageUrl(rawUrl, markdownPath) {
+    const value = String(rawUrl || "").trim();
+    if (!value) {
+        return "";
+    }
+    if (/^data:image\//i.test(value) || /^blob:/i.test(value)) {
+        return value;
+    }
+    if (typeof buildPreviewResourceMap === "function" && typeof findPreviewResource === "function") {
+        const resourceMap = buildPreviewResourceMap();
+        const resolved = findPreviewResource(value, markdownPath, resourceMap);
+        if (resolved && resolved.resource) {
+            const resource = resolved.resource;
+            const mimeType = String(resource.mime_type || "").toLowerCase();
+            const extension = getImageExtensionFromReference(resource.path || value);
+            if (mimeType.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) {
+                return getPreviewResourceUrl(value, markdownPath, resourceMap);
+            }
+            return "";
+        }
+    }
+    if ((value.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(value)) && isImageReferenceUrl(value)) {
+        return value;
+    }
+    return "";
+}
+
+function getMarkdownImageHoverReference(event) {
+    if (!window.editor || !window.editor.renderer || !window.editor.session || !isMarkdownImagePasteTarget()) {
+        return null;
+    }
+    let position = null;
+    try {
+        position = window.editor.renderer.screenToTextCoordinates(event.clientX, event.clientY);
+    } catch (e) {
+        return null;
+    }
+    if (!position || position.row < 0) {
+        return null;
+    }
+    const line = window.editor.session.getLine(position.row);
+    const reference = parseMarkdownImageReferenceAt(line, position.column);
+    if (!reference) {
+        return null;
+    }
+    const active = getActiveProjectFile();
+    const sourceUrl = resolveMarkdownHoverImageUrl(reference.url, active && active.path);
+    if (!sourceUrl) {
+        return null;
+    }
+    return {
+        key: `${active && active.path || ""}:${position.row}:${reference.start}:${reference.end}:${reference.url}`,
+        url: sourceUrl
+    };
+}
+
+function ensureMarkdownImageHoverPreviewElement() {
+    if (markdownImageHoverPreviewElement && markdownImageHoverPreviewImage) {
+        return markdownImageHoverPreviewElement;
+    }
+    const preview = document.createElement("div");
+    preview.id = "markdownImageHoverPreview";
+    preview.setAttribute("aria-hidden", "true");
+    const image = document.createElement("img");
+    image.alt = "";
+    image.decoding = "async";
+    image.addEventListener("load", function () {
+        positionMarkdownImageHoverPreview(markdownImageHoverLastMouse.x, markdownImageHoverLastMouse.y);
+    });
+    preview.appendChild(image);
+    document.body.appendChild(preview);
+    markdownImageHoverPreviewElement = preview;
+    markdownImageHoverPreviewImage = image;
+    return preview;
+}
+
+function positionMarkdownImageHoverPreview(clientX, clientY) {
+    const preview = markdownImageHoverPreviewElement;
+    if (!preview || !preview.classList.contains("is-visible")) {
+        return;
+    }
+    const viewportPadding = 12;
+    const cursorOffset = 14;
+    const rect = preview.getBoundingClientRect();
+    let left = clientX + cursorOffset;
+    let top = clientY + cursorOffset;
+    if (left + rect.width > window.innerWidth - viewportPadding) {
+        left = clientX - rect.width - cursorOffset;
+    }
+    if (top + rect.height > window.innerHeight - viewportPadding) {
+        top = clientY - rect.height - cursorOffset;
+    }
+    preview.style.left = Math.max(viewportPadding, left) + "px";
+    preview.style.top = Math.max(viewportPadding, top) + "px";
+}
+
+function showMarkdownImageHoverPreview(reference, event) {
+    const preview = ensureMarkdownImageHoverPreviewElement();
+    markdownImageHoverLastMouse = {x: event.clientX, y: event.clientY};
+    if (markdownImageHoverLastKey !== reference.key) {
+        markdownImageHoverLastKey = reference.key;
+        markdownImageHoverPreviewImage.src = reference.url;
+    }
+    preview.classList.add("is-visible");
+    preview.setAttribute("aria-hidden", "false");
+    positionMarkdownImageHoverPreview(event.clientX, event.clientY);
+}
+
+function hideMarkdownImageHoverPreview() {
+    if (markdownImageHoverPreviewElement) {
+        markdownImageHoverPreviewElement.classList.remove("is-visible");
+        markdownImageHoverPreviewElement.setAttribute("aria-hidden", "true");
+    }
+    markdownImageHoverLastKey = "";
+}
+
+function handleMarkdownImageHoverMove(event) {
+    const reference = getMarkdownImageHoverReference(event);
+    if (!reference) {
+        hideMarkdownImageHoverPreview();
+        return;
+    }
+    showMarkdownImageHoverPreview(reference, event);
+}
+
+function bindMarkdownImageHoverPreview() {
+    if (!window.editor || !window.editor.container || window.editor.container.dataset.codemarkMarkdownHoverBound === "true") {
+        return;
+    }
+    window.editor.container.dataset.codemarkMarkdownHoverBound = "true";
+    window.editor.container.addEventListener("mousemove", handleMarkdownImageHoverMove);
+    window.editor.container.addEventListener("mouseleave", hideMarkdownImageHoverPreview);
+    if (window.editor.session && typeof window.editor.session.on === "function") {
+        window.editor.session.on("changeScrollTop", hideMarkdownImageHoverPreview);
+        window.editor.session.on("change", hideMarkdownImageHoverPreview);
+    }
+    window.addEventListener("resize", hideMarkdownImageHoverPreview);
 }
