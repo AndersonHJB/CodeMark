@@ -248,6 +248,23 @@ function isHtmlPreviewVisibleForRefresh() {
         || isHtmlPreviewFullscreenActive();
 }
 
+function htmlPreviewFrameNeedsVisibleRestore() {
+    // The preview iframe is sandboxed without allow-same-origin, so its document
+    // cannot be inspected from here (see preview-iframe-opaque-origin). Reuse the
+    // write/loaded token bookkeeping kept by writeHtmlPreviewFrame: a write whose
+    // load event never landed means the srcdoc may have been deferred while the tab
+    // was hidden, so the preview could be blank and should be rebuilt. When the
+    // tokens already match, the current render is intact and must be left alone so
+    // returning to the tab never re-runs markdown / MathJax / mermaid rendering.
+    const frame = document.getElementById("htmlPreviewFrame");
+    if (!frame) {
+        return false;
+    }
+    const writeToken = frame.dataset.codemarkPreviewWriteToken || "";
+    const loadedToken = frame.dataset.codemarkPreviewLoadedToken || "";
+    return !!writeToken && writeToken !== loadedToken;
+}
+
 function scheduleHtmlPreviewVisibleRefresh(options) {
     const opts = options || {};
     const requestId = ++htmlPreviewVisibleRefreshRequestId;

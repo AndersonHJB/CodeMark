@@ -1213,12 +1213,16 @@ function bindSelectorSync() {
     });
 
     document.addEventListener("visibilitychange", function () {
-        if (!document.hidden) {
+        // Only rebuild when a deferred (blank) srcdoc needs restoring; an intact
+        // preview must survive tab switches without re-rendering markdown/formulas.
+        if (!document.hidden && htmlPreviewFrameNeedsVisibleRestore()) {
             scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
         }
     });
 
     window.addEventListener("pageshow", function () {
-        scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
+        if (htmlPreviewFrameNeedsVisibleRestore()) {
+            scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
+        }
     });
 }
