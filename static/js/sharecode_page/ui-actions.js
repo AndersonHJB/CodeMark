@@ -643,8 +643,12 @@ function generateShareLink(payloadOverride) {
             finalImageContainer.style.marginTop = "20px";
             document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-            createShareEditorAreaCanvas().catch(function () {
-                return html2canvas(document.querySelector("#editorArea"), {useCORS: true});
+            withSharePreviewTimeout(createShareEditorAreaCanvas(), 24000).catch(function () {
+                const editorArea = document.querySelector("#editorArea");
+                if (!editorArea) {
+                    throw new Error("Missing editor area.");
+                }
+                return createBlankShareEditorAreaCanvas(editorArea);
             }).then(canvas => {
                 return appendQrToShareCanvas(canvas, qrcodeSrc);
             }).then(finalCanvas => {
@@ -729,6 +733,21 @@ function waitForShareImageLoadEvent(target, timeoutMs) {
     });
 }
 
+function waitForSharePromiseTimeout(timeoutMs) {
+    return new Promise((resolve, reject) => {
+        setTimeout(function () {
+            reject(new Error("Share preview capture timed out."));
+        }, timeoutMs);
+    });
+}
+
+function withSharePreviewTimeout(promise, timeoutMs) {
+    return Promise.race([
+        promise,
+        waitForSharePromiseTimeout(timeoutMs)
+    ]);
+}
+
 function getVisibleSharePreviewFrame() {
     const previewPane = document.getElementById("htmlPreviewPane");
     const frame = document.getElementById("htmlPreviewFrame");
@@ -765,17 +784,8 @@ async function waitForSharePreviewFrameReady(frame) {
 
 async function refreshVisibleSharePreviewFrameForCapture() {
     const frame = getVisibleSharePreviewFrame();
-    if (!frame || typeof refreshHtmlPreview !== "function") {
-        return frame;
-    }
-    const active = typeof getActiveProjectFile === "function" ? getActiveProjectFile() : null;
-    if (typeof isHtmlPreviewableFile === "function" && !isHtmlPreviewableFile(active)) {
-        return frame;
-    }
-    refreshHtmlPreview(true, {forceFrame: false});
-    const nextFrame = getVisibleSharePreviewFrame();
-    await waitForSharePreviewFrameReady(nextFrame);
-    return nextFrame;
+    await waitForSharePreviewFrameReady(frame);
+    return frame;
 }
 
 function getShareFrameScrollPosition(frame) {
@@ -815,13 +825,98 @@ function buildSharePreviewCaptureHtml() {
     return "";
 }
 
+function shouldPreferSharePreviewSvgCapture() {
+    if (typeof getActiveProjectFile !== "function" || typeof isMarkdownDocumentFile !== "function") {
+        return false;
+    }
+    return isMarkdownDocumentFile(getActiveProjectFile());
+}
+
 function stripSharePreviewCaptureScripts(html) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(String(html || ""), "text/html");
+    sanitizeSharePreviewCssForHtml2Canvas(doc);
+    doc.querySelectorAll("canvas[data-codemark-canvas-data-url]").forEach(canvas => {
+        const dataUrl = canvas.getAttribute("data-codemark-canvas-data-url") || "";
+        if (!dataUrl) {
+            return;
+        }
+        const img = doc.createElement("img");
+        img.src = dataUrl;
+        img.alt = canvas.getAttribute("aria-label") || canvas.getAttribute("title") || "";
+        ["class", "style", "width", "height"].forEach(attr => {
+            const value = canvas.getAttribute(attr);
+            if (value !== null) {
+                img.setAttribute(attr, value);
+            }
+        });
+        canvas.parentNode.replaceChild(img, canvas);
+    });
     doc.querySelectorAll("script").forEach(script => {
         script.remove();
     });
     return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+}
+
+function hasUnsupportedSharePreviewColorFunction(value) {
+    return /\b(?:color-mix|color|oklch|oklab|lch|lab)\s*\(/i.test(String(value || ""));
+}
+
+function sanitizeSharePreviewCssText(cssText) {
+    return String(cssText || "").replace(
+        /(^|[;{])\s*(?:--)?[\w-]+\s*:\s*[^;{}]*\b(?:color-mix|color|oklch|oklab|lch|lab)\s*\([^;{}]*\)[^;{}]*(?=;|})/gi,
+        function (match, prefix) {
+            return prefix || "";
+        }
+    );
+}
+
+function sanitizeSharePreviewInlineStyle(styleText) {
+    return String(styleText || "")
+        .split(";")
+        .map(part => part.trim())
+        .filter(part => part && !hasUnsupportedSharePreviewColorFunction(part))
+        .join("; ");
+}
+
+function sanitizeSharePreviewCssForHtml2Canvas(doc) {
+    if (!doc || !doc.querySelectorAll) {
+        return;
+    }
+    doc.querySelectorAll("style").forEach(style => {
+        style.textContent = sanitizeSharePreviewCssText(style.textContent || "");
+    });
+    doc.querySelectorAll("[style]").forEach(element => {
+        const nextStyle = sanitizeSharePreviewInlineStyle(element.getAttribute("style") || "");
+        if (nextStyle) {
+            element.setAttribute("style", nextStyle);
+        } else {
+            element.removeAttribute("style");
+        }
+    });
+}
+
+function materializeSharePreviewCanvases(frameDocument) {
+    if (!frameDocument) {
+        return;
+    }
+    frameDocument.querySelectorAll("canvas").forEach(canvas => {
+        try {
+            canvas.setAttribute("data-codemark-canvas-data-url", canvas.toDataURL("image/png"));
+        } catch (e) {
+        }
+    });
+}
+
+function setSharePreviewCaptureFrameGeometry(frame, frameRect) {
+    frame.style.position = "fixed";
+    frame.style.left = "-10000px";
+    frame.style.top = "0";
+    frame.style.width = `${Math.max(1, Math.round(frameRect.width))}px`;
+    frame.style.height = `${Math.max(1, Math.round(frameRect.height))}px`;
+    frame.style.border = "0";
+    frame.style.opacity = "0";
+    frame.style.pointerEvents = "none";
 }
 
 async function waitForShareCaptureFrameReady(frame) {
@@ -848,6 +943,71 @@ async function waitForShareCaptureFrameReady(frame) {
             Promise.all(waits),
             waitForShareImageTimeout(1800)
         ]);
+    }
+    await waitForShareImageFrame();
+}
+
+async function waitForReadableSharePreviewFrameSettled(frame) {
+    if (!frame) {
+        return;
+    }
+    let frameDocument = null;
+    let frameWindow = null;
+    try {
+        frameDocument = frame.contentDocument;
+        frameWindow = frame.contentWindow;
+    } catch (e) {
+        return;
+    }
+    if (!frameDocument) {
+        return;
+    }
+
+    if (frameWindow && frameWindow.MathJax) {
+        const mathWaits = [];
+        try {
+            if (frameWindow.MathJax.startup && frameWindow.MathJax.startup.promise) {
+                mathWaits.push(frameWindow.MathJax.startup.promise.catch(function () {
+                }));
+            }
+            if (typeof frameWindow.MathJax.typesetPromise === "function") {
+                mathWaits.push(frameWindow.MathJax.typesetPromise().catch(function () {
+                }));
+            }
+        } catch (e) {
+        }
+        if (mathWaits.length) {
+            await Promise.race([
+                Promise.all(mathWaits),
+                waitForShareImageTimeout(2200)
+            ]);
+        }
+    }
+
+    let lastSignature = "";
+    let stableTicks = 0;
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 3600) {
+        const body = frameDocument.body || frameDocument.documentElement;
+        const root = frameDocument.getElementById("root");
+        const signature = [
+            body ? body.childElementCount : 0,
+            body ? body.scrollHeight : 0,
+            body ? body.scrollWidth : 0,
+            body ? String(body.textContent || "").trim().length : 0,
+            root ? root.childElementCount : 0,
+            frameDocument.querySelectorAll("svg,canvas,img,video,table,.MathJax,.mermaid[data-processed]").length
+        ].join(":");
+        if (signature === lastSignature) {
+            stableTicks += 1;
+        } else {
+            stableTicks = 0;
+            lastSignature = signature;
+        }
+        if (stableTicks >= 2) {
+            break;
+        }
+        await waitForShareImageTimeout(150);
     }
     await waitForShareImageFrame();
 }
@@ -894,21 +1054,35 @@ async function createSharePreviewCaptureFrame(sourceFrame) {
     if (!rawHtml) {
         return null;
     }
-    const html = stripSharePreviewCaptureScripts(rawHtml);
     const frameRect = sourceFrame.getBoundingClientRect();
+    let renderFrame = null;
+    let renderedHtml = rawHtml;
+    try {
+        renderFrame = document.createElement("iframe");
+        renderFrame.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-modals allow-popups");
+        setSharePreviewCaptureFrameGeometry(renderFrame, frameRect);
+        document.body.appendChild(renderFrame);
+        const renderReady = waitForShareImageLoadEvent(renderFrame, 3200);
+        renderFrame.srcdoc = rawHtml;
+        await renderReady;
+        await waitForShareCaptureFrameReady(renderFrame);
+        await waitForReadableSharePreviewFrameSettled(renderFrame);
+        if (renderFrame.contentDocument && renderFrame.contentDocument.documentElement) {
+            materializeSharePreviewCanvases(renderFrame.contentDocument);
+            renderedHtml = "<!DOCTYPE html>\n" + renderFrame.contentDocument.documentElement.outerHTML;
+        }
+    } finally {
+        if (renderFrame && renderFrame.parentNode) {
+            renderFrame.parentNode.removeChild(renderFrame);
+        }
+    }
+
     const captureFrame = document.createElement("iframe");
     captureFrame.setAttribute("sandbox", "allow-same-origin");
-    captureFrame.style.position = "fixed";
-    captureFrame.style.left = "-10000px";
-    captureFrame.style.top = "0";
-    captureFrame.style.width = `${Math.max(1, Math.round(frameRect.width))}px`;
-    captureFrame.style.height = `${Math.max(1, Math.round(frameRect.height))}px`;
-    captureFrame.style.border = "0";
-    captureFrame.style.opacity = "0";
-    captureFrame.style.pointerEvents = "none";
+    setSharePreviewCaptureFrameGeometry(captureFrame, frameRect);
     document.body.appendChild(captureFrame);
     const ready = waitForShareImageLoadEvent(captureFrame, 1200);
-    captureFrame.srcdoc = html;
+    captureFrame.srcdoc = stripSharePreviewCaptureScripts(renderedHtml);
     await ready;
     await waitForShareCaptureFrameReady(captureFrame);
     syncShareCaptureFrameScroll(captureFrame);
@@ -928,9 +1102,12 @@ async function captureSharePreviewFrame(frame) {
         }
         const frameRect = frame.getBoundingClientRect();
         const scroll = getShareFrameScrollPosition(captureFrame);
-        return await html2canvas(captureFrame.contentDocument.documentElement, {
+        const captureOptions = {
             backgroundColor: "#ffffff",
             useCORS: true,
+            onclone: function (clonedDocument) {
+                sanitizeSharePreviewCssForHtml2Canvas(clonedDocument);
+            },
             x: scroll.x,
             y: scroll.y,
             width: Math.max(1, Math.round(frameRect.width)),
@@ -939,11 +1116,90 @@ async function captureSharePreviewFrame(frame) {
             windowHeight: Math.max(1, Math.round(frameRect.height)),
             scrollX: scroll.x,
             scrollY: scroll.y
-        });
+        };
+        const frameCanvas = shouldPreferSharePreviewSvgCapture()
+            ? await withSharePreviewTimeout(
+                captureSharePreviewFrameWithSvg(captureFrame, frameRect, scroll),
+                4200
+            ).catch(function () {
+                return html2canvas(captureFrame.contentDocument.documentElement, captureOptions);
+            })
+            : await withSharePreviewTimeout(
+                html2canvas(captureFrame.contentDocument.documentElement, captureOptions),
+                6500
+            ).catch(function () {
+                return captureSharePreviewFrameWithSvg(captureFrame, frameRect, scroll);
+            });
+        const stableCanvas = document.createElement("canvas");
+        stableCanvas.width = frameCanvas.width;
+        stableCanvas.height = frameCanvas.height;
+        stableCanvas.getContext("2d").drawImage(frameCanvas, 0, 0);
+        return stableCanvas;
     } finally {
         if (captureFrame && captureFrame.parentNode) {
             captureFrame.parentNode.removeChild(captureFrame);
         }
+    }
+}
+
+async function captureSharePreviewFrameWithSvg(captureFrame, frameRect, scroll) {
+    const frameDocument = captureFrame && captureFrame.contentDocument;
+    if (!frameDocument || !frameDocument.documentElement) {
+        return null;
+    }
+    const width = Math.max(1, Math.round(frameRect.width));
+    const height = Math.max(1, Math.round(frameRect.height));
+    const clone = frameDocument.documentElement.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+    const clonedDoc = document.implementation.createHTMLDocument("");
+    clonedDoc.replaceChild(clone, clonedDoc.documentElement);
+    sanitizeSharePreviewCssForHtml2Canvas(clonedDoc);
+    clonedDoc.querySelectorAll("script").forEach(script => {
+        script.remove();
+    });
+    const sourceImages = Array.from(frameDocument.images || []);
+    Array.from(clonedDoc.images || []).forEach((img, index) => {
+        const sourceImage = sourceImages[index];
+        if ((!sourceImage || !sourceImage.complete || !sourceImage.naturalWidth) && img.parentNode) {
+            img.parentNode.removeChild(img);
+        }
+    });
+    const clonedDocumentElement = clonedDoc.documentElement;
+    const clonedBody = clonedDoc.body;
+    if (clonedBody) {
+        const existingStyle = clonedBody.getAttribute("style") || "";
+        clonedBody.setAttribute(
+            "style",
+            `${existingStyle}; margin:0; background:#ffffff; min-width:${width}px; min-height:${height}px;`
+        );
+    }
+    const docEl = frameDocument.documentElement;
+    const body = frameDocument.body;
+    const contentWidth = Math.max(width, docEl.scrollWidth || 0, body ? body.scrollWidth || 0 : 0);
+    const contentHeight = Math.max(height, docEl.scrollHeight || 0, body ? body.scrollHeight || 0 : 0);
+    const serialized = new XMLSerializer().serializeToString(clonedDocumentElement);
+    const svg = [
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
+        `<rect width="100%" height="100%" fill="#ffffff"/>`,
+        `<foreignObject x="${-Math.max(0, scroll.x || 0)}" y="${-Math.max(0, scroll.y || 0)}" width="${contentWidth}" height="${contentHeight}">`,
+        serialized,
+        `</foreignObject>`,
+        `</svg>`
+    ].join("");
+    const svgUrl = URL.createObjectURL(new Blob([svg], {type: "image/svg+xml;charset=utf-8"}));
+    try {
+        const img = await loadShareImage(svgUrl);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toDataURL("image/png");
+        return canvas;
+    } finally {
+        URL.revokeObjectURL(svgUrl);
     }
 }
 
@@ -959,6 +1215,12 @@ function drawCanvasAtElementRect(targetCanvas, sourceCanvas, rootElement, elemen
     const scaleX = targetCanvas.width / rootRect.width;
     const scaleY = targetCanvas.height / rootRect.height;
     const ctx = targetCanvas.getContext("2d");
+    ctx.save();
+    if (typeof ctx.setTransform === "function") {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
     ctx.drawImage(
         sourceCanvas,
         0,
@@ -970,6 +1232,64 @@ function drawCanvasAtElementRect(targetCanvas, sourceCanvas, rootElement, elemen
         Math.round(elementRect.width * scaleX),
         Math.round(elementRect.height * scaleY)
     );
+    ctx.restore();
+}
+
+function createBlankShareEditorAreaCanvas(editorArea) {
+    const rect = editorArea.getBoundingClientRect();
+    const scale = Math.max(1, window.devicePixelRatio || 1);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(rect.width * scale));
+    canvas.height = Math.max(1, Math.round(rect.height * scale));
+    const ctx = canvas.getContext("2d");
+    const style = window.getComputedStyle ? window.getComputedStyle(editorArea) : null;
+    ctx.fillStyle = style && style.backgroundColor && style.backgroundColor !== "rgba(0, 0, 0, 0)"
+        ? style.backgroundColor
+        : "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return canvas;
+}
+
+function isVisibleShareCaptureElement(element) {
+    if (!element) {
+        return false;
+    }
+    const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0
+        && rect.height > 0
+        && (!style || (style.display !== "none" && style.visibility !== "hidden"));
+}
+
+async function captureShareElementCanvas(element, options, timeoutMs) {
+    if (!isVisibleShareCaptureElement(element)) {
+        return null;
+    }
+    const captureOptions = Object.assign({useCORS: true}, options || {});
+    const originalOnClone = captureOptions.onclone;
+    captureOptions.onclone = function (clonedDocument) {
+        const clonedPreviewPane = clonedDocument.getElementById("htmlPreviewPane");
+        if (clonedPreviewPane && clonedPreviewPane.parentNode) {
+            clonedPreviewPane.parentNode.removeChild(clonedPreviewPane);
+        }
+        if (typeof originalOnClone === "function") {
+            originalOnClone(clonedDocument);
+        }
+    };
+    return withSharePreviewTimeout(
+        html2canvas(element, captureOptions),
+        timeoutMs || 6000
+    ).catch(function () {
+        return null;
+    });
+}
+
+async function paintShareElementOntoCanvas(canvas, editorArea, element, options) {
+    const elementCanvas = await captureShareElementCanvas(element, options, 6500);
+    if (elementCanvas) {
+        drawCanvasAtElementRect(canvas, elementCanvas, editorArea, element);
+    }
+    return canvas;
 }
 
 async function paintSharePreviewFrameOntoCanvas(canvas, editorArea, frame) {
@@ -978,7 +1298,35 @@ async function paintSharePreviewFrameOntoCanvas(canvas, editorArea, frame) {
     }
     try {
         const frameCanvas = await captureSharePreviewFrame(frame);
-        drawCanvasAtElementRect(canvas, frameCanvas, editorArea, frame);
+        const rootRect = editorArea.getBoundingClientRect();
+        const frameRect = frame.getBoundingClientRect();
+        const scaleX = canvas.width / rootRect.width;
+        const scaleY = canvas.height / rootRect.height;
+        const destinationRect = {
+            x: Math.round((frameRect.left - rootRect.left) * scaleX),
+            y: Math.round((frameRect.top - rootRect.top) * scaleY),
+            width: Math.round(frameRect.width * scaleX),
+            height: Math.round(frameRect.height * scaleY)
+        };
+        const ctx = canvas.getContext("2d");
+        ctx.save();
+        if (typeof ctx.setTransform === "function") {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(
+            frameCanvas,
+            0,
+            0,
+            frameCanvas.width,
+            frameCanvas.height,
+            destinationRect.x,
+            destinationRect.y,
+            destinationRect.width,
+            destinationRect.height
+        );
+        ctx.restore();
     } catch (e) {
     }
     return canvas;
@@ -997,7 +1345,13 @@ async function paintSharePreviewControlsOntoCanvas(canvas, editorArea) {
     try {
         const controlsCanvas = await html2canvas(controls, {
             backgroundColor: null,
-            useCORS: true
+            useCORS: true,
+            onclone: function (clonedDocument) {
+                const clonedPreviewPane = clonedDocument.getElementById("htmlPreviewPane");
+                if (clonedPreviewPane && clonedPreviewPane.parentNode) {
+                    clonedPreviewPane.parentNode.removeChild(clonedPreviewPane);
+                }
+            }
         });
         drawCanvasAtElementRect(canvas, controlsCanvas, editorArea, controls);
     } catch (e) {
@@ -1011,9 +1365,23 @@ async function createShareEditorAreaCanvas() {
         throw new Error("Missing editor area.");
     }
     const frame = await refreshVisibleSharePreviewFrameForCapture();
-    const canvas = await html2canvas(editorArea, {useCORS: true});
-    await paintSharePreviewFrameOntoCanvas(canvas, editorArea, frame);
-    await paintSharePreviewControlsOntoCanvas(canvas, editorArea);
+    const canvas = createBlankShareEditorAreaCanvas(editorArea);
+    const captureChildren = Array.from(editorArea.children || []).filter(function (element) {
+        return element.id !== "htmlPreviewPane" && element.id !== "editorPreviewControls";
+    });
+    for (const child of captureChildren) {
+        await paintShareElementOntoCanvas(canvas, editorArea, child);
+    }
+    await withSharePreviewTimeout(
+        paintSharePreviewFrameOntoCanvas(canvas, editorArea, frame),
+        15000
+    ).catch(function () {
+    });
+    await withSharePreviewTimeout(
+        paintSharePreviewControlsOntoCanvas(canvas, editorArea),
+        4500
+    ).catch(function () {
+    });
     return canvas;
 }
 
