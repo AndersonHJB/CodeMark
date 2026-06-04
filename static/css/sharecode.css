@@ -831,6 +831,48 @@ body.sidebar-resizing #projectSidebar {
     object-fit: contain;
 }
 
+.markdown-date-autofill-button {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 10050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 32px;
+    max-width: calc(100vw - 20px);
+    padding: 0 11px;
+    border: 1px solid rgba(219, 242, 176, 0.42);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(65, 80, 48, 0.94), rgba(31, 34, 27, 0.96));
+    color: #f7f9f0;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.markdown-date-autofill-button.is-visible {
+    display: inline-flex;
+}
+
+.markdown-date-autofill-button:hover {
+    border-color: rgba(109, 221, 242, 0.62);
+    background:
+        linear-gradient(135deg, rgba(73, 93, 52, 0.98), rgba(37, 41, 32, 0.98));
+}
+
+.markdown-date-autofill-button .bi {
+    flex: 0 0 auto;
+    color: #6dddf2;
+    font-size: 14px;
+    line-height: 1;
+}
+
 #htmlPreviewPane {
     position: absolute;
     inset: 0;

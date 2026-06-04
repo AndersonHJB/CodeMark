@@ -17,6 +17,291 @@ function escapeHtml(raw) {
         .replace(/'/g, "&#39;");
 }
 
+const MARKDOWN_METADATA_KEYS = ["title", "icon", "date", "author", "isOriginal"];
+const MARKDOWN_METADATA_KEY_ALIASES = {
+    title: "title",
+    icon: "icon",
+    date: "date",
+    author: "author",
+    isoriginal: "isOriginal",
+    is_original: "isOriginal",
+    "is-original": "isOriginal"
+};
+const MARKDOWN_METADATA_ICON_MAP = {
+    article: {icon: "bi-file-earmark-text", label: "文章"},
+    blog: {icon: "bi-journal-richtext", label: "博客"},
+    book: {icon: "bi-book", label: "书籍"},
+    bookmark: {icon: "bi-bookmark-star", label: "收藏"},
+    calendar: {icon: "bi-calendar3", label: "日期"},
+    checklist: {icon: "bi-card-checklist", label: "清单"},
+    code: {icon: "bi-code-slash", label: "代码"},
+    course: {icon: "bi-mortarboard", label: "课程"},
+    design: {icon: "bi-palette", label: "设计"},
+    diagram: {icon: "bi-diagram-3", label: "图解"},
+    docs: {icon: "bi-file-earmark-text", label: "文档"},
+    folder: {icon: "bi-folder2-open", label: "文件夹"},
+    guide: {icon: "bi-compass", label: "指南"},
+    idea: {icon: "bi-lightbulb", label: "想法"},
+    image: {icon: "bi-camera", label: "图片"},
+    info: {icon: "bi-info-circle", label: "信息"},
+    link: {icon: "bi-link-45deg", label: "链接"},
+    note: {icon: "bi-pencil-square", label: "笔记"},
+    plan: {icon: "bi-kanban", label: "计划"},
+    project: {icon: "bi-layers", label: "项目"},
+    question: {icon: "bi-question-circle", label: "问题"},
+    report: {icon: "bi-graph-up-arrow", label: "报告"},
+    rocket: {icon: "bi-rocket-takeoff", label: "发布"},
+    security: {icon: "bi-shield-check", label: "安全"},
+    star: {icon: "bi-stars", label: "精选"},
+    tag: {icon: "bi-tag", label: "标签"},
+    tags: {icon: "bi-tags", label: "标签"},
+    task: {icon: "bi-check2-circle", label: "任务"},
+    terminal: {icon: "bi-terminal", label: "终端"},
+    tutorial: {icon: "bi-easel2", label: "教程"},
+    warning: {icon: "bi-exclamation-triangle", label: "提醒"}
+};
+
+function normalizeMarkdownMetadataKey(rawKey) {
+    const key = String(rawKey || "").trim();
+    if (!key) {
+        return "";
+    }
+    return MARKDOWN_METADATA_KEY_ALIASES[key] || MARKDOWN_METADATA_KEY_ALIASES[key.toLowerCase()] || "";
+}
+
+function stripMarkdownMetadataInlineComment(rawValue) {
+    const value = String(rawValue || "");
+    let quote = "";
+    for (let index = 0; index < value.length; index++) {
+        const char = value[index];
+        if ((char === "\"" || char === "'") && value[index - 1] !== "\\") {
+            quote = quote === char ? "" : (quote || char);
+            continue;
+        }
+        if (!quote && char === "#" && (index === 0 || /\s/.test(value[index - 1] || ""))) {
+            return value.slice(0, index).trim();
+        }
+    }
+    return value.trim();
+}
+
+function unquoteMarkdownMetadataValue(rawValue) {
+    const value = stripMarkdownMetadataInlineComment(rawValue);
+    if (value.length >= 2) {
+        const first = value[0];
+        const last = value[value.length - 1];
+        if ((first === "\"" && last === "\"") || (first === "'" && last === "'")) {
+            return value.slice(1, -1).replace(/\\(["'])/g, "$1").trim();
+        }
+    }
+    return value;
+}
+
+function readMarkdownMetadataLine(line) {
+    const match = String(line || "").match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (!match) {
+        return null;
+    }
+    const key = normalizeMarkdownMetadataKey(match[1]);
+    if (!key) {
+        return null;
+    }
+    return {
+        key,
+        value: unquoteMarkdownMetadataValue(match[2])
+    };
+}
+
+function assignMarkdownMetadataValue(metadata, parsedLine) {
+    if (!metadata || !parsedLine || !parsedLine.key) {
+        return;
+    }
+    metadata[parsedLine.key] = parsedLine.value;
+}
+
+function hasDisplayableMarkdownMetadata(metadata) {
+    if (!metadata) {
+        return false;
+    }
+    return MARKDOWN_METADATA_KEYS.some(key => {
+        if (!Object.prototype.hasOwnProperty.call(metadata, key)) {
+            return false;
+        }
+        if (key === "isOriginal") {
+            return parseMarkdownMetadataBoolean(metadata[key]) !== null;
+        }
+        return String(metadata[key] || "").trim() !== "";
+    });
+}
+
+function parseMarkdownMetadata(source) {
+    const rawSource = String(source || "").replace(/\r\n?/g, "\n");
+    const lines = rawSource.split("\n");
+    const emptyResult = {
+        metadata: {},
+        body: rawSource,
+        bodyStartLine: 1,
+        hasMetadata: false
+    };
+    if (!lines.length) {
+        return emptyResult;
+    }
+
+    if ((lines[0] || "").trim() === "---") {
+        const metadata = {};
+        let closeIndex = -1;
+        let recognizedCount = 0;
+        for (let index = 1; index < lines.length; index++) {
+            if ((lines[index] || "").trim() === "---") {
+                closeIndex = index;
+                break;
+            }
+            const parsedLine = readMarkdownMetadataLine(lines[index]);
+            if (parsedLine) {
+                assignMarkdownMetadataValue(metadata, parsedLine);
+                recognizedCount += 1;
+            }
+        }
+        if (closeIndex >= 0 && recognizedCount > 0) {
+            return {
+                metadata,
+                body: lines.slice(closeIndex + 1).join("\n"),
+                bodyStartLine: closeIndex + 2,
+                hasMetadata: true
+            };
+        }
+        return emptyResult;
+    }
+
+    const metadata = {};
+    let index = 0;
+    let recognizedCount = 0;
+    while (index < lines.length) {
+        const line = lines[index];
+        if (String(line || "").trim() === "") {
+            if (recognizedCount > 0) {
+                index += 1;
+            }
+            break;
+        }
+        const parsedLine = readMarkdownMetadataLine(line);
+        if (!parsedLine) {
+            break;
+        }
+        assignMarkdownMetadataValue(metadata, parsedLine);
+        recognizedCount += 1;
+        index += 1;
+    }
+
+    if (recognizedCount < 1) {
+        return emptyResult;
+    }
+    return {
+        metadata,
+        body: lines.slice(index).join("\n"),
+        bodyStartLine: index + 1,
+        hasMetadata: true
+    };
+}
+
+function parseMarkdownMetadataBoolean(rawValue) {
+    const value = String(rawValue || "").trim().toLowerCase();
+    if (["true", "1", "yes", "y", "original", "原创"].includes(value)) {
+        return true;
+    }
+    if (["false", "0", "no", "n", "repost", "转载", "非原创"].includes(value)) {
+        return false;
+    }
+    return null;
+}
+
+function getMarkdownMetadataIconConfig(rawIcon) {
+    const code = String(rawIcon || "").trim().toLowerCase();
+    return MARKDOWN_METADATA_ICON_MAP[code] || MARKDOWN_METADATA_ICON_MAP.article;
+}
+
+function createMarkdownMetadataChip(doc, iconClass, label, value, extraClass) {
+    const item = doc.createElement("span");
+    item.className = "markdown-meta-chip" + (extraClass ? " " + extraClass : "");
+    const icon = doc.createElement("i");
+    icon.className = "bi " + iconClass;
+    icon.setAttribute("aria-hidden", "true");
+    item.appendChild(icon);
+    const labelElement = doc.createElement("span");
+    labelElement.className = "markdown-meta-chip-label";
+    labelElement.textContent = label;
+    item.appendChild(labelElement);
+    const valueElement = doc.createElement("span");
+    valueElement.className = "markdown-meta-chip-value";
+    valueElement.textContent = value;
+    item.appendChild(valueElement);
+    return item;
+}
+
+function prependMarkdownMetadataHeader(doc, main, metadata) {
+    if (!doc || !main || !hasDisplayableMarkdownMetadata(metadata)) {
+        return;
+    }
+    const iconConfig = getMarkdownMetadataIconConfig(metadata.icon);
+    const header = doc.createElement("header");
+    header.className = "markdown-meta-card";
+    header.setAttribute("data-codemark-source-line", "1");
+
+    const iconWrap = doc.createElement("div");
+    iconWrap.className = "markdown-meta-icon";
+    iconWrap.setAttribute("aria-hidden", "true");
+    const icon = doc.createElement("i");
+    icon.className = "bi " + iconConfig.icon;
+    iconWrap.appendChild(icon);
+    header.appendChild(iconWrap);
+
+    const content = doc.createElement("div");
+    content.className = "markdown-meta-content";
+
+    const eyebrow = doc.createElement("div");
+    eyebrow.className = "markdown-meta-eyebrow";
+    eyebrow.textContent = iconConfig.label;
+    content.appendChild(eyebrow);
+
+    const title = String(metadata.title || "").trim();
+    if (title) {
+        const titleElement = doc.createElement("div");
+        titleElement.className = "markdown-meta-title";
+        titleElement.setAttribute("role", "heading");
+        titleElement.setAttribute("aria-level", "1");
+        titleElement.textContent = title;
+        content.appendChild(titleElement);
+        doc.title = title;
+    }
+
+    const chips = doc.createElement("div");
+    chips.className = "markdown-meta-chips";
+    const author = String(metadata.author || "").trim();
+    const date = String(metadata.date || "").trim();
+    if (author) {
+        chips.appendChild(createMarkdownMetadataChip(doc, "bi-person", "作者", author));
+    }
+    if (date) {
+        chips.appendChild(createMarkdownMetadataChip(doc, "bi-calendar3", "日期", date));
+    }
+    const original = parseMarkdownMetadataBoolean(metadata.isOriginal);
+    if (original !== null) {
+        chips.appendChild(createMarkdownMetadataChip(
+            doc,
+            original ? "bi-patch-check" : "bi-box-arrow-up-right",
+            "类型",
+            original ? "原创" : "转载",
+            original ? "is-original" : "is-repost"
+        ));
+    }
+    if (chips.children.length) {
+        content.appendChild(chips);
+    }
+
+    header.appendChild(content);
+    main.insertBefore(header, main.firstChild);
+}
+
 function isSharedCodePage() {
     return window.location.pathname.indexOf("/share/") === 0;
 }
@@ -1300,7 +1585,8 @@ function protectMarkdownInlineMath(line, sourceLine, segments) {
     return output;
 }
 
-function protectMarkdownMath(source) {
+function protectMarkdownMath(source, sourceLineOffset) {
+    const lineOffset = Math.max(0, Number(sourceLineOffset) || 0);
     const segments = [];
     const lines = String(source || "").split("\n");
     const outputLines = [];
@@ -1309,7 +1595,7 @@ function protectMarkdownMath(source) {
 
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         const line = lines[lineIndex];
-        const sourceLine = lineIndex + 1;
+        const sourceLine = lineIndex + 1 + lineOffset;
         const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})/);
         if (fenceMatch) {
             const marker = fenceMatch[1];
@@ -1414,7 +1700,8 @@ function shouldMarkMarkdownTokenSourceLine(token) {
     return token.nesting !== -1;
 }
 
-function renderMarkdownWithSourceLineMarkers(markdownRenderer, source) {
+function renderMarkdownWithSourceLineMarkers(markdownRenderer, source, sourceLineOffset) {
+    const lineOffset = Math.max(0, Number(sourceLineOffset) || 0);
     if (!markdownRenderer
         || typeof markdownRenderer.parse !== "function"
         || !markdownRenderer.renderer
@@ -1427,7 +1714,7 @@ function renderMarkdownWithSourceLineMarkers(markdownRenderer, source) {
     const tokens = markdownRenderer.parse(String(source || ""), env);
     tokens.forEach(token => {
         if (shouldMarkMarkdownTokenSourceLine(token) && typeof token.attrSet === "function") {
-            token.attrSet("data-codemark-source-line", String(token.map[0] + 1));
+            token.attrSet("data-codemark-source-line", String(token.map[0] + 1 + lineOffset));
         }
     });
     return markdownRenderer.renderer.render(tokens, markdownRenderer.options, env);
@@ -1530,6 +1817,10 @@ function appendMarkdownPreviewStyles(doc) {
         highlightStyle.href = resolvePreviewDocumentUrl(highlightCssPath);
         head.appendChild(highlightStyle);
     }
+    const iconStyle = doc.createElement("link");
+    iconStyle.rel = "stylesheet";
+    iconStyle.href = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css";
+    head.appendChild(iconStyle);
 
     const style = doc.createElement("style");
     style.textContent = `
@@ -1567,6 +1858,114 @@ body {
     margin: 0;
     padding: 0;
     min-width: 0;
+}
+.markdown-meta-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 18px;
+    margin: 0 0 34px;
+    padding: 24px;
+    overflow: hidden;
+    border: 1px solid #d7deca;
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(244, 248, 236, 0.96)),
+        #ffffff;
+    box-shadow:
+        0 18px 48px rgba(48, 55, 37, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.markdown-meta-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: linear-gradient(180deg, #8da83d, #4f8fda);
+}
+.markdown-meta-icon {
+    position: relative;
+    z-index: 1;
+    width: 58px;
+    height: 58px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #22251f;
+    color: #f6f7f2;
+    box-shadow: 0 12px 28px rgba(34, 37, 31, 0.2);
+}
+.markdown-meta-icon .bi {
+    font-size: 28px;
+    line-height: 1;
+}
+.markdown-meta-content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+.markdown-meta-eyebrow {
+    margin: 0 0 6px;
+    color: #69725e;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+.markdown-meta-title {
+    margin: 0;
+    color: #151812;
+    font-size: clamp(1.72rem, 4vw, 2.46rem);
+    font-weight: 850;
+    line-height: 1.16;
+    overflow-wrap: anywhere;
+}
+.markdown-meta-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 16px;
+}
+.markdown-meta-chip {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #d7deca;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: #485142;
+    font-size: 13px;
+    line-height: 1.2;
+}
+.markdown-meta-chip .bi {
+    flex: 0 0 auto;
+    color: #6f8f26;
+    font-size: 14px;
+    line-height: 1;
+}
+.markdown-meta-chip-label {
+    flex: 0 0 auto;
+    color: #69725e;
+    font-weight: 750;
+}
+.markdown-meta-chip-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.markdown-meta-chip.is-original {
+    border-color: #d8e5ba;
+    background: #f2f8e8;
+    color: #35521d;
+}
+.markdown-meta-chip.is-repost {
+    border-color: #d8e2ef;
+    background: #eef6fb;
+    color: #294b64;
 }
 .markdown-body > :first-child {
     margin-top: 0;
@@ -1842,6 +2241,29 @@ body {
     }
     .markdown-body h2 {
         font-size: 1.36em;
+    }
+    .markdown-body > .markdown-meta-card:first-child {
+        grid-template-columns: 1fr;
+        gap: 13px;
+        margin-top: 86px;
+        margin-bottom: 26px;
+        padding: 20px;
+    }
+    .markdown-meta-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+    }
+    .markdown-meta-icon .bi {
+        font-size: 23px;
+    }
+    .markdown-meta-chip {
+        width: 100%;
+        border-radius: 8px;
+    }
+    .markdown-meta-chip-value {
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 }
 @media (max-width: 1080px) {
@@ -2703,12 +3125,15 @@ function appendMarkdownMermaidRuntime(doc) {
 
 function appendMarkdownPreviewContent(doc, file, resourceMap) {
     const renderer = getMarkdownRenderer();
-    const protectedMarkdown = protectMarkdownMath(file.content || "");
-    const renderedHtml = renderMarkdownWithSourceLineMarkers(renderer, protectedMarkdown.source);
+    const parsedMetadata = parseMarkdownMetadata(file.content || "");
+    const sourceLineOffset = Math.max(0, (parsedMetadata.bodyStartLine || 1) - 1);
+    const protectedMarkdown = protectMarkdownMath(parsedMetadata.body || "", sourceLineOffset);
+    const renderedHtml = renderMarkdownWithSourceLineMarkers(renderer, protectedMarkdown.source, sourceLineOffset);
     const main = doc.createElement("main");
     main.className = "markdown-body";
     main.innerHTML = sanitizeMarkdownHtml(renderedHtml);
     restoreMarkdownMathPlaceholders(main, protectedMarkdown.segments);
+    prependMarkdownMetadataHeader(doc, main, parsedMetadata.metadata);
     doc.body.appendChild(main);
 
     rewriteMarkdownPreviewResources(doc, file, resourceMap);

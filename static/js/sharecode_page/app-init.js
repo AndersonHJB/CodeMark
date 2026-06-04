@@ -40,6 +40,9 @@ window.addEventListener("load", async function () {
     if (typeof bindMarkdownImagePaste === "function") {
         bindMarkdownImagePaste();
     }
+    if (typeof bindMarkdownMetadataDateAutofill === "function") {
+        bindMarkdownMetadataDateAutofill();
+    }
     setProjectTreeSelectionVisible(false);
 
     const initialState = resolveInitialState();
