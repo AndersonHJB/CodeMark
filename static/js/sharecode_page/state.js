@@ -190,7 +190,17 @@ const VSCODE_CONFIG_STEM_ICON_ALIASES = {
     vue: "file-type-vue",
     webpack: "file-type-webpack"
 };
-const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]);
+const IMAGE_EXTENSIONS = new Set([
+    "png", "apng",
+    "jpg", "jpeg", "jpe", "jfif", "pjpeg", "pjp",
+    "gif", "webp", "bmp", "dib",
+    "svg", "svgz",
+    "ico", "cur",
+    "avif",
+    "tif", "tiff",
+    "heic", "heif",
+    "jp2", "j2k", "jpf", "jpx"
+]);
 const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "flac", "aac", "m4a"]);
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "mkv", "avi"]);
 const ARCHIVE_EXTENSIONS = new Set(["zip", "rar", "7z", "tar", "gz", "tgz"]);

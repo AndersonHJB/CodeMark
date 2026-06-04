@@ -4,6 +4,30 @@ let markdownImageHoverPreviewElement = null;
 let markdownImageHoverPreviewImage = null;
 let markdownImageHoverLastKey = "";
 let markdownImageHoverLastMouse = {x: 0, y: 0};
+const MARKDOWN_PASTE_IMAGE_MIME_EXTENSIONS = {
+    "image/apng": "apng",
+    "image/avif": "avif",
+    "image/bmp": "bmp",
+    "image/gif": "gif",
+    "image/heic": "heic",
+    "image/heif": "heif",
+    "image/ico": "ico",
+    "image/icon": "ico",
+    "image/jp2": "jp2",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/pjpeg": "jpg",
+    "image/png": "png",
+    "image/svg+xml": "svg",
+    "image/tiff": "tiff",
+    "image/vnd.microsoft.icon": "ico",
+    "image/webp": "webp",
+    "image/x-bmp": "bmp",
+    "image/x-icon": "ico",
+    "image/x-ms-bmp": "bmp",
+    "image/x-png": "png",
+    "image/x-tiff": "tiff"
+};
 
 function getClipboardImageFiles(event) {
     const clipboardData = event && event.clipboardData;
@@ -29,11 +53,19 @@ function getClipboardImageFiles(event) {
 
 function getClipboardImageExtension(file) {
     const mimeType = String((file && file.type) || "").toLowerCase();
+    if (MARKDOWN_PASTE_IMAGE_MIME_EXTENSIONS[mimeType]) {
+        return MARKDOWN_PASTE_IMAGE_MIME_EXTENSIONS[mimeType];
+    }
     const mimeExt = mimeType.split("/")[1] || "";
     if (mimeExt) {
         if (mimeExt === "jpeg") return "jpg";
+        if (mimeExt === "pjpeg") return "jpg";
         if (mimeExt === "svg+xml") return "svg";
-        return mimeExt.split(/[+;]/)[0].replace(/[^a-z0-9]/g, "") || "png";
+        if (mimeExt === "vnd.microsoft.icon" || mimeExt === "x-icon") return "ico";
+        const normalizedMimeExt = mimeExt.split(/[+;]/)[0].replace(/[^a-z0-9]/g, "");
+        if (normalizedMimeExt && IMAGE_EXTENSIONS.has(normalizedMimeExt)) {
+            return normalizedMimeExt;
+        }
     }
     const filename = String((file && file.name) || "").toLowerCase();
     const ext = filename.includes(".") ? filename.split(".").pop() : "";
