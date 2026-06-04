@@ -1862,10 +1862,10 @@ body {
 .markdown-meta-card {
     position: relative;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 22px;
     margin: 0 0 34px;
-    padding: 24px;
+    padding: 26px 28px 26px 30px;
     overflow: hidden;
     border: 1px solid #d7deca;
     border-radius: 8px;
@@ -1886,19 +1886,50 @@ body {
 .markdown-meta-icon {
     position: relative;
     z-index: 1;
-    width: 58px;
-    height: 58px;
+    isolation: isolate;
+    width: 72px;
+    height: 72px;
     border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #22251f;
-    color: #f6f7f2;
-    box-shadow: 0 12px 28px rgba(34, 37, 31, 0.2);
+    border: 1px solid rgba(132, 156, 70, 0.34);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(236, 245, 224, 0.96)),
+        #f7faef;
+    color: #5b761f;
+    box-shadow:
+        0 16px 34px rgba(75, 93, 38, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+.markdown-meta-icon::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: 7px;
+    border: 1px solid rgba(116, 143, 53, 0.22);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow: inset 0 -12px 18px rgba(141, 168, 61, 0.08);
+}
+.markdown-meta-icon::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    left: 14px;
+    right: 14px;
+    bottom: 11px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #8da83d, #4f8fda);
+    opacity: 0.78;
 }
 .markdown-meta-icon .bi {
-    font-size: 28px;
+    position: relative;
+    z-index: 2;
+    font-size: 30px;
     line-height: 1;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72));
 }
 .markdown-meta-content {
     position: relative;
@@ -2250,12 +2281,22 @@ body {
         padding: 20px;
     }
     .markdown-meta-icon {
-        width: 48px;
-        height: 48px;
+        width: 56px;
+        height: 56px;
         border-radius: 8px;
     }
+    .markdown-meta-icon::before {
+        inset: 6px;
+        border-radius: 6px;
+    }
+    .markdown-meta-icon::after {
+        left: 12px;
+        right: 12px;
+        bottom: 9px;
+        height: 2px;
+    }
     .markdown-meta-icon .bi {
-        font-size: 23px;
+        font-size: 25px;
     }
     .markdown-meta-chip {
         width: 100%;
