@@ -27,7 +27,7 @@ function setSidebarOpen(open) {
     }
     if (sidebarLogoButton) {
         sidebarLogoButton.setAttribute("aria-expanded", sidebarOpen ? "true" : "false");
-        sidebarLogoButton.setAttribute("aria-label", sidebarOpen ? "CodeMark logo" : "点击展开边栏");
+        sidebarLogoButton.setAttribute("aria-label", sidebarOpen ? "点击折叠边栏" : "点击展开边栏");
     }
     setTimeout(function () {
         if (window.editor) {
@@ -96,9 +96,7 @@ function toggleProjectTreeSelectionVisible() {
 }
 
 function handleSidebarLogoClick() {
-    if (!sidebarOpen) {
-        setSidebarOpen(true);
-    }
+    toggleProjectSidebar();
 }
 
 function collapseProjectSidebar() {
