@@ -18,23 +18,101 @@ const SHARECODE_LINE_HIGHLIGHT_GUTTER_CLASS = "codemark-line-highlight-gutter";
 const SIDEBAR_DEFAULT_WIDTH = 236;
 const SIDEBAR_MIN_WIDTH = 184;
 const SIDEBAR_MAX_WIDTH = 520;
-const LANGUAGE_TO_EXTENSION = {
-    python: "py",
-    javascript: "js",
-    c_cpp: "cpp",
-    java: "java",
-    php: "php",
-    ruby: "rb",
-    golang: "go",
-    html: "html",
-    css: "css",
-    markdown: "md"
-};
+const SHARECODE_LANGUAGES = [
+    {value: "python", label: "Python", extension: "py", aceMode: "python", highlight: "python", aliases: ["py", "pyw", "pyi", "python3"], extensions: ["py", "pyw", "pyi"]},
+    {value: "javascript", label: "JavaScript", extension: "js", aceMode: "javascript", highlight: "javascript", aliases: ["js", "mjs", "cjs", "node"], extensions: ["js", "mjs", "cjs"]},
+    {value: "typescript", label: "TypeScript", extension: "ts", aceMode: "typescript", highlight: "typescript", aliases: ["ts", "mts", "cts"], extensions: ["ts", "mts", "cts"]},
+    {value: "jsx", label: "JSX", extension: "jsx", aceMode: "jsx", highlight: "javascript", aliases: ["react"], extensions: ["jsx"]},
+    {value: "tsx", label: "TSX", extension: "tsx", aceMode: "tsx", highlight: "typescript", aliases: ["react-ts", "reacttsx"], extensions: ["tsx"]},
+    {value: "c_cpp", label: "C/C++", extension: "cpp", aceMode: "c_cpp", highlight: "cpp", aliases: ["c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx", "c++"], extensions: ["c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx", "ino"]},
+    {value: "java", label: "Java", extension: "java", aceMode: "java", highlight: "java", aliases: ["jav"], extensions: ["java"]},
+    {value: "php", label: "PHP", extension: "php", aceMode: "php", highlight: "php", aliases: ["phtml"], extensions: ["php", "inc", "phtml", "phps", "blade.php"]},
+    {value: "ruby", label: "Ruby", extension: "rb", aceMode: "ruby", highlight: "ruby", aliases: ["rb", "rake"], extensions: ["rb", "ru", "gemspec", "rake"]},
+    {value: "golang", label: "Go", extension: "go", aceMode: "golang", highlight: "go", aliases: ["go", "golang"], extensions: ["go"]},
+    {value: "html", label: "HTML", extension: "html", aceMode: "html", highlight: "xml", aliases: ["htm", "xhtml"], extensions: ["html", "htm", "xhtml"]},
+    {value: "css", label: "CSS", extension: "css", aceMode: "css", highlight: "css", aliases: [], extensions: ["css"]},
+    {value: "scss", label: "SCSS", extension: "scss", aceMode: "scss", highlight: "scss", aliases: [], extensions: ["scss"]},
+    {value: "sass", label: "Sass", extension: "sass", aceMode: "sass", highlight: "scss", aliases: [], extensions: ["sass"]},
+    {value: "less", label: "Less", extension: "less", aceMode: "less", highlight: "less", aliases: [], extensions: ["less"]},
+    {value: "markdown", label: "Markdown", extension: "md", aceMode: "markdown", highlight: "markdown", aliases: ["md", "mdown", "mkd", "mkdn"], extensions: ["md", "markdown", "mdown", "mkd", "mkdn"]},
+    {value: "json", label: "JSON", extension: "json", aceMode: "json", highlight: "json", aliases: ["jsonc", "json5"], extensions: ["json", "jsonc", "json5"]},
+    {value: "yaml", label: "YAML", extension: "yml", aceMode: "yaml", highlight: "yaml", aliases: ["yml"], extensions: ["yaml", "yml"]},
+    {value: "xml", label: "XML", extension: "xml", aceMode: "xml", highlight: "xml", aliases: ["xsd", "xsl", "xslt"], extensions: ["xml", "xsd", "xsl", "xslt", "rdf", "rss", "wsdl"]},
+    {value: "sql", label: "SQL", extension: "sql", aceMode: "sql", highlight: "sql", aliases: ["mysql", "pgsql", "postgres", "postgresql"], extensions: ["sql", "mysql", "pgsql"]},
+    {value: "sh", label: "Shell/Bash", extension: "sh", aceMode: "sh", highlight: "shell", aliases: ["bash", "shell", "zsh", "fish", "ksh"], extensions: ["sh", "bash", "zsh", "fish", "ksh"]},
+    {value: "csharp", label: "C#", extension: "cs", aceMode: "csharp", highlight: "csharp", aliases: ["cs", "c#"], extensions: ["cs", "csx"]},
+    {value: "rust", label: "Rust", extension: "rs", aceMode: "rust", highlight: "rust", aliases: ["rs"], extensions: ["rs"]},
+    {value: "swift", label: "Swift", extension: "swift", aceMode: "swift", highlight: "swift", aliases: [], extensions: ["swift"]},
+    {value: "kotlin", label: "Kotlin", extension: "kt", aceMode: "kotlin", highlight: "kotlin", aliases: ["kt", "kts"], extensions: ["kt", "kts"]},
+    {value: "dart", label: "Dart", extension: "dart", aceMode: "dart", highlight: "dart", aliases: [], extensions: ["dart"]},
+    {value: "lua", label: "Lua", extension: "lua", aceMode: "lua", highlight: "lua", aliases: [], extensions: ["lua"]},
+    {value: "r", label: "R", extension: "r", aceMode: "r", highlight: "r", aliases: ["rscript"], extensions: ["r", "rmd"]},
+    {value: "perl", label: "Perl", extension: "pl", aceMode: "perl", highlight: "perl", aliases: ["pl", "pm"], extensions: ["pl", "pm", "pod", "t"]},
+    {value: "scala", label: "Scala", extension: "scala", aceMode: "scala", highlight: "scala", aliases: [], extensions: ["scala", "sbt"]},
+    {value: "groovy", label: "Groovy", extension: "groovy", aceMode: "groovy", highlight: "groovy", aliases: ["gradle"], extensions: ["groovy", "gradle"]},
+    {value: "haskell", label: "Haskell", extension: "hs", aceMode: "haskell", highlight: "haskell", aliases: ["hs"], extensions: ["hs", "lhs"]},
+    {value: "clojure", label: "Clojure", extension: "clj", aceMode: "clojure", highlight: "clojure", aliases: ["clj", "cljs", "cljc", "edn"], extensions: ["clj", "cljs", "cljc", "edn"]},
+    {value: "elixir", label: "Elixir", extension: "ex", aceMode: "elixir", highlight: "elixir", aliases: ["ex", "exs"], extensions: ["ex", "exs"]},
+    {value: "erlang", label: "Erlang", extension: "erl", aceMode: "erlang", highlight: "erlang", aliases: ["erl", "hrl"], extensions: ["erl", "hrl"]},
+    {value: "julia", label: "Julia", extension: "jl", aceMode: "julia", highlight: "julia", aliases: ["jl"], extensions: ["jl"]},
+    {value: "matlab", label: "MATLAB", extension: "m", aceMode: "matlab", highlight: "matlab", aliases: [], extensions: ["m"]},
+    {value: "objectivec", label: "Objective-C", extension: "mm", aceMode: "objectivec", highlight: "objectivec", aliases: ["objc", "obj-c"], extensions: ["mm"]},
+    {value: "powershell", label: "PowerShell", extension: "ps1", aceMode: "powershell", highlight: "powershell", aliases: ["ps1", "psm1", "psd1"], extensions: ["ps1", "psm1", "psd1"]},
+    {value: "dockerfile", label: "Dockerfile", extension: "Dockerfile", aceMode: "dockerfile", highlight: "dockerfile", aliases: ["docker"], extensions: ["dockerfile"], filenames: ["Dockerfile"]},
+    {value: "makefile", label: "Makefile", extension: "mk", aceMode: "makefile", highlight: "makefile", aliases: ["make"], extensions: ["mk", "mak", "make"], filenames: ["Makefile", "GNUmakefile"]},
+    {value: "ini", label: "INI", extension: "ini", aceMode: "ini", highlight: "ini", aliases: ["cfg", "conf"], extensions: ["ini", "cfg", "prefs"]},
+    {value: "toml", label: "TOML", extension: "toml", aceMode: "toml", highlight: "toml", aliases: [], extensions: ["toml"]},
+    {value: "diff", label: "Diff/Patch", extension: "diff", aceMode: "diff", highlight: "diff", aliases: ["patch"], extensions: ["diff", "patch"]},
+    {value: "graphql", label: "GraphQL", extension: "gql", aceMode: "graphqlschema", highlight: "graphql", aliases: ["gql", "graphqls"], extensions: ["gql", "graphql", "graphqls"]},
+    {value: "terraform", label: "Terraform", extension: "tf", aceMode: "terraform", highlight: "hcl", aliases: ["tf", "tfvars", "hcl"], extensions: ["tf", "tfvars", "hcl"]},
+    {value: "protobuf", label: "Protocol Buffers", extension: "proto", aceMode: "protobuf", highlight: "protobuf", aliases: ["proto"], extensions: ["proto"]},
+    {value: "nginx", label: "Nginx", extension: "nginx", aceMode: "nginx", highlight: "nginx", aliases: [], extensions: ["nginx"]},
+    {value: "vue", label: "Vue", extension: "vue", aceMode: "html", highlight: "xml", aliases: [], extensions: ["vue"]},
+    {value: "plaintext", label: "Plain Text", extension: "txt", aceMode: "plain_text", highlight: "plaintext", aliases: ["txt", "text", "plain"], extensions: ["txt", "text", "log"]}
+];
+const SHARECODE_LANGUAGE_CONFIG = SHARECODE_LANGUAGES.reduce((map, language) => {
+    map[language.value] = language;
+    return map;
+}, {});
+const SHARECODE_LANGUAGE_VALUES = new Set(SHARECODE_LANGUAGES.map(language => language.value));
+const LANGUAGE_TO_EXTENSION = SHARECODE_LANGUAGES.reduce((map, language) => {
+    map[language.value] = language.extension;
+    return map;
+}, {});
+const LANGUAGE_ALIASES = SHARECODE_LANGUAGES.reduce((map, language) => {
+    map[language.value] = language.value;
+    (language.aliases || []).forEach(alias => {
+        map[String(alias).toLowerCase()] = language.value;
+    });
+    return map;
+}, {});
+const EXTENSION_LANGUAGE_MAP = SHARECODE_LANGUAGES.reduce((map, language) => {
+    (language.extensions || [language.extension]).forEach(extension => {
+        const normalized = String(extension || "").toLowerCase();
+        if (normalized && normalized.indexOf(".") === -1 && !map[normalized]) {
+            map[normalized] = language.value;
+        }
+    });
+    return map;
+}, {});
+const MULTI_EXTENSION_LANGUAGE_MAP = SHARECODE_LANGUAGES.reduce((map, language) => {
+    (language.extensions || []).forEach(extension => {
+        const normalized = String(extension || "").toLowerCase();
+        if (normalized.indexOf(".") !== -1) {
+            map[normalized] = language.value;
+        }
+    });
+    return map;
+}, {});
+const FILENAME_LANGUAGE_MAP = SHARECODE_LANGUAGES.reduce((map, language) => {
+    (language.filenames || []).forEach(filename => {
+        map[String(filename || "").toLowerCase()] = language.value;
+    });
+    return map;
+}, {});
 const TEXT_EXTENSIONS = new Set([
-    "py", "js", "ts", "tsx", "jsx", "java", "cpp", "cc", "c", "h", "hpp",
-    "php", "rb", "go", "html", "htm", "css", "scss", "less", "md", "markdown",
-    "mdown", "mkdn", "mkd", "txt", "json",
-    "yaml", "yml", "xml", "sh", "ini", "toml", "sql", "rs", "swift", "kt", "dart"
+    ...Object.keys(EXTENSION_LANGUAGE_MAP),
+    "env", "gitignore", "npmrc", "editorconfig", "properties", "lock"
 ]);
 const SHARECODE_STATIC_PATHS = window.SHARECODE_STATIC_PATHS || {};
 const VSCODE_ICONS_BASE_PATH = SHARECODE_STATIC_PATHS.vscodeIconsBasePath || "/static/vendor/vscode-icons/svg/";

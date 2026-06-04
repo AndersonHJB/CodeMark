@@ -1,7 +1,10 @@
 /* Sharecode toolbar, overlay, download, share, and copy actions. */
 function updatePythonRunButtonVisibility() {
     const active = getActiveProjectFile();
-    const visible = !!(active && active.kind === "text" && (active.language || detectLanguageFromFilename(active.path)) === "python");
+    const activeLanguage = active && active.kind === "text"
+        ? normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path))
+        : "";
+    const visible = activeLanguage === "python";
     document.querySelectorAll(".python-run-btn").forEach(btn => {
         btn.style.display = visible ? "" : "none";
     });
@@ -394,8 +397,8 @@ async function downloadProjectArchivePayload(payload, filename, successMessage, 
 
     const active = getActiveProjectFile();
     const language = active && active.kind === "text"
-        ? (active.language || detectLanguageFromFilename(active.path))
-        : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
+        ? normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path))
+        : getCurrentLanguageValue();
     const code = active && active.kind === "text" ? (active.content || "") : "";
     const formData = new FormData();
     formData.append("project_payload", JSON.stringify(payload));
@@ -500,7 +503,7 @@ function buildSharePayload() {
         .map(f => ({
             path: f.path,
             content: f.content || "",
-            language: f.language || detectLanguageFromFilename(f.path),
+            language: normalizeSharecodeLanguage(f.language || detectLanguageFromFilename(f.path)),
             highlighted_lines: normalizeHighlightedLines(f.highlighted_lines)
         }));
 
@@ -586,17 +589,17 @@ function generateShareLink(payloadOverride) {
         const scopedTextFiles = Array.isArray(payload.text_files) ? payload.text_files : [];
         const primaryTextFile = scopedTextFiles.find(f => f.path === payload.active_file) || scopedTextFiles[0] || null;
         if (primaryTextFile) {
-            language = primaryTextFile.language || detectLanguageFromFilename(primaryTextFile.path);
+            language = normalizeSharecodeLanguage(primaryTextFile.language || detectLanguageFromFilename(primaryTextFile.path));
             code = primaryTextFile.content || "";
         } else {
-            language = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+            language = getCurrentLanguageValue();
             code = "";
         }
     } else {
         const active = getActiveProjectFile();
         language = active && active.kind === "text"
-            ? (active.language || detectLanguageFromFilename(active.path))
-            : (getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG);
+            ? normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path))
+            : getCurrentLanguageValue();
         code = active && active.kind === "text" ? (active.content || "") : "";
     }
 
@@ -1424,7 +1427,7 @@ function goPythonRunPage() {
     if (!active || active.kind !== "text") {
         return;
     }
-    const lang = active.language || detectLanguageFromFilename(active.path);
+    const lang = normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path));
     if (lang !== 'python') {
         return;
     }
@@ -1519,7 +1522,7 @@ function bindSelectorSync() {
     const themeMobile = document.getElementById("theme-selector-mobile");
 
     function onLanguageChange(nextLang) {
-        const lang = nextLang || SHARECODE_DEFAULT_LANG;
+        const lang = normalizeSharecodeLanguage(nextLang);
         const active = getActiveProjectFile();
         if (!active || active.kind !== "text") {
             setLanguageSelectors(lang);

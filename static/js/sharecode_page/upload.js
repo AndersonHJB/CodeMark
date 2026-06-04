@@ -1,6 +1,10 @@
 /* Sharecode file/folder upload, drag/drop import, and progress panel. */
 function shouldTreatAsText(file, path) {
     const safePath = safeNormalizePath(path).toLowerCase();
+    const basename = safePath.split("/").pop() || "";
+    if (FILENAME_LANGUAGE_MAP[basename]) {
+        return true;
+    }
     const ext = safePath.includes(".") ? safePath.split(".").pop() : "";
     if (TEXT_EXTENSIONS.has(ext)) {
         return true;

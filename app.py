@@ -33,6 +33,9 @@ FILE_LANGUAGE_MARKER = "__FILE_LANG___="
 LANGUAGE_FILE_EXTENSIONS = {
     "python": "py",
     "javascript": "js",
+    "typescript": "ts",
+    "jsx": "jsx",
+    "tsx": "tsx",
     "c_cpp": "cpp",
     "java": "java",
     "php": "php",
@@ -40,33 +43,219 @@ LANGUAGE_FILE_EXTENSIONS = {
     "golang": "go",
     "html": "html",
     "css": "css",
+    "scss": "scss",
+    "sass": "sass",
+    "less": "less",
     "markdown": "md",
+    "json": "json",
+    "yaml": "yml",
+    "xml": "xml",
+    "sql": "sql",
+    "sh": "sh",
+    "csharp": "cs",
+    "rust": "rs",
+    "swift": "swift",
+    "kotlin": "kt",
+    "dart": "dart",
+    "lua": "lua",
+    "r": "r",
+    "perl": "pl",
+    "scala": "scala",
+    "groovy": "groovy",
+    "haskell": "hs",
+    "clojure": "clj",
+    "elixir": "ex",
+    "erlang": "erl",
+    "julia": "jl",
+    "matlab": "m",
+    "objectivec": "mm",
+    "powershell": "ps1",
+    "dockerfile": "Dockerfile",
+    "makefile": "mk",
+    "ini": "ini",
+    "toml": "toml",
+    "diff": "diff",
+    "graphql": "gql",
+    "terraform": "tf",
+    "protobuf": "proto",
+    "nginx": "nginx",
+    "vue": "vue",
+    "plaintext": "txt",
 }
 
 EXTENSION_LANGUAGE_MAP = {
     "py": "python",
+    "pyw": "python",
+    "pyi": "python",
     "js": "javascript",
+    "mjs": "javascript",
+    "cjs": "javascript",
+    "ts": "typescript",
+    "mts": "typescript",
+    "cts": "typescript",
+    "jsx": "jsx",
+    "tsx": "tsx",
     "c": "c_cpp",
     "cc": "c_cpp",
     "cpp": "c_cpp",
     "cxx": "c_cpp",
     "h": "c_cpp",
+    "hh": "c_cpp",
     "hpp": "c_cpp",
+    "hxx": "c_cpp",
+    "ino": "c_cpp",
     "java": "java",
     "php": "php",
+    "inc": "php",
+    "phtml": "php",
+    "phps": "php",
     "rb": "ruby",
+    "ru": "ruby",
+    "gemspec": "ruby",
+    "rake": "ruby",
     "go": "golang",
     "html": "html",
     "htm": "html",
+    "xhtml": "html",
     "css": "css",
+    "scss": "scss",
+    "sass": "sass",
+    "less": "less",
     "md": "markdown",
     "markdown": "markdown",
     "mdown": "markdown",
     "mkd": "markdown",
     "mkdn": "markdown",
-    "jsx": "javascript",
-    "ts": "javascript",
-    "tsx": "javascript",
+    "json": "json",
+    "jsonc": "json",
+    "json5": "json",
+    "yaml": "yaml",
+    "yml": "yaml",
+    "xml": "xml",
+    "xsd": "xml",
+    "xsl": "xml",
+    "xslt": "xml",
+    "rdf": "xml",
+    "rss": "xml",
+    "wsdl": "xml",
+    "sql": "sql",
+    "mysql": "sql",
+    "pgsql": "sql",
+    "sh": "sh",
+    "bash": "sh",
+    "zsh": "sh",
+    "fish": "sh",
+    "ksh": "sh",
+    "cs": "csharp",
+    "csx": "csharp",
+    "rs": "rust",
+    "swift": "swift",
+    "kt": "kotlin",
+    "kts": "kotlin",
+    "dart": "dart",
+    "lua": "lua",
+    "r": "r",
+    "rmd": "r",
+    "pl": "perl",
+    "pm": "perl",
+    "pod": "perl",
+    "scala": "scala",
+    "sbt": "scala",
+    "groovy": "groovy",
+    "gradle": "groovy",
+    "hs": "haskell",
+    "lhs": "haskell",
+    "clj": "clojure",
+    "cljs": "clojure",
+    "cljc": "clojure",
+    "edn": "clojure",
+    "ex": "elixir",
+    "exs": "elixir",
+    "erl": "erlang",
+    "hrl": "erlang",
+    "jl": "julia",
+    "m": "matlab",
+    "mm": "objectivec",
+    "ps1": "powershell",
+    "psm1": "powershell",
+    "psd1": "powershell",
+    "dockerfile": "dockerfile",
+    "mk": "makefile",
+    "mak": "makefile",
+    "make": "makefile",
+    "ini": "ini",
+    "cfg": "ini",
+    "prefs": "ini",
+    "toml": "toml",
+    "diff": "diff",
+    "patch": "diff",
+    "gql": "graphql",
+    "graphql": "graphql",
+    "graphqls": "graphql",
+    "tf": "terraform",
+    "tfvars": "terraform",
+    "hcl": "terraform",
+    "proto": "protobuf",
+    "nginx": "nginx",
+    "vue": "vue",
+    "txt": "plaintext",
+    "text": "plaintext",
+    "log": "plaintext",
+}
+
+FILENAME_LANGUAGE_MAP = {
+    "dockerfile": "dockerfile",
+    "makefile": "makefile",
+    "gnumakefile": "makefile",
+}
+
+MULTI_EXTENSION_LANGUAGE_MAP = {
+    "blade.php": "php",
+}
+
+LANGUAGE_ALIASES = {
+    "py": "python",
+    "python3": "python",
+    "js": "javascript",
+    "node": "javascript",
+    "ts": "typescript",
+    "react": "jsx",
+    "react-ts": "tsx",
+    "reacttsx": "tsx",
+    "c": "c_cpp",
+    "cc": "c_cpp",
+    "cpp": "c_cpp",
+    "cxx": "c_cpp",
+    "c++": "c_cpp",
+    "go": "golang",
+    "golang": "golang",
+    "htm": "html",
+    "md": "markdown",
+    "yml": "yaml",
+    "bash": "sh",
+    "shell": "sh",
+    "zsh": "sh",
+    "fish": "sh",
+    "cs": "csharp",
+    "c#": "csharp",
+    "rs": "rust",
+    "kt": "kotlin",
+    "kts": "kotlin",
+    "rb": "ruby",
+    "pl": "perl",
+    "objc": "objectivec",
+    "obj-c": "objectivec",
+    "ps1": "powershell",
+    "docker": "dockerfile",
+    "make": "makefile",
+    "patch": "diff",
+    "gql": "graphql",
+    "hcl": "terraform",
+    "tf": "terraform",
+    "proto": "protobuf",
+    "txt": "plaintext",
+    "text": "plaintext",
+    "plain": "plaintext",
 }
 
 
@@ -99,7 +288,12 @@ def detect_language_from_filename(filename: str) -> str:
     safe_name = normalize_project_relative_path(filename)
     if not safe_name:
         return "python"
-    basename = os.path.basename(safe_name)
+    basename = os.path.basename(safe_name).lower()
+    if basename in FILENAME_LANGUAGE_MAP:
+        return FILENAME_LANGUAGE_MAP[basename]
+    for suffix, language in MULTI_EXTENSION_LANGUAGE_MAP.items():
+        if basename.endswith(f".{suffix}"):
+            return language
     if "." not in basename:
         return "python"
     ext = basename.rsplit(".", 1)[1].lower()
@@ -108,13 +302,23 @@ def detect_language_from_filename(filename: str) -> str:
 
 def normalize_language(language: str, fallback: str = "python") -> str:
     raw_language = (language or "").strip().lower()
+    raw_language = LANGUAGE_ALIASES.get(raw_language, raw_language)
     if raw_language in LANGUAGE_FILE_EXTENSIONS:
         return raw_language
-    return fallback if fallback in LANGUAGE_FILE_EXTENSIONS else "python"
+    normalized_fallback = LANGUAGE_ALIASES.get((fallback or "").strip().lower(), (fallback or "").strip().lower())
+    return normalized_fallback if normalized_fallback in LANGUAGE_FILE_EXTENSIONS else "python"
 
 
 def default_filename_for_language(language: str) -> str:
-    ext = LANGUAGE_FILE_EXTENSIONS.get((language or "").lower(), "txt")
+    raw_language = (language or "").strip().lower()
+    normalized_language = LANGUAGE_ALIASES.get(raw_language, raw_language)
+    if normalized_language not in LANGUAGE_FILE_EXTENSIONS:
+        normalized_language = ""
+    if normalized_language == "dockerfile":
+        return "Dockerfile"
+    if normalized_language == "makefile":
+        return "Makefile"
+    ext = LANGUAGE_FILE_EXTENSIONS.get(normalized_language, "txt")
     if ext == "txt":
         return "main.txt"
     return f"main.{ext}"
@@ -281,6 +485,7 @@ def parse_project_sections(body_lines, project_id=None):
 def persist_project_payload(code_file_path, template_type, language, code, project_payload, project_id):
     """将单文件或多文件项目写入 sharecode 文本，并持久化资源文件。"""
     project_data = project_payload if isinstance(project_payload, dict) else {}
+    language = normalize_language(language)
 
     text_files = []
     folders = []
@@ -642,7 +847,7 @@ def upload_code():
     # 从前端获取代码
     code = request.form.get('code', '')
     # 也可以取一下语言信息
-    language = (request.form.get('language', '') or "python").strip().lower()
+    language = normalize_language(request.form.get('language', '') or "python")
     # 新增获取模板类型（默认用 editor）
     template_type = request.form.get('template', 'editor')
     project_payload_raw = request.form.get('project_payload', '')
@@ -741,7 +946,7 @@ def download_project_zip():
         if text_file_count == 0:
             fallback_code = request.form.get("code", "")
             if fallback_code:
-                fallback_language = (request.form.get("language", "") or "python").strip().lower()
+                fallback_language = normalize_language(request.form.get("language", "") or "python")
                 write_zip_bytes(
                     zip_file,
                     default_filename_for_language(fallback_language),
@@ -833,7 +1038,7 @@ def show_shared_code(project_id):
                     template_type = lines[0].split("=", 1)[1].strip()
                 # 第二行: __LANG__=xxx
                 if len(lines) > 1 and lines[1].startswith("__LANG__="):
-                    lang = lines[1].split("=", 1)[1].strip()
+                    lang = normalize_language(lines[1].split("=", 1)[1].strip())
 
                 body_lines = lines[2:]
                 parsed_project = parse_project_sections(body_lines, project_id=project_id)
@@ -843,7 +1048,7 @@ def show_shared_code(project_id):
                     folders = parsed_project.get("folders", [])
                     if text_files:
                         code_content = text_files[0]["content"]
-                        lang = text_files[0].get("language", lang) or lang
+                        lang = normalize_language(text_files[0].get("language", lang) or lang, lang)
                     else:
                         code_content = ""
                     pre_project = {
@@ -861,7 +1066,7 @@ def show_shared_code(project_id):
                             "text_files": [{
                                 "path": fallback_path,
                                 "content": code_content,
-                                "language": detect_language_from_filename(fallback_path),
+                                "language": normalize_language(lang, detect_language_from_filename(fallback_path)),
                                 "highlighted_lines": [],
                             }],
                             "assets": [],

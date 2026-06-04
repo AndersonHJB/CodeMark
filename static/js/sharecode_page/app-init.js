@@ -31,6 +31,7 @@ window.addEventListener("load", async function () {
         enableSnippets: true,
     });
 
+    populateLanguageSelectors();
     bindEditorLineHighlightSelection();
     bindSelectorSync();
     bindProjectTreeContextMenu();

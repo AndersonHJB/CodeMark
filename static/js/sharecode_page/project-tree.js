@@ -450,7 +450,7 @@ function resetWorkspaceForEmptyProject(language, options) {
     }
     collapsedFolderPaths.clear();
     activeFilePath = "";
-    const emptyLanguage = language || getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+    const emptyLanguage = normalizeSharecodeLanguage(language || getCurrentLanguageValue());
     const viewer = document.getElementById("assetViewer");
     const editorElement = document.getElementById("editor");
     if (viewer) {
@@ -485,7 +485,7 @@ function createProjectFileFromEditorInput() {
     if (!content) {
         return;
     }
-    let language = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+    let language = getCurrentLanguageValue();
     const isReactContent = looksLikeReactCode(content);
     if (isReactContent) {
         language = "javascript";
@@ -607,9 +607,9 @@ function cancelProjectTreeCreate() {
 function getProjectTreeCreateLanguage() {
     const active = getActiveProjectFile();
     if (active && active.kind === "text") {
-        return active.language || detectLanguageFromFilename(active.path);
+        return normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path));
     }
-    return getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+    return getCurrentLanguageValue();
 }
 
 function getPathRelativeToParent(path, parentPath) {
@@ -693,9 +693,9 @@ function commitProjectTreeCreate(kind, parentPath, rawName) {
     }
 
     if (kind === "file") {
-        const selectedLanguage = target.language || getProjectTreeCreateLanguage();
+        const selectedLanguage = normalizeSharecodeLanguage(target.language || getProjectTreeCreateLanguage());
         const filename = getProjectPathName(inputPath);
-        if (filename && filename.indexOf(".") < 0) {
+        if (filename && filename.indexOf(".") < 0 && !FILENAME_LANGUAGE_MAP[filename.toLowerCase()]) {
             inputPath = safeNormalizePath(inputPath + "." + (LANGUAGE_TO_EXTENSION[selectedLanguage] || "txt"));
         }
         const filePath = ensureUniquePath(inputPath);
@@ -711,7 +711,7 @@ function commitProjectTreeCreate(kind, parentPath, rawName) {
             kind: "text",
             path: filePath,
             content: "",
-            language: detectLanguageFromFilename(filePath) || selectedLanguage,
+            language: normalizeSharecodeLanguage(detectLanguageFromFilename(filePath), selectedLanguage),
             highlighted_lines: []
         }, true);
         updateSidebarVisibilityByFileCount(false);
@@ -1464,7 +1464,7 @@ function clearAllProjectFiles() {
     hideFloatingMenuIfOpen();
     hideProjectTreeContextMenu();
     projectTreeCreateTarget = null;
-    const emptyLanguage = getCurrentLanguageValue() || SHARECODE_DEFAULT_LANG;
+    const emptyLanguage = getCurrentLanguageValue();
     if (!hasProjectTreeItems()) {
         resetWorkspaceForEmptyProject(emptyLanguage, {clearFolders: true});
         showProjectNotice(`已清空，继续输入将自动创建 ${defaultFilenameForLanguage(emptyLanguage)}。`);

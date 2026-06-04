@@ -22,21 +22,37 @@ function safeNormalizePath(rawPath) {
 
 function detectLanguageFromFilename(filename) {
     let safePath = safeNormalizePath(filename).toLowerCase();
-    if (safePath.endsWith(".py")) return "python";
-    if (safePath.endsWith(".js") || safePath.endsWith(".jsx") || safePath.endsWith(".ts") || safePath.endsWith(".tsx")) return "javascript";
-    if (safePath.endsWith(".c") || safePath.endsWith(".cpp") || safePath.endsWith(".cc") || safePath.endsWith(".h") || safePath.endsWith(".hpp")) return "c_cpp";
-    if (safePath.endsWith(".java")) return "java";
-    if (safePath.endsWith(".php")) return "php";
-    if (safePath.endsWith(".rb")) return "ruby";
-    if (safePath.endsWith(".go")) return "golang";
-    if (safePath.endsWith(".html") || safePath.endsWith(".htm")) return "html";
-    if (safePath.endsWith(".css")) return "css";
-    if (safePath.endsWith(".md") || safePath.endsWith(".markdown")) return "markdown";
+    if (!safePath) {
+        return SHARECODE_DEFAULT_LANG;
+    }
+    const basename = safePath.split("/").pop() || "";
+    if (FILENAME_LANGUAGE_MAP[basename]) {
+        return FILENAME_LANGUAGE_MAP[basename];
+    }
+    for (const suffix of Object.keys(MULTI_EXTENSION_LANGUAGE_MAP)) {
+        if (basename.endsWith("." + suffix)) {
+            return MULTI_EXTENSION_LANGUAGE_MAP[suffix];
+        }
+    }
+    const dotIndex = basename.lastIndexOf(".");
+    if (dotIndex >= 0 && dotIndex < basename.length - 1) {
+        const extension = basename.slice(dotIndex + 1);
+        return EXTENSION_LANGUAGE_MAP[extension] || SHARECODE_DEFAULT_LANG;
+    }
     return SHARECODE_DEFAULT_LANG;
 }
 
 function defaultFilenameForLanguage(lang) {
-    const ext = LANGUAGE_TO_EXTENSION[lang] || "txt";
+    const rawLanguage = String(lang || "").trim().toLowerCase();
+    const isKnownLanguage = SHARECODE_LANGUAGE_VALUES.has(rawLanguage) || !!LANGUAGE_ALIASES[rawLanguage];
+    const language = isKnownLanguage ? normalizeSharecodeLanguage(rawLanguage) : "";
+    if (language === "dockerfile") {
+        return "Dockerfile";
+    }
+    if (language === "makefile") {
+        return "Makefile";
+    }
+    const ext = language ? (LANGUAGE_TO_EXTENSION[language] || "txt") : "txt";
     return "main." + ext;
 }
 
@@ -72,7 +88,7 @@ function saveSharecodeDraftCache() {
             .map(f => ({
                 path: f.path,
                 content: f.content,
-                language: f.language || detectLanguageFromFilename(f.path),
+                language: normalizeSharecodeLanguage(f.language || detectLanguageFromFilename(f.path)),
                 highlighted_lines: normalizeHighlightedLines(f.highlighted_lines)
             }));
 
@@ -95,7 +111,7 @@ function saveSharecodeDraftCache() {
 function getCurrentLanguageValue() {
     const desktop = document.getElementById("lang-selector-desktop");
     const mobile = document.getElementById("lang-selector-mobile");
-    return (desktop && desktop.value) || (mobile && mobile.value) || SHARECODE_DEFAULT_LANG;
+    return normalizeSharecodeLanguage((desktop && desktop.value) || (mobile && mobile.value));
 }
 
 function getCurrentThemeValue() {
@@ -105,7 +121,7 @@ function getCurrentThemeValue() {
 }
 
 function setLanguageSelectors(lang) {
-    const language = lang || SHARECODE_DEFAULT_LANG;
+    const language = normalizeSharecodeLanguage(lang);
     const desktop = document.getElementById("lang-selector-desktop");
     const mobile = document.getElementById("lang-selector-mobile");
     if (desktop) {
@@ -114,6 +130,49 @@ function setLanguageSelectors(lang) {
     if (mobile) {
         mobile.value = language;
     }
+}
+
+function normalizeSharecodeLanguage(lang, fallback) {
+    const rawLanguage = String(lang || "").trim().toLowerCase();
+    if (SHARECODE_LANGUAGE_VALUES.has(rawLanguage)) {
+        return rawLanguage;
+    }
+    if (LANGUAGE_ALIASES[rawLanguage]) {
+        return LANGUAGE_ALIASES[rawLanguage];
+    }
+    const fallbackLanguage = String(fallback || SHARECODE_DEFAULT_LANG).trim().toLowerCase();
+    if (SHARECODE_LANGUAGE_VALUES.has(fallbackLanguage)) {
+        return fallbackLanguage;
+    }
+    if (LANGUAGE_ALIASES[fallbackLanguage]) {
+        return LANGUAGE_ALIASES[fallbackLanguage];
+    }
+    return SHARECODE_DEFAULT_LANG;
+}
+
+function getSharecodeLanguageConfig(lang) {
+    return SHARECODE_LANGUAGE_CONFIG[normalizeSharecodeLanguage(lang)] || SHARECODE_LANGUAGE_CONFIG[SHARECODE_DEFAULT_LANG];
+}
+
+function renderSharecodeLanguageOptions(selectElement) {
+    if (!selectElement) {
+        return;
+    }
+    const serverLanguage = typeof server_pre_lang === "string" ? server_pre_lang : "";
+    const selectedLanguage = normalizeSharecodeLanguage(selectElement.value || serverLanguage);
+    selectElement.innerHTML = "";
+    SHARECODE_LANGUAGES.forEach(language => {
+        const option = document.createElement("option");
+        option.value = language.value;
+        option.textContent = language.label;
+        selectElement.appendChild(option);
+    });
+    selectElement.value = selectedLanguage;
+}
+
+function populateLanguageSelectors() {
+    renderSharecodeLanguageOptions(document.getElementById("lang-selector-desktop"));
+    renderSharecodeLanguageOptions(document.getElementById("lang-selector-mobile"));
 }
 
 function setThemeSelectors(theme) {
@@ -140,11 +199,10 @@ function setEditorLang(lang) {
     if (!window.editor) {
         return;
     }
-    if (lang === "python") {
-        window.editor.session.setMode("ace/mode/python");
-    } else {
-        window.editor.session.setMode("ace/mode/" + lang);
-    }
+    const language = normalizeSharecodeLanguage(lang);
+    const languageConfig = getSharecodeLanguageConfig(language);
+    const aceMode = languageConfig.aceMode || language;
+    window.editor.session.setMode("ace/mode/" + aceMode);
 }
 
 function upsertProjectFile(fileObj, activate) {
@@ -212,7 +270,7 @@ function syncActiveEditorToProject() {
     const currentFile = getActiveProjectFile();
     if (currentFile && currentFile.kind === "text") {
         currentFile.content = window.editor.getValue();
-        currentFile.language = currentFile.language || detectLanguageFromFilename(currentFile.path);
+        currentFile.language = normalizeSharecodeLanguage(currentFile.language || detectLanguageFromFilename(currentFile.path));
         currentFile.highlighted_lines = normalizeHighlightedLines(currentFile.highlighted_lines);
     }
 }
@@ -231,7 +289,7 @@ function openProjectFile(path) {
         document.getElementById("assetViewer").style.display = "none";
         document.getElementById("editor").style.display = "block";
         window.editor.setValue(targetFile.content || "", -1);
-        const lang = targetFile.language || detectLanguageFromFilename(targetFile.path);
+        const lang = normalizeSharecodeLanguage(targetFile.language || detectLanguageFromFilename(targetFile.path));
         targetFile.language = lang;
         targetFile.highlighted_lines = normalizeHighlightedLines(targetFile.highlighted_lines);
         setLanguageSelectors(lang);

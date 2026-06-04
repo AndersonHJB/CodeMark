@@ -31,7 +31,7 @@ function normalizeServerProject(rawProject) {
             continue;
         }
         const content = typeof item.content === "string" ? item.content : "";
-        const language = item.language || detectLanguageFromFilename(path);
+        const language = normalizeSharecodeLanguage(item.language || detectLanguageFromFilename(path));
         normalized.files.push({
             kind: "text",
             path,
@@ -89,7 +89,7 @@ function resolveInitialState() {
         theme = cache.theme;
     }
     if (cache && typeof cache.language === "string" && cache.language) {
-        language = cache.language;
+        language = normalizeSharecodeLanguage(cache.language);
     }
 
     if (isSharedCodePage) {
@@ -97,7 +97,7 @@ function resolveInitialState() {
         // 仅当服务端确实带回代码时才补一个兜底文件；空分享直接展示空状态
         const fallbackContent = typeof server_pre_code === "string" ? server_pre_code : "";
         if (!project.files.length && !project.folders.length && fallbackContent) {
-            const fallbackLang = server_pre_lang || SHARECODE_DEFAULT_LANG;
+            const fallbackLang = normalizeSharecodeLanguage(server_pre_lang);
             const fallbackPath = defaultFilenameForContent(fallbackLang, fallbackContent);
             project.files.push({
                 kind: "text",
@@ -117,7 +117,7 @@ function resolveInitialState() {
             project = normalizeServerProject(server_pre_project);
         }
         if (!shouldKeepEmptyCacheProject && !project.files.length && !project.folders.length && typeof server_pre_code === "string" && server_pre_code) {
-            const lang = server_pre_lang || SHARECODE_DEFAULT_LANG;
+            const lang = normalizeSharecodeLanguage(server_pre_lang);
             const filePath = defaultFilenameForContent(lang, server_pre_code);
             project.files.push({
                 kind: "text",

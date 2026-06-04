@@ -1128,17 +1128,37 @@ function resolvePreviewDocumentUrl(rawUrl) {
 
 function normalizeMarkdownHighlightLanguage(rawLanguage) {
     const lang = String(rawLanguage || "").trim().toLowerCase();
+    if (!lang) {
+        return "";
+    }
+    const sharecodeLanguage = SHARECODE_LANGUAGE_VALUES.has(lang) ? lang : LANGUAGE_ALIASES[lang];
+    const languageConfig = sharecodeLanguage ? SHARECODE_LANGUAGE_CONFIG[sharecodeLanguage] : null;
+    if (languageConfig && languageConfig.highlight) {
+        return languageConfig.highlight;
+    }
     const aliases = {
         "c++": "cpp",
+        "c#": "csharp",
         c_cpp: "cpp",
+        cs: "csharp",
+        docker: "dockerfile",
+        gql: "graphql",
         golang: "go",
+        hcl: "terraform",
         html: "xml",
         js: "javascript",
         jsx: "javascript",
+        md: "markdown",
+        objc: "objectivec",
         py: "python",
         python3: "python",
+        rb: "ruby",
+        rs: "rust",
+        shell: "shell",
+        sh: "shell",
         ts: "typescript",
-        tsx: "typescript"
+        tsx: "typescript",
+        yml: "yaml"
     };
     return aliases[lang] || lang;
 }
