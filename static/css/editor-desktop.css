@@ -409,3 +409,12 @@ body.console-resizing * {
 #custom-context-menu li:hover {
     background-color: #575757;
 }
+
+.sidebar-action .sidebar-action-icon .bi {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.sidebar-logo-svg {
+    object-fit: contain;
+}

@@ -56,12 +56,20 @@ html, body {
     background-color: #a7c336;
 }
 
+#mobile-files-btn {
+    background-color: #56634a;
+}
+
 #save-btn {
     background-color: #6dddf2;
 }
 
 #open-btn {
     background-color: #f53855;
+}
+
+#folder-btn {
+    background-color: #ca6a4a;
 }
 
 #share-btn {
@@ -167,4 +175,13 @@ html, body {
 /* 隐藏不需要的 bootstrap-select 样式元素 */
 .bootstrap-select {
     display: none !important;
+}
+
+.sidebar-action .sidebar-action-icon .bi {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.sidebar-logo-svg {
+    object-fit: contain;
 }

@@ -4,6 +4,7 @@
 <head>
     <title>Python在线代码编写（移动端）</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- 移动端自适应关键 -->
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <meta name="keywords"
           content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
     <meta name="description"
@@ -14,8 +15,10 @@
 
     <!-- Bootstrap & 其他依赖 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
           rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sharecode.css') }}" rel="stylesheet" media="screen">
     <link href="{{ url_for('static', filename='css/editor-mobile.css') }}" rel="stylesheet" media="screen">
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
@@ -37,6 +40,16 @@
             let server_pre_lang = "python";
         </script>
     {% endif %}
+    <script>
+        let server_pre_project = null;
+        let server_share_project_id = "";
+        window.SHARECODE_STATIC_PATHS = {
+            aceBasePath: "{{ url_for('static', filename='js/ace') }}/",
+            vscodeIconsBasePath: "{{ url_for('static', filename='vendor/vscode-icons/svg') }}/",
+            highlightCssPath: "{{ url_for('static', filename='css/default.min.css') }}",
+            highlightJsPath: "{{ url_for('static', filename='js/highlight.min.js') }}"
+        };
+    </script>
 </head>
 
 <body>
@@ -46,19 +59,33 @@
 <!-- 侧边按钮菜单 -->
 <div class="sidebar-menu" id="sidebarMenu">
     <!-- 单列按钮：Run / Save / Open / Share / Paste / Home -->
-    <button id="run-btn" onclick="handleRunClick()">> run</button>
+    <button id="mobile-files-btn" onclick="toggleProjectSidebar(); closeSidebar();">files</button>
+    <button id="run-btn" class="python-run-btn" onclick="handleRunClick()">> run</button>
     <button id="save-btn" onclick="save()">save</button>
     <button id="open-btn" onclick="performClick('file-input')">open</button>
+    <button id="folder-btn" onclick="openProjectFolderUploadDialog(); closeSidebar();">folder</button>
     <button id="share-btn" onclick="share()">share</button>
     <button id="paste-btn" onclick="pasteCode()">paste</button>
     <button id="home-btn" onclick="home()">home</button>
 
     <!-- 隐藏的上传文件 input -->
-    <input id="file-input" type="file" style="display:none"/>
+    <input id="file-input" type="file" multiple style="display:none"/>
 </div>
 
-<!-- 全屏编辑器 -->
-<div id="editor"></div>
+<div id="appRoot" class="sidebar-collapsed">
+    {% include "_project_sidebar.html" %}
+    <main id="workspaceMain">
+        <div id="editorArea">
+            <div id="editor"></div>
+            <div id="assetViewer"></div>
+            <div id="htmlPreviewPane">
+                <iframe id="htmlPreviewFrame" title="Preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+            </div>
+        </div>
+    </main>
+</div>
+
+{% include "_project_sidebar_support.html" %}
 
 <!-- 底部弹出的控制台 -->
 <div class="mobile-console-container" id="mobileConsole">
@@ -111,6 +138,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
+<script src="{{ url_for('static', filename='vendor/vscode-icons/vscode-icons-map.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/state.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/sidebar.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/project-core.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/line-highlights.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/preview.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/icons.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/project-tree.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/upload.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/ui-actions.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/editor_project_sidebar.js') }}" type="text/javascript"></script>
 
 <script type="text/javascript">
     // 全局 pyodide 对象
@@ -325,6 +363,13 @@
         editor.setValue(initialCode, -1);
         editor.session.on("change", scheduleEditorDraftCacheSave);
         saveEditorDraftCache();
+        if (typeof initializeEditorProjectSidebar === "function") {
+            initializeEditorProjectSidebar({
+                initialCode: window.editor.getValue(),
+                initialLanguage: server_pre_lang,
+                defaultPath: "code.py"
+            });
+        }
     });
 
     // 加载 Pyodide 并预加载常用包
@@ -505,28 +550,20 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     // “打开文件”触发隐藏的 input
     function performClick(elemId) {
+        if (typeof beginEditorProjectUpload === "function" && beginEditorProjectUpload(elemId)) {
+            return;
+        }
         const elem = document.getElementById(elemId);
         if (elem) {
             elem.click();
         }
     }
 
-    // 读文件
-    document.getElementById('file-input').addEventListener('change', function (e) {
-        let file = e.target.files[0];
-        if (!file) {
-            return;
-        }
-        let reader = new FileReader();
-        reader.onload = function (evt) {
-            window.editor.setValue(evt.target.result, -1);
-            scheduleEditorDraftCacheSave();
-        };
-        reader.readAsText(file);
-    }, false);
-
     // 保存为文件
     function save() {
+        if (typeof saveEditorActiveProjectFile === "function" && saveEditorActiveProjectFile("code.py")) {
+            return;
+        }
         let code = window.editor.getValue();
         let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
         saveAs(blob, "code.py");
@@ -538,16 +575,22 @@ except KeyboardInterrupt as _codemark_interrupt:
     }
 
     // 分享功能：上传代码到后端，返回一个可分享的链接
-    function share() {
-        const shareLanguage = (server_pre_lang || "python").toLowerCase();
+    function share(options) {
+        const shareOptions = options || {};
+        window.editorPendingSharePayloadOverride = shareOptions.projectPayloadOverride || null;
+        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const shareLanguage = activeFile
+            ? (activeFile.language || "python").toLowerCase()
+            : (server_pre_lang || "python").toLowerCase();
+        const forcePureShare = !!shareOptions.forcePureShare;
         let runToggleWrapper = document.getElementById("python-run-toggle-wrapper");
         let runSwitch = document.getElementById("run-enabled-switch");
         if (runToggleWrapper) {
-            runToggleWrapper.style.display = shareLanguage === "python" ? "block" : "none";
+            runToggleWrapper.style.display = shareLanguage === "python" && !forcePureShare ? "block" : "none";
         }
         if (runSwitch) {
             // 每次点击 share 时，Python 默认开启运行
-            runSwitch.checked = shareLanguage === "python";
+            runSwitch.checked = shareLanguage === "python" && !forcePureShare;
             runSwitch.onchange = function () {
                 generateShareLink();
             };
@@ -568,22 +611,28 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     // 根据弹窗中的选项生成分享链接
     function generateShareLink() {
-        let code = window.editor.getValue();
-        const shareLanguage = (server_pre_lang || "python").toLowerCase();
-        const runEnabled = shareLanguage === "python"
-            ? document.getElementById("run-enabled-switch").checked
-            : false;
-        const templateType = runEnabled ? "editor" : "sharecode";
+        const payloadOverride = window.editorPendingSharePayloadOverride || null;
+        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const shareLanguage = activeFile
+            ? (activeFile.language || "python").toLowerCase()
+            : (server_pre_lang || "python").toLowerCase();
+        const runSwitch = document.getElementById("run-enabled-switch");
+        const runEnabled = !payloadOverride && shareLanguage === "python" && runSwitch && runSwitch.checked;
+        const shareRequest = typeof buildEditorShareRequestData === "function"
+            ? buildEditorShareRequestData(runEnabled, payloadOverride)
+            : {
+                requestData: {
+                    code: window.editor.getValue(),
+                    language: shareLanguage,
+                    template: runEnabled ? "editor" : "sharecode"
+                }
+            };
 
         $.ajax({
             type: 'post',
             url: '/upload_code',
             dataType: 'json',
-            data: {
-                code: code,
-                language: shareLanguage,
-                template: templateType
-            },
+            data: shareRequest.requestData,
             success: function (d) {
                 let shareLink = d.share_link;
                 // 生成二维码
@@ -670,8 +719,10 @@ except KeyboardInterrupt as _codemark_interrupt:
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css"
           rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sharecode.css') }}" rel="stylesheet" media="screen">
     <link href="{{ url_for('static', filename='css/editor-desktop.css') }}" rel="stylesheet" media="screen">
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
@@ -693,14 +744,31 @@ except KeyboardInterrupt as _codemark_interrupt:
             let server_pre_lang = "python";
         </script>
     {% endif %}
+    <script>
+        let server_pre_project = null;
+        let server_share_project_id = "";
+        window.SHARECODE_STATIC_PATHS = {
+            aceBasePath: "{{ url_for('static', filename='js/ace') }}/",
+            vscodeIconsBasePath: "{{ url_for('static', filename='vendor/vscode-icons/svg') }}/",
+            highlightCssPath: "{{ url_for('static', filename='css/default.min.css') }}",
+            highlightJsPath: "{{ url_for('static', filename='js/highlight.min.js') }}"
+        };
+    </script>
 </head>
 
 <body>
+<div id="appRoot" class="sidebar-collapsed">
+    {% include "_project_sidebar.html" %}
+    <main id="workspaceMain">
 <div class="container-fluid">
     <div class="row no-gutters editor-layout-row" id="editor-main-row">
         <!-- 代码编辑区 -->
-        <div class="col-sm-8 code-container" id="editor-panel">
+        <div class="col-sm-8 code-container" id="editorArea">
             <div id="editor"></div>
+            <div id="assetViewer"></div>
+            <div id="htmlPreviewPane">
+                <iframe id="htmlPreviewFrame" title="Preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+            </div>
         </div>
         <div id="console-resizer" class="console-resizer" aria-hidden="true" title="拖拽调整输出框宽度"></div>
         <!-- 控制台输出区 -->
@@ -730,7 +798,7 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     <!-- 按钮区域 -->
     <div class="row btn-area">
-        <button id="run" onclick="run()">> run</button>
+        <button id="run" class="python-run-btn" onclick="run()">> run</button>
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
         <button id="share" onclick="share()">share</button>
@@ -754,9 +822,13 @@ except KeyboardInterrupt as _codemark_interrupt:
         <div class="help-link-container my-auto ml-3">
             <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
         </div>
-        <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
+        <input id="file-input" type="file" multiple style="position:fixed;top:-1000px;"/>
     </div>
 </div>
+    </main>
+</div>
+
+{% include "_project_sidebar_support.html" %}
 
 <!-- Share Modal -->
 <div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
@@ -856,6 +928,17 @@ except KeyboardInterrupt as _codemark_interrupt:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
+<script src="{{ url_for('static', filename='vendor/vscode-icons/vscode-icons-map.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/state.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/sidebar.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/project-core.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/line-highlights.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/preview.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/icons.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/project-tree.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/upload.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/ui-actions.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/editor_project_sidebar.js') }}" type="text/javascript"></script>
 
 <script type="text/javascript">
     // 防止浏览器前进/后退的缓存
@@ -1260,6 +1343,13 @@ except KeyboardInterrupt as _codemark_interrupt:
         editor.setValue(initialCode, -1);
         editor.session.on("change", scheduleEditorDraftCacheSave);
         saveEditorDraftCache();
+        if (typeof initializeEditorProjectSidebar === "function") {
+            initializeEditorProjectSidebar({
+                initialCode: window.editor.getValue(),
+                initialLanguage: server_pre_lang,
+                defaultPath: "bornforthis_code.py"
+            });
+        }
     });
 
     // 加载 Pyodide，并预先加载一些常用包
@@ -1412,6 +1502,9 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     // 打开文件
     function performClick(elemId) {
+        if (typeof beginEditorProjectUpload === "function" && beginEditorProjectUpload(elemId)) {
+            return;
+        }
         const elem = document.getElementById(elemId);
         if (elem) {
             elem.click();
@@ -1439,22 +1532,31 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     // 保存为文件
     function save() {
+        if (typeof saveEditorActiveProjectFile === "function" && saveEditorActiveProjectFile("bornforthis_code.py")) {
+            return;
+        }
         let code = window.editor.getValue();
         let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
         saveAs(blob, "bornforthis_code.py");
     }
 
     // 分享功能：上传代码到后端，返回一个可分享的链接
-    function share() {
-        const shareLanguage = (server_pre_lang || "python").toLowerCase();
+    function share(options) {
+        const shareOptions = options || {};
+        window.editorPendingSharePayloadOverride = shareOptions.projectPayloadOverride || null;
+        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const shareLanguage = activeFile
+            ? (activeFile.language || "python").toLowerCase()
+            : (server_pre_lang || "python").toLowerCase();
+        const forcePureShare = !!shareOptions.forcePureShare;
         let runToggleWrapper = document.getElementById("python-run-toggle-wrapper");
         let runSwitch = document.getElementById("run-enabled-switch");
         if (runToggleWrapper) {
-            runToggleWrapper.style.display = shareLanguage === "python" ? "block" : "none";
+            runToggleWrapper.style.display = shareLanguage === "python" && !forcePureShare ? "block" : "none";
         }
         if (runSwitch) {
             // 每次点击 share 时，Python 默认开启运行
-            runSwitch.checked = shareLanguage === "python";
+            runSwitch.checked = shareLanguage === "python" && !forcePureShare;
             runSwitch.onchange = function () {
                 generateShareLink();
             };
@@ -1476,22 +1578,28 @@ except KeyboardInterrupt as _codemark_interrupt:
 
     // 根据弹窗中的选项生成分享链接
     function generateShareLink() {
-        let code = window.editor.getValue();
-        const shareLanguage = (server_pre_lang || "python").toLowerCase();
-        const runEnabled = shareLanguage === "python"
-            ? document.getElementById("run-enabled-switch").checked
-            : false;
-        const templateType = runEnabled ? "editor" : "sharecode";
+        const payloadOverride = window.editorPendingSharePayloadOverride || null;
+        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const shareLanguage = activeFile
+            ? (activeFile.language || "python").toLowerCase()
+            : (server_pre_lang || "python").toLowerCase();
+        const runSwitch = document.getElementById("run-enabled-switch");
+        const runEnabled = !payloadOverride && shareLanguage === "python" && runSwitch && runSwitch.checked;
+        const shareRequest = typeof buildEditorShareRequestData === "function"
+            ? buildEditorShareRequestData(runEnabled, payloadOverride)
+            : {
+                requestData: {
+                    code: window.editor.getValue(),
+                    language: shareLanguage,
+                    template: runEnabled ? "editor" : "sharecode"
+                }
+            };
 
         $.ajax({
             type: 'post',
             url: '/upload_code',
             dataType: 'json',
-            data: {
-                code: code,
-                language: shareLanguage,
-                template: templateType
-            },
+            data: shareRequest.requestData,
             success: function (d) {
                 // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
@@ -1553,11 +1661,26 @@ except KeyboardInterrupt as _codemark_interrupt:
     }
 
     // 自动复制与提示
-    function copyToClipboard(text) {
+    function copyToClipboard(text, onSuccess) {
+        if (!text) {
+            return;
+        }
+        const successCallback = typeof onSuccess === "function" ? onSuccess : showCopySuccess;
         if (navigator.clipboard && window.isSecureContext) {
             // 如果支持异步 clipboard API
             navigator.clipboard.writeText(text).then(function () {
-                showCopySuccess();
+                successCallback();
+            }).catch(function () {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                successCallback();
             });
         } else {
             // 兼容不支持异步 clipboard API 的情况
@@ -1570,7 +1693,7 @@ except KeyboardInterrupt as _codemark_interrupt:
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            showCopySuccess();
+            successCallback();
         }
     }
 
@@ -1695,8 +1818,6 @@ autopep8.fix_code(code)
         return str.replace(/\\/g, '\\\\').replace(/\"/g, '\\"');
     }
 
-    // 监听文件选择
-    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
 </script>
 </body>
 </html>
