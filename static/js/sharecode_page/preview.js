@@ -2329,6 +2329,118 @@ body {
     head.appendChild(style);
 }
 
+function shouldResetMarkdownPreviewInitialScroll() {
+    const effectiveMode = getEffectiveShareViewMode();
+    return effectiveMode === SHARE_VIEW_PREVIEW || isHtmlPreviewFullscreenActive();
+}
+
+function appendMarkdownInitialScrollRuntime(doc) {
+    const head = doc.head || doc.documentElement;
+    if (!head || doc.getElementById("codemark-markdown-initial-scroll-runtime")) {
+        return;
+    }
+    const script = doc.createElement("script");
+    script.id = "codemark-markdown-initial-scroll-runtime";
+    setInlineScriptContent(script, `
+(function () {
+    var cancelled = false;
+    var restoreUntil = Date.now() + 900;
+    var userEvents = ["wheel", "touchstart", "touchmove", "pointerdown", "mousedown", "keydown"];
+
+    function hasHashTarget() {
+        return !!(window.location && window.location.hash && window.location.hash !== "#");
+    }
+
+    function cancelInitialRestore() {
+        cancelled = true;
+    }
+
+    function restoreScrollBehavior(callback) {
+        var rootStyle = document.documentElement && document.documentElement.style;
+        var bodyStyle = document.body && document.body.style;
+        var previousRootScrollBehavior = rootStyle ? rootStyle.scrollBehavior : "";
+        var previousBodyScrollBehavior = bodyStyle ? bodyStyle.scrollBehavior : "";
+        if (rootStyle) {
+            rootStyle.scrollBehavior = "auto";
+        }
+        if (bodyStyle) {
+            bodyStyle.scrollBehavior = "auto";
+        }
+        try {
+            callback();
+        } finally {
+            window.requestAnimationFrame(function () {
+                if (rootStyle) {
+                    rootStyle.scrollBehavior = previousRootScrollBehavior;
+                }
+                if (bodyStyle) {
+                    bodyStyle.scrollBehavior = previousBodyScrollBehavior;
+                }
+            });
+        }
+    }
+
+    function scrollPreviewToTop() {
+        if (cancelled || hasHashTarget() || Date.now() > restoreUntil) {
+            return;
+        }
+        restoreScrollBehavior(function () {
+            var scrollElement = document.scrollingElement || document.documentElement || document.body;
+            if (scrollElement) {
+                scrollElement.scrollTop = 0;
+            }
+            if (document.documentElement && document.documentElement !== scrollElement) {
+                document.documentElement.scrollTop = 0;
+            }
+            if (document.body && document.body !== scrollElement) {
+                document.body.scrollTop = 0;
+            }
+            try {
+                window.scrollTo(0, 0);
+            } catch (e) {
+            }
+        });
+    }
+
+    function scheduleScrollPreviewToTop() {
+        if (cancelled || hasHashTarget()) {
+            return;
+        }
+        scrollPreviewToTop();
+        if (window.requestAnimationFrame) {
+            window.requestAnimationFrame(scrollPreviewToTop);
+        }
+        window.setTimeout(scrollPreviewToTop, 0);
+        window.setTimeout(scrollPreviewToTop, 80);
+        window.setTimeout(scrollPreviewToTop, 260);
+        window.setTimeout(scrollPreviewToTop, 620);
+    }
+
+    try {
+        if ("scrollRestoration" in window.history) {
+            window.history.scrollRestoration = "manual";
+        }
+    } catch (e) {
+    }
+
+    userEvents.forEach(function (eventName) {
+        window.addEventListener(eventName, cancelInitialRestore, { passive: true });
+    });
+    window.addEventListener("message", function (event) {
+        var data = event.data || {};
+        if (data.type === "codemark:markdown-sync-source-line") {
+            cancelInitialRestore();
+        }
+    });
+
+    scheduleScrollPreviewToTop();
+    document.addEventListener("DOMContentLoaded", scheduleScrollPreviewToTop, { once: true });
+    window.addEventListener("load", scheduleScrollPreviewToTop, { once: true });
+})();
+`);
+    head.appendChild(script);
+}
+
 function addMarkdownHeadingIdsAndToc(doc) {
     const body = doc.querySelector(".markdown-body");
     if (!body) {
@@ -3206,6 +3318,9 @@ function buildMarkdownPreviewDocument(file) {
     viewport.content = "width=device-width, initial-scale=1.0";
     doc.head.appendChild(viewport);
     appendMarkdownPreviewStyles(doc);
+    if (shouldResetMarkdownPreviewInitialScroll()) {
+        appendMarkdownInitialScrollRuntime(doc);
+    }
 
     appendMarkdownPreviewContent(doc, file, resourceMap);
 
