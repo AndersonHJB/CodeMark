@@ -1,65 +1,115 @@
 # CodeMark🦭
 
-- [简体中文](README.md)
-- [English](EN_README.md)
-- [Releases info](Releases.md)
+CodeMark combines `Code` and `Markdown` into a lightweight browser-based experience for writing, running, managing, and sharing code.
 
-CodeMark combines the features of "Code" and "Markdown," allowing users to write and execute code within Markdown documents.
-
-It aims to reduce the learning pressure for students in programming, although local execution is still recommended. However, online execution provides a good initial experience.
+It is designed for teaching, homework, classroom demos, and code snippet sharing. Students can start with online Python execution before dealing with a full local development environment, while teachers and creators can share runnable examples more easily.
 
 If you are passionate about open source or want to join this meaningful project, feel free to contact me.
 
-Looking for web experts to join the team～
+Looking for Python and Web experts to join the team～
+
+## Project Purpose🎯
+
+CodeMark is not intended to replace a professional IDE. Its goal is to reduce the initial friction of programming education and code sharing.
+
+- For students: focus on code logic and output before configuring a local environment.
+- For teachers: present, assign, explain, and share code examples more efficiently.
+- For creators: combine code, explanation, execution results, and share links in one place.
+- For self-learners: quickly test ideas, save snippets, and continue discussions through shared links.
+
+## Core Features✨
+
+- Online code editing directly in the browser.
+- Python execution powered by Pyodide.
+- Share links and QR codes for code snippets or projects.
+- Project file sidebar with file, folder, upload, download, rename, delete, and selection workflows.
+- Asset preview for imported resources such as images.
+- Pure sharing mode for code projects that do not need execution.
+- Mobile-friendly entry points for editing, sharing, and file management.
+
+## Logo Meaning💡
+
+![CodeMark OK Logo](static/images/logo.png)
+
+The `OK` mark in the upper-left sidebar is a lightweight workspace entry point. It communicates that the project is ready for writing, managing, and sharing code.
+
+- `O`: represents code projects, file collections, and the learning loop.
+- `K`: represents Code, Keyboard, and Knowledge.
+- `OK`: communicates readiness, confirmation, and usability.
+
+In the UI, this logo is not a heavy brand visual. It acts as a clear functional entry: clicking it expands or collapses the project file sidebar, helping users manage files, folders, and code resources.
 
 ## Use Cases🎬
 
-1. Teaching documents;
-2. Homework documents: Students can directly solve and submit homework questions;
-3. Enhancing programming assignments and sharing across major universities;
+1. Teaching documents: teachers can combine examples and explanations for classroom demos.
+2. Homework documents: students can solve coding tasks online and share links for review.
+3. University courses: useful for programming assignments, snippets, and classroom interaction.
+4. Code demos: suitable for quick Python examples, algorithms, or experiment ideas.
+5. Learning notes: useful for small multi-file code projects.
 
-## ChangeLog📔
+## Pages🧭
 
-- 2024-07-20 15:32:17: Continuous trials, from using Django to using Flask;
-- 2024-07-20 15:52:49: Trial version running, can now execute Python code;
-- 2024-07-20 19:15:23: Added editable code on article pages;
-- 2024-07-20 23:26:59: Improved article pages;
-- 2024-07-21 13:50:55: Released the latest version of the UI V0.4
+- `/editor`: runnable Python editor for writing and executing code.
+- `/sharecode`: pure code sharing and multi-file project display.
+- `/share/<project_id>`: shared project page that opens either runnable mode or pure sharing mode.
 
 ## Project Dependencies🖲️
 
-- [pyodide](https://pyodide.org/en/stable/index.html)
+- [Bornforthis](https://bornforthis.cn/)
+- [Flask](https://flask.palletsprojects.com/en/3.0.x/)
+- [CodeMirror](https://codemirror.net/)
+- [CodeMirror CDN](https://cdnjs.com/libraries/codemirror)
+- [Pyodide](https://pyodide.org/en/stable/index.html)
+- [Ace Builds](https://github.com/ajaxorg/ace-builds)
 
-## Statement🖨️
+Python dependencies are listed in `requirements.txt`, including Flask, Markdown, Pillow, qrcode, and other runtime packages.
 
-This project is fully maintained by AI Yuechuang. If you want to use it for graduation projects, course design, etc., please contact me in time. Commercial use is strictly prohibited.
+## Local Setup🚀
 
-## Deploy🧿
+Using a virtual environment is recommended:
 
 ```bash
-sh /home/huangjiabao/domains/cm.class1v1.com/public_python/CodeMark/cp_opt.sh
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
 ```
 
-## Export Dependencies⚙️
+You can also run it with Flask:
+
+```bash
+python -m flask --app app run
+```
+
+## Maintenance Commands⚙️
+
+Export dependencies:
 
 ```bash
 pip freeze > requirements.txt
 ```
 
+Deployment scripts should be adjusted for the actual server path. Avoid reusing local or old absolute paths directly.
+
+## Statement🖨️
+
+This project is fully maintained by AI Yuechuang. If you want to use it for graduation projects, course design, or similar purposes, please contact me in advance. Commercial use is strictly prohibited.
+
+CodeMark is licensed under the GNU General Public License (GPL) Version 3.
+See the LICENSE file for more details.
+
 ## Author✍️& Buy Me a Coffee☕️
 
 ![img_1.png](static/info/img_1.png)
 
-## Plan🖥️
+## About CodeMark
 
-- [ ] UI
-  - [x] Basic code box
-  - [ ] Code box height generated based on existing code;
-  - [ ] Line numbers in code;
-  - [ ] Code execution shortcut: Ctrl/Command + Enter;
-  - [ ] Code highlighting;
-- [ ] Feature Plan
-  - [ ] Code copy
-  - [ ] Article copy prevention
-  - [ ] Users can export currently edited articles
-  - [ ] Users need to log in, after logging in they can choose to share the currently edited code and execution results. Data stored in the database;
+CodeMark is an open-source project created and maintained by 黄家宝|Bornforthis. By using this project, you agree to the terms and conditions of the GNU General Public License (GPL) Version 3.
+
+Any modifications or derivative works based on CodeMark must also follow the GNU GPL license requirements.
+
+## How to Contribute
+
+Contributions are welcome, including feature improvements, bug fixes, documentation updates, and usage feedback. By contributing, you agree that your contributions will be licensed under the same terms as the original project.
+
+
