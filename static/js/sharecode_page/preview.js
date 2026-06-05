@@ -2069,6 +2069,24 @@ body {
     height: auto;
     border-radius: 8px;
 }
+.markdown-body .markdown-image-figure {
+    margin: 1.45em 0;
+    text-align: center;
+}
+.markdown-body .markdown-image-figure img {
+    display: block;
+    margin: 0 auto;
+}
+.markdown-body .markdown-image-figure > a {
+    display: inline-block;
+    max-width: 100%;
+}
+.markdown-body .markdown-image-caption {
+    margin-top: 8px;
+    color: #616b5c;
+    font-size: 0.92em;
+    line-height: 1.55;
+}
 .markdown-body audio {
     width: 100%;
 }
@@ -3202,6 +3220,67 @@ function rewriteMarkdownPreviewResources(doc, file, resourceMap) {
     });
 }
 
+function isBlankTextNode(node) {
+    return node && node.nodeType === 3 && String(node.textContent || "").trim() === "";
+}
+
+function getMeaningfulChildNodes(node) {
+    return Array.from((node && node.childNodes) || []).filter(child => !isBlankTextNode(child));
+}
+
+function getOnlyMarkdownCaptionImage(container) {
+    const children = getMeaningfulChildNodes(container);
+    if (children.length !== 1 || children[0].nodeType !== 1) {
+        return null;
+    }
+    const child = children[0];
+    const tagName = (child.tagName || "").toLowerCase();
+    if (tagName === "img") {
+        return child;
+    }
+    if (tagName !== "a") {
+        return null;
+    }
+    const linkChildren = getMeaningfulChildNodes(child);
+    if (linkChildren.length !== 1 || linkChildren[0].nodeType !== 1) {
+        return null;
+    }
+    return (linkChildren[0].tagName || "").toLowerCase() === "img" ? linkChildren[0] : null;
+}
+
+function renderMarkdownImageCaptions(doc, root) {
+    if (!doc || !root) {
+        return;
+    }
+    root.querySelectorAll("p").forEach(paragraph => {
+        if (paragraph.closest("figure")) {
+            return;
+        }
+        const image = getOnlyMarkdownCaptionImage(paragraph);
+        if (!image) {
+            return;
+        }
+        const caption = String(image.getAttribute("alt") || "").trim();
+        if (!caption) {
+            return;
+        }
+        const figure = doc.createElement("figure");
+        figure.className = "markdown-image-figure";
+        const sourceLine = paragraph.getAttribute("data-codemark-source-line");
+        if (sourceLine) {
+            figure.setAttribute("data-codemark-source-line", sourceLine);
+        }
+        while (paragraph.firstChild) {
+            figure.appendChild(paragraph.firstChild);
+        }
+        const figcaption = doc.createElement("figcaption");
+        figcaption.className = "markdown-image-caption";
+        figcaption.textContent = caption;
+        figure.appendChild(figcaption);
+        paragraph.parentNode.replaceChild(figure, paragraph);
+    });
+}
+
 function updateMarkdownLinkTargets(doc) {
     doc.querySelectorAll(".markdown-body a[href]").forEach(link => {
         const href = (link.getAttribute("href") || "").trim();
@@ -3286,6 +3365,7 @@ function appendMarkdownPreviewContent(doc, file, resourceMap) {
     main.className = "markdown-body";
     main.innerHTML = sanitizeMarkdownHtml(renderedHtml);
     restoreMarkdownMathPlaceholders(main, protectedMarkdown.segments);
+    renderMarkdownImageCaptions(doc, main);
     prependMarkdownMetadataHeader(doc, main, parsedMetadata.metadata);
     doc.body.appendChild(main);
 
