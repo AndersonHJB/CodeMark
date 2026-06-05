@@ -1517,6 +1517,31 @@ function installMarkdownFenceRenderer(markdownRenderer) {
     };
 }
 
+function renderMarkdownImageCaptionHtml(markdownRenderer, token, options, env) {
+    if (!markdownRenderer || !markdownRenderer.renderer || !Array.isArray(token && token.children) || !token.children.length) {
+        return "";
+    }
+    try {
+        return markdownRenderer.renderer.renderInline(token.children, options, env);
+    } catch (e) {
+        return "";
+    }
+}
+
+function installMarkdownImageRenderer(markdownRenderer) {
+    const defaultImage = markdownRenderer.renderer.rules.image || function (tokens, idx, options, env, slf) {
+        return slf.renderToken(tokens, idx, options);
+    };
+    markdownRenderer.renderer.rules.image = function (tokens, idx, options, env, slf) {
+        const token = tokens[idx];
+        const captionHtml = renderMarkdownImageCaptionHtml(markdownRenderer, token, options, env);
+        if (captionHtml && token && typeof token.attrSet === "function") {
+            token.attrSet("data-codemark-image-caption-html", captionHtml);
+        }
+        return defaultImage(tokens, idx, options, env, slf);
+    };
+}
+
 function createMarkdownMathPlaceholder(segments, type, content, openDelimiter, closeDelimiter, sourceLine) {
     const index = segments.length;
     segments.push({
@@ -1761,6 +1786,7 @@ function getMarkdownRenderer() {
     useMarkdownPlugin(renderer, ["markdownitAdmon", "markdownItAdmon"]);
     useMarkdownPlugin(renderer, ["markdownitEmoji", "markdownItEmoji"]);
     installMarkdownFenceRenderer(renderer);
+    installMarkdownImageRenderer(renderer);
 
     markdownItRenderer = renderer;
     return markdownItRenderer;
@@ -1794,6 +1820,7 @@ function sanitizeMarkdownHtml(markup) {
                 "aria-hidden",
                 "checked",
                 "class",
+                "data-codemark-image-caption-html",
                 "data-codemark-math-index",
                 "data-codemark-source-line",
                 "disabled",
@@ -3260,8 +3287,11 @@ function renderMarkdownImageCaptions(doc, root) {
         if (!image) {
             return;
         }
+        const rawCaptionHtml = String(image.getAttribute("data-codemark-image-caption-html") || "").trim();
+        image.removeAttribute("data-codemark-image-caption-html");
         const caption = String(image.getAttribute("alt") || "").trim();
-        if (!caption) {
+        const captionHtml = rawCaptionHtml ? sanitizeMarkdownHtml(rawCaptionHtml).trim() : "";
+        if (!caption && !captionHtml) {
             return;
         }
         const figure = doc.createElement("figure");
@@ -3275,7 +3305,11 @@ function renderMarkdownImageCaptions(doc, root) {
         }
         const figcaption = doc.createElement("figcaption");
         figcaption.className = "markdown-image-caption";
-        figcaption.textContent = caption;
+        if (captionHtml) {
+            figcaption.innerHTML = captionHtml;
+        } else {
+            figcaption.textContent = caption;
+        }
         figure.appendChild(figcaption);
         paragraph.parentNode.replaceChild(figure, paragraph);
     });
