@@ -3,7 +3,8 @@
     const PYODIDE_PROJECT_ROOT = "/codemark_project";
 
     function getPyodideFs() {
-        return window.pyodide && window.pyodide.FS ? window.pyodide.FS : null;
+        const runtime = window.pyodide || (typeof pyodide !== "undefined" ? pyodide : null);
+        return runtime && runtime.FS ? runtime.FS : null;
     }
 
     function normalizeProjectRunPath(path) {
@@ -121,7 +122,8 @@
             return {
                 code: window.editor ? window.editor.getValue() : "",
                 filename: "<codemark-editor>",
-                mainDir: ""
+                mainDir: "",
+                projectRoot: ""
             };
         }
 
@@ -156,7 +158,8 @@
         return {
             code: active && active.kind === "text" ? String(active.content || "") : (window.editor ? window.editor.getValue() : ""),
             filename: filename,
-            mainDir: mainDir
+            mainDir: mainDir,
+            projectRoot: PYODIDE_PROJECT_ROOT
         };
     }
 

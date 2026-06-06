@@ -386,6 +386,7 @@
         pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/"
         });
+        window.pyodide = pyodide;
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
         clearMobileConsole();
         appendMobileConsoleText("Pyodide and packages loaded!\n");
@@ -428,22 +429,44 @@
             pyodide.globals.set("__codemark_user_code", code);
             pyodide.globals.set("__codemark_main_file", runContext.filename || "<codemark-editor>");
             pyodide.globals.set("__codemark_main_dir", runContext.mainDir || "");
+            pyodide.globals.set("__codemark_project_root", runContext.projectRoot || "");
 
             await pyodide.runPythonAsync(`
 import ast
 import builtins
+import importlib
 import js
 import os
 import sys
 
 __codemark_main_file = str(globals().get("__codemark_main_file", "<codemark-editor>") or "<codemark-editor>")
 __codemark_main_dir = str(globals().get("__codemark_main_dir", "") or "")
+__codemark_project_root = str(globals().get("__codemark_project_root", "") or "")
 if "" not in sys.path:
     sys.path.insert(0, "")
 if __codemark_main_dir and __codemark_main_dir not in sys.path:
     sys.path.insert(0, __codemark_main_dir)
 globals()["__file__"] = __codemark_main_file
 globals()["__name__"] = "__main__"
+
+def __clear_codemark_project_modules():
+    if not __codemark_project_root:
+        return
+    project_root = os.path.abspath(__codemark_project_root)
+    project_prefix = project_root.rstrip(os.sep) + os.sep
+    for module_name, module in list(sys.modules.items()):
+        if module_name == "__main__":
+            continue
+        module_file = getattr(module, "__file__", "")
+        if not module_file:
+            continue
+        try:
+            module_path = os.path.abspath(str(module_file))
+        except (TypeError, ValueError):
+            continue
+        if module_path == project_root or module_path.startswith(project_prefix):
+            sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
 
 class PyodideIO:
     def write(self, data):
@@ -521,6 +544,7 @@ builtins.input = __unsupported_sync_input
 sys.stdout = PyodideIO()
 sys.stderr = PyodideIO()
 
+__clear_codemark_project_modules()
 __compile_user_code(__codemark_user_code)
 try:
     await __codemark_user_main__()
@@ -539,6 +563,7 @@ except KeyboardInterrupt as _codemark_interrupt:
                 pyodide.globals.delete("__codemark_user_code");
                 pyodide.globals.delete("__codemark_main_file");
                 pyodide.globals.delete("__codemark_main_dir");
+                pyodide.globals.delete("__codemark_project_root");
             } catch (e) {
             }
         }
@@ -1393,6 +1418,7 @@ except KeyboardInterrupt as _codemark_interrupt:
         pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/"
         });
+        window.pyodide = pyodide;
         // 通过内置的 loadPackage 方式加载 micropip、numpy、pandas 等
         await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
 
@@ -1430,22 +1456,44 @@ await micropip.install("autopep8")
             pyodide.globals.set("__codemark_user_code", code);
             pyodide.globals.set("__codemark_main_file", runContext.filename || "<codemark-editor>");
             pyodide.globals.set("__codemark_main_dir", runContext.mainDir || "");
+            pyodide.globals.set("__codemark_project_root", runContext.projectRoot || "");
 
             await pyodide.runPythonAsync(`
 import ast
 import builtins
+import importlib
 import js
 import os
 import sys
 
 __codemark_main_file = str(globals().get("__codemark_main_file", "<codemark-editor>") or "<codemark-editor>")
 __codemark_main_dir = str(globals().get("__codemark_main_dir", "") or "")
+__codemark_project_root = str(globals().get("__codemark_project_root", "") or "")
 if "" not in sys.path:
     sys.path.insert(0, "")
 if __codemark_main_dir and __codemark_main_dir not in sys.path:
     sys.path.insert(0, __codemark_main_dir)
 globals()["__file__"] = __codemark_main_file
 globals()["__name__"] = "__main__"
+
+def __clear_codemark_project_modules():
+    if not __codemark_project_root:
+        return
+    project_root = os.path.abspath(__codemark_project_root)
+    project_prefix = project_root.rstrip(os.sep) + os.sep
+    for module_name, module in list(sys.modules.items()):
+        if module_name == "__main__":
+            continue
+        module_file = getattr(module, "__file__", "")
+        if not module_file:
+            continue
+        try:
+            module_path = os.path.abspath(str(module_file))
+        except (TypeError, ValueError):
+            continue
+        if module_path == project_root or module_path.startswith(project_prefix):
+            sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
 
 class PyodideIO:
     def write(self, data):
@@ -1523,6 +1571,7 @@ builtins.input = __unsupported_sync_input
 sys.stdout = PyodideIO()
 sys.stderr = PyodideIO()
 
+__clear_codemark_project_modules()
 __compile_user_code(__codemark_user_code)
 try:
     await __codemark_user_main__()
@@ -1541,6 +1590,7 @@ except KeyboardInterrupt as _codemark_interrupt:
                 pyodide.globals.delete("__codemark_user_code");
                 pyodide.globals.delete("__codemark_main_file");
                 pyodide.globals.delete("__codemark_main_dir");
+                pyodide.globals.delete("__codemark_project_root");
             } catch (e) {
             }
         }
