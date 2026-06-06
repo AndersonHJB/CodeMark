@@ -123,6 +123,7 @@
         }
 
         const textFiles = Array.isArray(cacheProject.text_files) ? cacheProject.text_files : [];
+        const assets = Array.isArray(cacheProject.assets) ? cacheProject.assets : [];
         for (const item of textFiles) {
             if (!item || typeof item !== "object") {
                 continue;
@@ -137,6 +138,26 @@
                 content: typeof item.content === "string" ? item.content : "",
                 language: normalizeSharecodeLanguage(item.language || detectLanguageFromFilename(path)),
                 highlighted_lines: normalizeHighlightedLines(item.highlighted_lines || item.line_highlights)
+            });
+        }
+
+        for (const item of assets) {
+            if (!item || typeof item !== "object") {
+                continue;
+            }
+            const path = safeNormalizePath(item.path || item.name || "");
+            if (!path) {
+                continue;
+            }
+            normalized.files.push({
+                kind: "asset",
+                path: path,
+                mime_type: item.mime_type || "application/octet-stream",
+                size: typeof item.size === "number" ? item.size : 0,
+                data_base64: typeof item.data_base64 === "string" ? item.data_base64 : "",
+                url: item.url || "",
+                source_project_id: item.source_project_id || server_share_project_id || "",
+                source_stored_path: item.source_stored_path || item.stored_path || ""
             });
         }
 
@@ -157,7 +178,14 @@
     function getInitialEditorProject(options) {
         const opts = options || {};
         const sharedRunPage = window.location.pathname.indexOf("/share/") === 0;
-        if (!sharedRunPage) {
+        if (sharedRunPage) {
+            const serverProject = normalizeEditorProjectFromCache(
+                typeof server_pre_project !== "undefined" ? server_pre_project : null
+            );
+            if (serverProject.files.length || serverProject.folders.length) {
+                return serverProject;
+            }
+        } else {
             const cache = loadSharecodeDraftCache();
             const cachedProject = normalizeEditorProjectFromCache(cache && cache.project);
             if (cachedProject.files.length || cachedProject.folders.length) {
@@ -331,14 +359,19 @@
         const code = activeFile ? (activeFile.content || "") : (window.editor ? window.editor.getValue() : "");
 
         if (runEnabled) {
+            const payload = window.getEditorProjectSharePayload();
+            const requestData = {
+                code: code,
+                language: language,
+                template: "editor"
+            };
+            if (payload) {
+                requestData.project_payload = JSON.stringify(payload);
+            }
             return {
                 language: language,
                 code: code,
-                requestData: {
-                    code: code,
-                    language: language,
-                    template: "editor"
-                }
+                requestData: requestData
             };
         }
 

@@ -1420,6 +1420,7 @@ async function appendQrToShareCanvas(canvas, qrcodeSrc) {
 
 function goPythonRunPage() {
     hideFloatingMenuIfOpen();
+    createProjectFileFromEditorInput();
     syncActiveEditorToProject();
     const active = getActiveProjectFile();
     if (!active || active.kind !== "text") {
@@ -1429,6 +1430,7 @@ function goPythonRunPage() {
     if (lang !== 'python') {
         return;
     }
+    const payload = buildSharePayload();
 
     $.ajax({
         type: 'POST',
@@ -1437,10 +1439,14 @@ function goPythonRunPage() {
         data: {
             code: active.content || "",
             language: 'python',
-            template: 'editor'
+            template: 'editor',
+            project_payload: JSON.stringify(payload)
         },
         success: function (d) {
             window.location.href = d.share_link;
+        },
+        error: function () {
+            showProjectNotice("Python 运行页生成失败，请稍后再试。");
         }
     });
 }

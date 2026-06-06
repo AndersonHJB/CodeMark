@@ -41,8 +41,16 @@
         </script>
     {% endif %}
     <script>
-        let server_pre_project = null;
-        let server_share_project_id = "";
+        {% if pre_project %}
+            let server_pre_project = {{ pre_project|tojson }};
+        {% else %}
+            let server_pre_project = null;
+        {% endif %}
+        {% if share_project_id %}
+            let server_share_project_id = "{{ share_project_id }}";
+        {% else %}
+            let server_share_project_id = "";
+        {% endif %}
         window.SHARECODE_STATIC_PATHS = {
             aceBasePath: "{{ url_for('static', filename='js/ace') }}/",
             vscodeIconsBasePath: "{{ url_for('static', filename='vendor/vscode-icons/svg') }}/",
@@ -149,6 +157,7 @@
 <script src="{{ url_for('static', filename='js/sharecode_page/upload.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/sharecode_page/ui-actions.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/editor_project_sidebar.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/editor_pyodide_project.js') }}" type="text/javascript"></script>
 
 <script type="text/javascript">
     // 全局 pyodide 对象
@@ -412,14 +421,29 @@
         isPythonRunning = true;
 
         try {
-            let code = window.editor.getValue();
+            const runContext = typeof prepareEditorPyodideRunContext === "function"
+                ? await prepareEditorPyodideRunContext()
+                : {code: window.editor.getValue(), filename: "<codemark-editor>", mainDir: ""};
+            let code = runContext.code;
             pyodide.globals.set("__codemark_user_code", code);
+            pyodide.globals.set("__codemark_main_file", runContext.filename || "<codemark-editor>");
+            pyodide.globals.set("__codemark_main_dir", runContext.mainDir || "");
 
             await pyodide.runPythonAsync(`
 import ast
 import builtins
 import js
+import os
 import sys
+
+__codemark_main_file = str(globals().get("__codemark_main_file", "<codemark-editor>") or "<codemark-editor>")
+__codemark_main_dir = str(globals().get("__codemark_main_dir", "") or "")
+if "" not in sys.path:
+    sys.path.insert(0, "")
+if __codemark_main_dir and __codemark_main_dir not in sys.path:
+    sys.path.insert(0, __codemark_main_dir)
+globals()["__file__"] = __codemark_main_file
+globals()["__name__"] = "__main__"
 
 class PyodideIO:
     def write(self, data):
@@ -491,7 +515,7 @@ def __compile_user_code(raw_code):
 
     wrapped_module = ast.Module(body=[async_main], type_ignores=[])
     ast.fix_missing_locations(wrapped_module)
-    exec(compile(wrapped_module, "<codemark-editor>", "exec"), globals(), globals())
+    exec(compile(wrapped_module, __codemark_main_file, "exec"), globals(), globals())
 
 builtins.input = __unsupported_sync_input
 sys.stdout = PyodideIO()
@@ -513,6 +537,8 @@ except KeyboardInterrupt as _codemark_interrupt:
             isPythonRunning = false;
             try {
                 pyodide.globals.delete("__codemark_user_code");
+                pyodide.globals.delete("__codemark_main_file");
+                pyodide.globals.delete("__codemark_main_dir");
             } catch (e) {
             }
         }
@@ -745,8 +771,16 @@ except KeyboardInterrupt as _codemark_interrupt:
         </script>
     {% endif %}
     <script>
-        let server_pre_project = null;
-        let server_share_project_id = "";
+        {% if pre_project %}
+            let server_pre_project = {{ pre_project|tojson }};
+        {% else %}
+            let server_pre_project = null;
+        {% endif %}
+        {% if share_project_id %}
+            let server_share_project_id = "{{ share_project_id }}";
+        {% else %}
+            let server_share_project_id = "";
+        {% endif %}
         window.SHARECODE_STATIC_PATHS = {
             aceBasePath: "{{ url_for('static', filename='js/ace') }}/",
             vscodeIconsBasePath: "{{ url_for('static', filename='vendor/vscode-icons/svg') }}/",
@@ -939,6 +973,7 @@ except KeyboardInterrupt as _codemark_interrupt:
 <script src="{{ url_for('static', filename='js/sharecode_page/upload.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/sharecode_page/ui-actions.js') }}" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/editor_project_sidebar.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/editor_pyodide_project.js') }}" type="text/javascript"></script>
 
 <script type="text/javascript">
     // 防止浏览器前进/后退的缓存
@@ -1388,14 +1423,29 @@ await micropip.install("autopep8")
         clearConsole();
 
         try {
-            let code = window.editor.getValue();
+            const runContext = typeof prepareEditorPyodideRunContext === "function"
+                ? await prepareEditorPyodideRunContext()
+                : {code: window.editor.getValue(), filename: "<codemark-editor>", mainDir: ""};
+            let code = runContext.code;
             pyodide.globals.set("__codemark_user_code", code);
+            pyodide.globals.set("__codemark_main_file", runContext.filename || "<codemark-editor>");
+            pyodide.globals.set("__codemark_main_dir", runContext.mainDir || "");
 
             await pyodide.runPythonAsync(`
 import ast
 import builtins
 import js
+import os
 import sys
+
+__codemark_main_file = str(globals().get("__codemark_main_file", "<codemark-editor>") or "<codemark-editor>")
+__codemark_main_dir = str(globals().get("__codemark_main_dir", "") or "")
+if "" not in sys.path:
+    sys.path.insert(0, "")
+if __codemark_main_dir and __codemark_main_dir not in sys.path:
+    sys.path.insert(0, __codemark_main_dir)
+globals()["__file__"] = __codemark_main_file
+globals()["__name__"] = "__main__"
 
 class PyodideIO:
     def write(self, data):
@@ -1467,7 +1517,7 @@ def __compile_user_code(raw_code):
 
     wrapped_module = ast.Module(body=[async_main], type_ignores=[])
     ast.fix_missing_locations(wrapped_module)
-    exec(compile(wrapped_module, "<codemark-editor>", "exec"), globals(), globals())
+    exec(compile(wrapped_module, __codemark_main_file, "exec"), globals(), globals())
 
 builtins.input = __unsupported_sync_input
 sys.stdout = PyodideIO()
@@ -1489,6 +1539,8 @@ except KeyboardInterrupt as _codemark_interrupt:
             isPythonRunning = false;
             try {
                 pyodide.globals.delete("__codemark_user_code");
+                pyodide.globals.delete("__codemark_main_file");
+                pyodide.globals.delete("__codemark_main_dir");
             } catch (e) {
             }
         }

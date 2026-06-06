@@ -815,6 +815,8 @@ def editor():
         'editor.html',
         pre_code="",
         pre_lang="python",
+        pre_project=None,
+        share_project_id="",
         is_mobile=is_mobile_request()
     )
 
@@ -871,7 +873,7 @@ def upload_code():
     os.makedirs(month_folder, exist_ok=True)
 
     code_file_path = os.path.join(month_folder, project_id + ".txt")
-    if template_type == "sharecode" and isinstance(project_payload, dict):
+    if isinstance(project_payload, dict):
         persist_project_payload(
             code_file_path=code_file_path,
             template_type=template_type,
@@ -1094,6 +1096,8 @@ def show_shared_code(project_id):
         target_template,
         pre_code=code_content,
         pre_lang=lang,
+        pre_project=pre_project,
+        share_project_id=project_id,
         is_mobile=is_mobile_request()
     )
 
