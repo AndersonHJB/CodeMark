@@ -704,6 +704,26 @@ body.sidebar-resizing #projectSidebar {
     outline: none;
 }
 
+.tree-rename-row {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+}
+
+.tree-rename-row-folder {
+    gap: 6px;
+    padding: 3px 6px;
+}
+
+.tree-rename-row-file {
+    gap: 0;
+}
+
+.tree-rename-row .tree-rename-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .tree-create-row {
     min-height: 28px;
     border-radius: 6px;

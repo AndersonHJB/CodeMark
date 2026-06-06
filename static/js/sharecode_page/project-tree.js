@@ -1744,6 +1744,31 @@ function appendProjectTreeCreateInput(parent, prefix, kind) {
     parent.appendChild(li);
 }
 
+function createProjectTreeRenameRow(kind, path, name, options) {
+    const row = document.createElement("div");
+    row.className = `tree-rename-row tree-rename-row-${kind}`;
+    const input = document.createElement("input");
+    input.className = "tree-rename-input";
+    input.type = "text";
+    input.value = name;
+    bindProjectTreeRenameInput(input, kind, path);
+
+    if (kind === "folder") {
+        const isCollapsed = !!(options && options.isCollapsed);
+        row.appendChild(createBootstrapIcon(
+            isCollapsed ? "bi-chevron-right" : "bi-chevron-down",
+            "tree-folder-toggle",
+            ""
+        ));
+        row.appendChild(createTreeFolderIcon(isCollapsed, path));
+    } else {
+        row.appendChild(createTreeFileIcon((options && options.file) || {path: path}));
+    }
+
+    row.appendChild(input);
+    return row;
+}
+
 function renderProjectFileTree() {
     const treeEl = document.getElementById("projectFileTree");
     const emptyEl = document.getElementById("projectTreeEmpty");
@@ -1808,12 +1833,9 @@ function buildTreeDom(node, parent, prefix) {
         const title = document.createElement("div");
         title.className = "tree-folder";
         if (projectTreeRenameTarget && projectTreeRenameTarget.kind === "folder" && projectTreeRenameTarget.path === folderPath) {
-            const input = document.createElement("input");
-            input.className = "tree-rename-input";
-            input.type = "text";
-            input.value = folder;
-            bindProjectTreeRenameInput(input, "folder", folderPath);
-            title.appendChild(input);
+            title.appendChild(createProjectTreeRenameRow("folder", folderPath, folder, {
+                isCollapsed: isCollapsed
+            }));
         } else {
             const span = document.createElement("span");
             span.className = "tree-folder-title";
@@ -1888,12 +1910,9 @@ function buildTreeDom(node, parent, prefix) {
         const li = document.createElement("li");
         li.className = "tree-node";
         if (projectTreeRenameTarget && projectTreeRenameTarget.kind === "file" && projectTreeRenameTarget.path === item.file.path) {
-            const input = document.createElement("input");
-            input.className = "tree-rename-input";
-            input.type = "text";
-            input.value = item.name;
-            bindProjectTreeRenameInput(input, "file", item.file.path);
-            li.appendChild(input);
+            li.appendChild(createProjectTreeRenameRow("file", item.file.path, item.name, {
+                file: item.file
+            }));
         } else {
             const button = document.createElement("div");
             button.setAttribute("role", "button");
