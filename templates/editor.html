@@ -436,18 +436,42 @@ import ast
 import builtins
 import importlib
 import js
+import keyword
 import os
 import sys
 
 __codemark_main_file = str(globals().get("__codemark_main_file", "<codemark-editor>") or "<codemark-editor>")
 __codemark_main_dir = str(globals().get("__codemark_main_dir", "") or "")
 __codemark_project_root = str(globals().get("__codemark_project_root", "") or "")
-if "" not in sys.path:
-    sys.path.insert(0, "")
-if __codemark_main_dir and __codemark_main_dir not in sys.path:
-    sys.path.insert(0, __codemark_main_dir)
+
+def __codemark_add_import_path(path):
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+def __codemark_main_ancestor_paths(path):
+    parts = [part for part in path.replace("\\\\", "/").split("/") if part]
+    return ["/".join(parts[:index]) for index in range(1, len(parts) + 1)]
+
+__codemark_add_import_path("")
+for __codemark_path in __codemark_main_ancestor_paths(__codemark_main_dir):
+    __codemark_add_import_path(__codemark_path)
+
+def __codemark_infer_main_package(filename):
+    normalized = str(filename or "").replace("\\\\", "/").strip("/")
+    if not normalized or normalized.startswith("<"):
+        return ""
+    parts = [part for part in normalized.split("/") if part]
+    package_parts = parts[:-1]
+    if not package_parts:
+        return ""
+    if not all(part.isidentifier() and not keyword.iskeyword(part) for part in package_parts):
+        return ""
+    return ".".join(package_parts)
+
 globals()["__file__"] = __codemark_main_file
 globals()["__name__"] = "__main__"
+globals()["__package__"] = __codemark_infer_main_package(__codemark_main_file)
+globals()["__spec__"] = None
 
 def __clear_codemark_project_modules():
     if not __codemark_project_root:
@@ -1463,18 +1487,42 @@ import ast
 import builtins
 import importlib
 import js
+import keyword
 import os
 import sys
 
 __codemark_main_file = str(globals().get("__codemark_main_file", "<codemark-editor>") or "<codemark-editor>")
 __codemark_main_dir = str(globals().get("__codemark_main_dir", "") or "")
 __codemark_project_root = str(globals().get("__codemark_project_root", "") or "")
-if "" not in sys.path:
-    sys.path.insert(0, "")
-if __codemark_main_dir and __codemark_main_dir not in sys.path:
-    sys.path.insert(0, __codemark_main_dir)
+
+def __codemark_add_import_path(path):
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+def __codemark_main_ancestor_paths(path):
+    parts = [part for part in path.replace("\\\\", "/").split("/") if part]
+    return ["/".join(parts[:index]) for index in range(1, len(parts) + 1)]
+
+__codemark_add_import_path("")
+for __codemark_path in __codemark_main_ancestor_paths(__codemark_main_dir):
+    __codemark_add_import_path(__codemark_path)
+
+def __codemark_infer_main_package(filename):
+    normalized = str(filename or "").replace("\\\\", "/").strip("/")
+    if not normalized or normalized.startswith("<"):
+        return ""
+    parts = [part for part in normalized.split("/") if part]
+    package_parts = parts[:-1]
+    if not package_parts:
+        return ""
+    if not all(part.isidentifier() and not keyword.iskeyword(part) for part in package_parts):
+        return ""
+    return ".".join(package_parts)
+
 globals()["__file__"] = __codemark_main_file
 globals()["__name__"] = "__main__"
+globals()["__package__"] = __codemark_infer_main_package(__codemark_main_file)
+globals()["__spec__"] = None
 
 def __clear_codemark_project_modules():
     if not __codemark_project_root:
