@@ -717,6 +717,7 @@ body.sidebar-resizing #projectSidebar {
 
 .tree-rename-row-file {
     gap: 0;
+    padding: 3px 8px;
 }
 
 .tree-rename-row .tree-rename-input {
