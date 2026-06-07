@@ -32,6 +32,7 @@ window.addEventListener("load", async function () {
     });
 
     populateLanguageSelectors();
+    initializeSearchableLanguageSelectors();
     bindEditorLineHighlightSelection();
     bindSelectorSync();
     bindProjectTreeContextMenu();

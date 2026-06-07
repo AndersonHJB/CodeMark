@@ -130,6 +130,9 @@ function setLanguageSelectors(lang) {
     if (mobile) {
         mobile.value = language;
     }
+    if (typeof syncLanguageComboboxes === "function") {
+        syncLanguageComboboxes();
+    }
 }
 
 function normalizeSharecodeLanguage(lang, fallback) {
