@@ -72,6 +72,10 @@ html, body {
     background-color: #ca6a4a;
 }
 
+#download-btn {
+    background-color: #7f6df2;
+}
+
 #share-btn {
     background-color: #a7c336;
 }

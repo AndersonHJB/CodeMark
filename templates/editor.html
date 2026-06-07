@@ -72,6 +72,7 @@
     <button id="save-btn" onclick="save()">save</button>
     <button id="open-btn" onclick="performClick('file-input')">open</button>
     <button id="folder-btn" onclick="openProjectFolderUploadDialog(); closeSidebar();">folder</button>
+    <button id="download-btn" class="project-download-btn" onclick="downloadProjectArchive()">zip</button>
     <button id="share-btn" onclick="share()">share</button>
     <button id="paste-btn" onclick="pasteCode()">paste</button>
     <button id="home-btn" onclick="home()">home</button>
@@ -894,6 +895,7 @@ except KeyboardInterrupt as _codemark_interrupt:
         <button id="run" class="python-run-btn" onclick="run()">> run</button>
         <button id="save" onclick="save()">save</button>
         <button id="open" onclick="performClick('file-input')">open</button>
+        <button id="download" class="project-download-btn" onclick="downloadProjectArchive()">zip</button>
         <button id="share" onclick="share()">share</button>
         <button id="home" onclick="home()">home</button>
         <div class="choose-container theme-selector-container">
