@@ -235,7 +235,7 @@
                 </select>
             </div>
 
-            <a class="toolbar-link" href="#" onclick="openAboutDialog(); return false;">About</a>
+            <a class="toolbar-link" href="#" data-toggle="modal" data-target="#about-modal">About</a>
         </div>
     </main>
 </div>
@@ -434,22 +434,31 @@
     </div>
 </div>
 
-<div id="aboutOverlay">
-    <div class="overlay-dialog" id="aboutDialog">
-        <div class="overlay-dialog-header">
-            <h5 class="overlay-dialog-title">About</h5>
-            <button class="overlay-dialog-close" onclick="closeAboutDialog()">×</button>
-        </div>
-        <div class="overlay-dialog-body about-content text-center">
-            <h4>关于 CodeMark</h4>
-            <hr>
-            <p>你可以在此页面进行 Python 编写和代码分享。</p>
-            <p>当前版本支持项目化多文件分享，包含代码文件与资源文件。</p>
-            <p>祝你探索 CodeMark 愉快！</p>
-            <p>如需定制化或高校合作，可添加微信：Jiabcdefh</p>
-            <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh">
-            <br>
-            <a href="https://github.com/AndersonHJB/" target="_blank" rel="noreferrer">Github</a>
+<!-- About Modal -->
+<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">About</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <h3>关于 CodeMark</h3>
+                <hr>
+                <p>CodeMark 是一个面向课堂演示、作业交流和作品展示的在线代码分享工具。</p>
+                <p>你可以把代码文件、项目资源和页面预览整理到同一个分享链接中，方便对方直接查看、复盘或继续编辑。</p>
+                <p>分享页支持二维码与链接复制，也支持多文件项目的结构化展示，适合教学、协作和个人代码记录。</p>
+                <p>如需课程定制、高校合作或私有化部署支持，可添加微信：Jiabcdefh</p>
+                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh"
+                     style="zoom:25%;">
+                <br>
+                <a href="https://github.com/AndersonHJB/" target="_blank" rel="noreferrer">Github</a>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
         </div>
     </div>
 </div>

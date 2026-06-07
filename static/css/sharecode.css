@@ -1816,7 +1816,8 @@ body.sidebar-resizing #projectSidebar {
     z-index: 10010;
 }
 
-#share-modal .modal-dialog {
+#share-modal .modal-dialog,
+#about-modal .modal-dialog {
     margin: 0.5rem auto;
     max-width: 70%;
     width: auto;
@@ -1866,7 +1867,8 @@ body.sidebar-resizing #projectSidebar {
 }
 
 @media (max-width: 768px) {
-    #share-modal .modal-dialog {
+    #share-modal .modal-dialog,
+    #about-modal .modal-dialog {
         max-width: 95% !important;
         margin: 1rem auto;
     }

@@ -164,10 +164,18 @@ function createNewProjectFolderFromDialog() {
 }
 
 function openAboutDialog() {
+    if (window.jQuery && document.getElementById("about-modal")) {
+        $("#about-modal").modal("show");
+        return;
+    }
     openOverlay("aboutOverlay");
 }
 
 function closeAboutDialog() {
+    if (window.jQuery && document.getElementById("about-modal")) {
+        $("#about-modal").modal("hide");
+        return;
+    }
     closeOverlay("aboutOverlay");
 }
 
@@ -1505,6 +1513,9 @@ function showCopySuccess() {
 function bindOverlayDismiss(overlayId, dialogId) {
     const overlay = document.getElementById(overlayId);
     const dialog = document.getElementById(dialogId);
+    if (!overlay || !dialog) {
+        return;
+    }
     overlay.addEventListener("click", function (e) {
         if (e.target === overlay) {
             if (overlayId === "projectConfirmOverlay") {
