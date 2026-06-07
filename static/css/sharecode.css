@@ -1244,9 +1244,16 @@ body.sidebar-resizing #projectSidebar {
     color: #fff;
 }
 
+.language-combobox.is-desktop {
+    width: 154px;
+    min-width: 154px;
+    flex: 0 0 154px;
+}
+
 #floatingMenu .language-combobox {
     width: 100%;
     min-width: 0;
+    flex: 0 0 auto;
 }
 
 .language-combobox-field {
