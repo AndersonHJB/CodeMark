@@ -1807,7 +1807,8 @@ body.sidebar-resizing #projectSidebar {
     text-align: center;
 }
 
-#share-modal {
+#share-modal,
+#about-modal {
     z-index: 10020;
 }
 
@@ -1821,7 +1822,8 @@ body.sidebar-resizing #projectSidebar {
     width: auto;
 }
 
-#share-modal .modal-content {
+#share-modal .modal-content,
+#about-modal .modal-content {
     color: #212529;
     max-height: 80vh;
     overflow-y: auto;
