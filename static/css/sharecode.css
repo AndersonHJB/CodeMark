@@ -1266,6 +1266,7 @@ body.sidebar-resizing #projectSidebar {
 }
 
 .language-combobox-input {
+    flex: 1 1 auto;
     width: 100%;
     min-width: 0;
     height: 100%;
@@ -1273,8 +1274,27 @@ body.sidebar-resizing #projectSidebar {
     outline: none;
     background: transparent;
     color: inherit;
-    padding: 0 30px 0 8px;
+    padding: 0 30px 0 0;
     font: inherit;
+}
+
+.language-combobox-selected-icon,
+.language-combobox-option-icon {
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.language-combobox-selected-icon {
+    margin: 0 7px 0 8px;
+}
+
+.language-combobox-option-icon {
+    margin-right: 9px;
 }
 
 .language-combobox-input::placeholder {
@@ -1342,7 +1362,8 @@ body.sidebar-resizing #projectSidebar {
 }
 
 .language-combobox-check {
-    width: 22px;
+    width: 18px;
+    min-width: 18px;
     margin-right: 8px;
     color: #555;
     font-size: 17px;

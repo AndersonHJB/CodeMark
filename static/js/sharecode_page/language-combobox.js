@@ -18,6 +18,33 @@ function getLanguageOptionSearchText(option) {
     ].join(" ").toLowerCase();
 }
 
+function createLanguageComboboxIcon(languageValue, className) {
+    const language = normalizeSharecodeLanguage(languageValue);
+    const languageConfig = getSharecodeLanguageConfig(language);
+    const iconPath = defaultFilenameForLanguage(language);
+    if (typeof createVscodeTreeIcon === "function" && typeof getTreeFileIconId === "function") {
+        return createVscodeTreeIcon(
+            getTreeFileIconId({kind: "text", path: iconPath, language: language}),
+            className,
+            languageConfig.label
+        );
+    }
+
+    const icon = document.createElement("span");
+    icon.className = className;
+    icon.setAttribute("aria-hidden", "true");
+    return icon;
+}
+
+function updateLanguageComboboxSelectedIcon(state) {
+    if (!state || !state.selectedIcon) {
+        return;
+    }
+    const nextIcon = createLanguageComboboxIcon(state.select.value, "language-combobox-selected-icon");
+    state.selectedIcon.replaceWith(nextIcon);
+    state.selectedIcon = nextIcon;
+}
+
 function getVisibleLanguageOptions(state, query) {
     const normalizedQuery = String(query || "").trim().toLowerCase();
     return Array.from(state.select.options).filter(option => {
@@ -116,11 +143,14 @@ function renderLanguageComboboxOptions(state, query) {
         check.className = "bi bi-check2 language-combobox-check";
         check.setAttribute("aria-hidden", "true");
 
+        const icon = createLanguageComboboxIcon(option.value, "language-combobox-option-icon");
+
         const label = document.createElement("span");
         label.className = "language-combobox-option-label";
         label.textContent = option.textContent;
 
         item.appendChild(check);
+        item.appendChild(icon);
         item.appendChild(label);
         item.addEventListener("mousedown", function (event) {
             event.preventDefault();
@@ -242,6 +272,7 @@ function syncLanguageComboboxDisplay(state) {
         return;
     }
     const label = getLanguageOptionLabel(state.select, state.select.value);
+    updateLanguageComboboxSelectedIcon(state);
     if (state.menu.classList.contains("is-open")) {
         state.input.placeholder = label;
         renderLanguageComboboxOptions(state, state.input.value);
@@ -270,6 +301,8 @@ function enhanceLanguageSelector(selectElement) {
     const field = document.createElement("div");
     field.className = "language-combobox-field";
 
+    const selectedIcon = createLanguageComboboxIcon(selectElement.value, "language-combobox-selected-icon");
+
     const input = document.createElement("input");
     input.type = "text";
     input.className = "language-combobox-input";
@@ -291,6 +324,7 @@ function enhanceLanguageSelector(selectElement) {
     menu.setAttribute("aria-label", "Language options");
     input.setAttribute("aria-controls", menu.id);
 
+    field.appendChild(selectedIcon);
     field.appendChild(input);
     field.appendChild(chevron);
     combobox.appendChild(field);
@@ -302,6 +336,7 @@ function enhanceLanguageSelector(selectElement) {
         combo: combobox,
         input: input,
         menu: menu,
+        selectedIcon: selectedIcon,
         isMobile: isMobile,
         activeIndex: -1,
         visibleOptions: []
