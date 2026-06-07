@@ -424,7 +424,8 @@
             const requestData = {
                 code: code,
                 language: language,
-                template: "editor"
+                template: "editor",
+                theme: getCurrentThemeValue()
             };
             if (payload) {
                 requestData.project_payload = JSON.stringify(payload);
@@ -440,7 +441,8 @@
         const requestData = {
             code: code,
             language: language,
-            template: "sharecode"
+            template: "sharecode",
+            theme: getCurrentThemeValue()
         };
         if (payload) {
             requestData.project_payload = JSON.stringify(payload);

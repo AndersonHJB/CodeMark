@@ -114,10 +114,26 @@ function getCurrentLanguageValue() {
     return normalizeSharecodeLanguage((desktop && desktop.value) || (mobile && mobile.value));
 }
 
+function normalizeSharecodeTheme(theme, fallback) {
+    const rawTheme = String(theme || "").trim();
+    if (SHARECODE_THEME_VALUES.has(rawTheme)) {
+        return rawTheme;
+    }
+    const fallbackTheme = String(fallback || "").trim();
+    if (SHARECODE_THEME_VALUES.has(fallbackTheme)) {
+        return fallbackTheme;
+    }
+    return SHARECODE_DEFAULT_THEME;
+}
+
 function getCurrentThemeValue() {
     const desktop = document.getElementById("theme-selector-desktop");
     const mobile = document.getElementById("theme-selector-mobile");
-    return (desktop && desktop.value) || (mobile && mobile.value) || SHARECODE_DEFAULT_THEME;
+    const legacy = document.getElementById("theme-selector");
+    return normalizeSharecodeTheme(
+        (desktop && desktop.value) || (mobile && mobile.value) || (legacy && legacy.value) || currentSharecodeTheme,
+        SHARECODE_DEFAULT_THEME
+    );
 }
 
 function setLanguageSelectors(lang) {
@@ -179,19 +195,28 @@ function populateLanguageSelectors() {
 }
 
 function setThemeSelectors(theme) {
-    const nextTheme = theme || SHARECODE_DEFAULT_THEME;
+    const nextTheme = normalizeSharecodeTheme(theme, SHARECODE_DEFAULT_THEME);
+    currentSharecodeTheme = nextTheme;
     const desktop = document.getElementById("theme-selector-desktop");
     const mobile = document.getElementById("theme-selector-mobile");
+    const legacy = document.getElementById("theme-selector");
     if (desktop) {
         desktop.value = nextTheme;
     }
     if (mobile) {
         mobile.value = nextTheme;
     }
+    if (legacy) {
+        legacy.value = nextTheme;
+        if (window.jQuery && typeof window.jQuery.fn.selectpicker === "function") {
+            window.jQuery(legacy).selectpicker("val", nextTheme);
+        }
+    }
 }
 
 function applyEditorTheme(theme) {
-    const selected = theme || SHARECODE_DEFAULT_THEME;
+    const selected = normalizeSharecodeTheme(theme, SHARECODE_DEFAULT_THEME);
+    currentSharecodeTheme = selected;
     if (window.editor) {
         window.editor.setTheme("ace/theme/" + selected);
     }

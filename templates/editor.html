@@ -40,6 +40,15 @@
             let server_pre_lang = "python";
         </script>
     {% endif %}
+    {% if pre_theme %}
+        <script>
+            let server_pre_theme = {{ pre_theme|tojson }};
+        </script>
+    {% else %}
+        <script>
+            let server_pre_theme = "monokai";
+        </script>
+    {% endif %}
     <script>
         {% if pre_project %}
             let server_pre_project = {{ pre_project|tojson }};
@@ -335,7 +344,7 @@
         // 初始化 Ace Editor
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");
+        applyEditorTheme(typeof server_pre_theme === "string" ? server_pre_theme : "monokai");
         editor.session.setMode("ace/mode/python");
 
         // 让编辑器跟随输入行不被遮挡
@@ -710,7 +719,8 @@ except KeyboardInterrupt as _codemark_interrupt:
                 requestData: {
                     code: window.editor.getValue(),
                     language: shareLanguage,
-                    template: runEnabled ? "editor" : "sharecode"
+                    template: runEnabled ? "editor" : "sharecode",
+                    theme: getCurrentThemeValue()
                 }
             };
 
@@ -828,6 +838,15 @@ except KeyboardInterrupt as _codemark_interrupt:
     {% else %}
         <script>
             let server_pre_lang = "python";
+        </script>
+    {% endif %}
+    {% if pre_theme %}
+        <script>
+            let server_pre_theme = {{ pre_theme|tojson }};
+        </script>
+    {% else %}
+        <script>
+            let server_pre_theme = "monokai";
         </script>
     {% endif %}
     <script>
@@ -1385,7 +1404,10 @@ except KeyboardInterrupt as _codemark_interrupt:
         // Initialize ace editor
         ace.config.set("basePath", "static/js/ace/");
         window.editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");
+        const initialEditorTheme = typeof normalizeSharecodeTheme === "function"
+            ? normalizeSharecodeTheme(server_pre_theme, "monokai")
+            : (typeof server_pre_theme === "string" && server_pre_theme ? server_pre_theme : "monokai");
+        editor.setTheme("ace/theme/" + initialEditorTheme);
         editor.session.setMode("ace/mode/python");
 
         // ======= 关键：打开自动补全及相关功能 =======
@@ -1404,7 +1426,7 @@ except KeyboardInterrupt as _codemark_interrupt:
         });
 
         // Set initial theme
-        $('#theme-selector').selectpicker('val', 'monokai');
+        $('#theme-selector').selectpicker('val', initialEditorTheme);
 
         // Theme change handler
         $('#theme-selector').on('changed.bs.select', function (e) {
@@ -1763,7 +1785,8 @@ except KeyboardInterrupt as _codemark_interrupt:
                 requestData: {
                     code: window.editor.getValue(),
                     language: shareLanguage,
-                    template: runEnabled ? "editor" : "sharecode"
+                    template: runEnabled ? "editor" : "sharecode",
+                    theme: getCurrentThemeValue()
                 }
             };
 

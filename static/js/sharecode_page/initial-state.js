@@ -84,9 +84,14 @@ function resolveInitialState() {
     let project = {files: [], folders: [], activeFile: ""};
     let theme = SHARECODE_DEFAULT_THEME;
     let language = SHARECODE_DEFAULT_LANG;
+    const serverTheme = typeof server_pre_theme === "string" && SHARECODE_THEME_VALUES.has(server_pre_theme.trim())
+        ? server_pre_theme.trim()
+        : "";
 
-    if (cache && typeof cache.theme === "string" && cache.theme) {
-        theme = cache.theme;
+    if (isSharedCodePage && serverTheme) {
+        theme = serverTheme;
+    } else if (cache && typeof cache.theme === "string" && cache.theme) {
+        theme = normalizeSharecodeTheme(cache.theme, SHARECODE_DEFAULT_THEME);
     }
     if (cache && typeof cache.language === "string" && cache.language) {
         language = normalizeSharecodeLanguage(cache.language);

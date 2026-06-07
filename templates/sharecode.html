@@ -24,6 +24,11 @@
     {% else %}
         <script>let server_pre_lang = "python";</script>
     {% endif %}
+    {% if pre_theme %}
+        <script>let server_pre_theme = {{ pre_theme|tojson }};</script>
+    {% else %}
+        <script>let server_pre_theme = "monokai";</script>
+    {% endif %}
     {% if pre_project %}
         <script>let server_pre_project = {{ pre_project|tojson }};</script>
     {% else %}

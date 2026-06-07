@@ -526,7 +526,8 @@ function buildSharePayload() {
         text_files: textFiles,
         assets: assets,
         folders: projectFolders.slice(),
-        active_file: activeFilePath
+        active_file: activeFilePath,
+        theme: getCurrentThemeValue()
     };
 }
 
@@ -612,6 +613,7 @@ function generateShareLink(payloadOverride) {
     const requestData = {
         language: language,
         template: 'sharecode',
+        theme: getCurrentThemeValue(),
         project_payload: JSON.stringify(payload)
     };
     if (code) {
@@ -1448,6 +1450,7 @@ function goPythonRunPage() {
             code: active.content || "",
             language: 'python',
             template: 'editor',
+            theme: getCurrentThemeValue(),
             project_payload: JSON.stringify(payload)
         },
         success: function (d) {

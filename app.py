@@ -29,6 +29,21 @@ ASSET_MARKER = "__ASSET___="
 FOLDER_MARKER = "__FOLDER___="
 LINE_HIGHLIGHTS_MARKER = "__LINE_HIGHLIGHTS___="
 FILE_LANGUAGE_MARKER = "__FILE_LANG___="
+THEME_MARKER = "__THEME__="
+DEFAULT_CODE_THEME = "monokai"
+CODE_THEMES = {
+    "monokai",
+    "github",
+    "tomorrow",
+    "kuroir",
+    "twilight",
+    "vibrant_ink",
+    "xcode",
+    "textmate",
+    "terminal",
+    "solarized_dark",
+    "solarized_light",
+}
 
 LANGUAGE_FILE_EXTENSIONS = {
     "python": "py",
@@ -309,6 +324,14 @@ def normalize_language(language: str, fallback: str = "python") -> str:
     return normalized_fallback if normalized_fallback in LANGUAGE_FILE_EXTENSIONS else "python"
 
 
+def normalize_theme(theme: str, fallback: str = DEFAULT_CODE_THEME) -> str:
+    raw_theme = (theme or "").strip()
+    if raw_theme in CODE_THEMES:
+        return raw_theme
+    normalized_fallback = (fallback or "").strip()
+    return normalized_fallback if normalized_fallback in CODE_THEMES else DEFAULT_CODE_THEME
+
+
 def default_filename_for_language(language: str) -> str:
     raw_language = (language or "").strip().lower()
     normalized_language = LANGUAGE_ALIASES.get(raw_language, raw_language)
@@ -482,10 +505,11 @@ def parse_project_sections(body_lines, project_id=None):
     }
 
 
-def persist_project_payload(code_file_path, template_type, language, code, project_payload, project_id):
+def persist_project_payload(code_file_path, template_type, language, theme, code, project_payload, project_id):
     """将单文件或多文件项目写入 sharecode 文本，并持久化资源文件。"""
     project_data = project_payload if isinstance(project_payload, dict) else {}
     language = normalize_language(language)
+    theme = normalize_theme(theme or project_data.get("theme", ""))
 
     text_files = []
     folders = []
@@ -594,6 +618,7 @@ def persist_project_payload(code_file_path, template_type, language, code, proje
     with open(code_file_path, 'w', encoding='utf-8') as f:
         f.write(f"__TEMPLATE__={template_type}\n")
         f.write(f"__LANG__={language}\n")
+        f.write(f"{THEME_MARKER}{theme}\n")
         for folder_path in folders:
             f.write(f"{FOLDER_MARKER}{folder_path}\n")
         for text_file in text_files:
@@ -815,6 +840,7 @@ def editor():
         'editor.html',
         pre_code="",
         pre_lang="python",
+        pre_theme=DEFAULT_CODE_THEME,
         pre_project=None,
         share_project_id="",
         is_mobile=is_mobile_request()
@@ -831,6 +857,7 @@ def sharecode():
         'sharecode.html',
         pre_code="",
         pre_lang="python",
+        pre_theme=DEFAULT_CODE_THEME,
         pre_project=None,
         share_project_id="",
         is_mobile=is_mobile_request()
@@ -859,6 +886,8 @@ def upload_code():
             project_payload = json.loads(project_payload_raw)
         except Exception:
             project_payload = None
+    payload_theme = project_payload.get("theme", "") if isinstance(project_payload, dict) else ""
+    theme = normalize_theme(request.form.get('theme', '') or payload_theme)
 
     # 生成一个唯一 ID
     unique_id = str(uuid.uuid4())
@@ -878,6 +907,7 @@ def upload_code():
             code_file_path=code_file_path,
             template_type=template_type,
             language=language,
+            theme=theme,
             code=code,
             project_payload=project_payload,
             project_id=project_id,
@@ -887,6 +917,7 @@ def upload_code():
         with open(code_file_path, 'w', encoding='utf-8') as f:
             f.write(f"__TEMPLATE__={template_type}\n")
             f.write(f"__LANG__={language}\n")
+            f.write(f"{THEME_MARKER}{theme}\n")
             f.write(code)
 
     # 3. 生成二维码并保存在 sharecode/images 文件夹
@@ -1021,6 +1052,7 @@ def show_shared_code(project_id):
     code_content = "File not found or removed."
     template_type = "editor"  # 默认使用 editor
     lang = "python"  # 默认 python
+    theme = DEFAULT_CODE_THEME
     pre_project = None
     sharecode_root = "sharecode"
     found = False
@@ -1035,14 +1067,20 @@ def show_shared_code(project_id):
                 with open(possible_path, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
 
-                # 第一行: __TEMPLATE__=xxx
-                if lines and lines[0].startswith("__TEMPLATE__="):
-                    template_type = lines[0].split("=", 1)[1].strip()
-                # 第二行: __LANG__=xxx
-                if len(lines) > 1 and lines[1].startswith("__LANG__="):
-                    lang = normalize_language(lines[1].split("=", 1)[1].strip())
+                body_start_index = 0
+                while body_start_index < len(lines):
+                    line = lines[body_start_index]
+                    if line.startswith("__TEMPLATE__="):
+                        template_type = line.split("=", 1)[1].strip()
+                    elif line.startswith("__LANG__="):
+                        lang = normalize_language(line.split("=", 1)[1].strip())
+                    elif line.startswith(THEME_MARKER):
+                        theme = normalize_theme(line.split("=", 1)[1].strip())
+                    else:
+                        break
+                    body_start_index += 1
 
-                body_lines = lines[2:]
+                body_lines = lines[body_start_index:]
                 parsed_project = parse_project_sections(body_lines, project_id=project_id)
                 if parsed_project["has_markers"]:
                     text_files = parsed_project["text_files"]
@@ -1087,6 +1125,7 @@ def show_shared_code(project_id):
             target_template,
             pre_code=code_content,
             pre_lang=lang,
+            pre_theme=theme,
             pre_project=pre_project,
             share_project_id=project_id,
             is_mobile=is_mobile_request()
@@ -1096,6 +1135,7 @@ def show_shared_code(project_id):
         target_template,
         pre_code=code_content,
         pre_lang=lang,
+        pre_theme=theme,
         pre_project=pre_project,
         share_project_id=project_id,
         is_mobile=is_mobile_request()

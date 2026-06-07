@@ -10,6 +10,20 @@ const SHARECODE_SIDEBAR_WIDTH_CACHE_KEY = "codemark:sharecode:sidebar-width:v1";
 const SHARECODE_DRAFT_SAVE_DEBOUNCE_MS = 300;
 const SHARECODE_DEFAULT_LANG = "python";
 const SHARECODE_DEFAULT_THEME = "monokai";
+const SHARECODE_THEMES = [
+    "monokai",
+    "github",
+    "tomorrow",
+    "kuroir",
+    "twilight",
+    "vibrant_ink",
+    "xcode",
+    "textmate",
+    "terminal",
+    "solarized_dark",
+    "solarized_light"
+];
+const SHARECODE_THEME_VALUES = new Set(SHARECODE_THEMES);
 const SHARE_VIEW_SOURCE = "source";
 const SHARE_VIEW_PREVIEW = "preview";
 const SHARE_VIEW_SPLIT = "split";
@@ -18,6 +32,7 @@ const SHARECODE_LINE_HIGHLIGHT_GUTTER_CLASS = "codemark-line-highlight-gutter";
 const SIDEBAR_DEFAULT_WIDTH = 236;
 const SIDEBAR_MIN_WIDTH = 184;
 const SIDEBAR_MAX_WIDTH = 520;
+let currentSharecodeTheme = SHARECODE_DEFAULT_THEME;
 const SHARECODE_LANGUAGES = [
     {value: "python", label: "Python", extension: "py", aceMode: "python", highlight: "python", aliases: ["py", "pyw", "pyi", "python3"], extensions: ["py", "pyw", "pyi"]},
     {value: "javascript", label: "JavaScript", extension: "js", aceMode: "javascript", highlight: "javascript", aliases: ["js", "mjs", "cjs", "node"], extensions: ["js", "mjs", "cjs"]},
