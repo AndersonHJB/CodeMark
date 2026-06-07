@@ -340,6 +340,62 @@
         return buildSharePayload();
     };
 
+    function getEditorSharePayloadTextFiles(payload) {
+        return payload && Array.isArray(payload.text_files) ? payload.text_files : [];
+    }
+
+    function getEditorSharePayloadPrimaryTextFile(payload) {
+        const textFiles = getEditorSharePayloadTextFiles(payload);
+        const activePath = safeNormalizePath(payload && payload.active_file);
+        return textFiles.find(file => safeNormalizePath(file && file.path) === activePath) || textFiles[0] || null;
+    }
+
+    function getEditorSharePayloadPythonFile(payload) {
+        const textFiles = getEditorSharePayloadTextFiles(payload);
+        const activePath = safeNormalizePath(payload && payload.active_file);
+        const activePythonFile = textFiles.find(file => {
+            const path = safeNormalizePath(file && file.path);
+            const language = normalizeSharecodeLanguage((file && file.language) || detectLanguageFromFilename(path));
+            return path === activePath && language === "python";
+        });
+        if (activePythonFile) {
+            return activePythonFile;
+        }
+        return textFiles.find(file => {
+            const path = safeNormalizePath(file && file.path);
+            return normalizeSharecodeLanguage((file && file.language) || detectLanguageFromFilename(path)) === "python";
+        }) || null;
+    }
+
+    function buildEditorRunPayload(payload, pythonFile) {
+        if (!payload || !pythonFile) {
+            return payload || null;
+        }
+        const pythonPath = safeNormalizePath(pythonFile.path);
+        const textFiles = getEditorSharePayloadTextFiles(payload);
+        return Object.assign({}, payload, {
+            text_files: textFiles.slice().sort((a, b) => {
+                const aIsTarget = safeNormalizePath(a && a.path) === pythonPath;
+                const bIsTarget = safeNormalizePath(b && b.path) === pythonPath;
+                if (aIsTarget === bIsTarget) {
+                    return 0;
+                }
+                return aIsTarget ? -1 : 1;
+            }),
+            active_file: pythonPath
+        });
+    }
+
+    window.getEditorSharePayloadInfo = function (payload) {
+        const primaryTextFile = getEditorSharePayloadPrimaryTextFile(payload);
+        const pythonFile = getEditorSharePayloadPythonFile(payload);
+        return {
+            primaryTextFile: primaryTextFile,
+            pythonFile: pythonFile,
+            hasPython: !!pythonFile
+        };
+    };
+
     window.getEditorActiveShareFile = function () {
         if (typeof getActiveProjectFile !== "function") {
             return null;
@@ -351,7 +407,10 @@
     };
 
     window.buildEditorShareRequestData = function (runEnabled, payloadOverride) {
-        const activeFile = window.getEditorActiveShareFile();
+        const payloadInfo = payloadOverride ? window.getEditorSharePayloadInfo(payloadOverride) : null;
+        const activeFile = payloadInfo
+            ? (runEnabled ? payloadInfo.pythonFile : payloadInfo.primaryTextFile)
+            : window.getEditorActiveShareFile();
         const fallbackLanguage = normalizeSharecodeLanguage(window.server_pre_lang || "python");
         const language = activeFile
             ? normalizeSharecodeLanguage(activeFile.language || detectLanguageFromFilename(activeFile.path))
@@ -359,7 +418,9 @@
         const code = activeFile ? (activeFile.content || "") : (window.editor ? window.editor.getValue() : "");
 
         if (runEnabled) {
-            const payload = window.getEditorProjectSharePayload();
+            const payload = payloadOverride
+                ? buildEditorRunPayload(payloadOverride, payloadInfo && payloadInfo.pythonFile)
+                : window.getEditorProjectSharePayload();
             const requestData = {
                 code: code,
                 language: language,
@@ -428,7 +489,6 @@
         hideProjectTreeContextMenu();
         if (typeof share === "function") {
             share({
-                forcePureShare: true,
                 projectPayloadOverride: payload
             });
         }

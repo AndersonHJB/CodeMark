@@ -653,10 +653,15 @@ except KeyboardInterrupt as _codemark_interrupt:
     function share(options) {
         const shareOptions = options || {};
         window.editorPendingSharePayloadOverride = shareOptions.projectPayloadOverride || null;
+        const payloadShareInfo = window.editorPendingSharePayloadOverride && typeof getEditorSharePayloadInfo === "function"
+            ? getEditorSharePayloadInfo(window.editorPendingSharePayloadOverride)
+            : null;
         const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
-        const shareLanguage = activeFile
+        const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
+            ? "python"
+            : (activeFile
             ? (activeFile.language || "python").toLowerCase()
-            : (server_pre_lang || "python").toLowerCase();
+            : (server_pre_lang || "python").toLowerCase());
         const forcePureShare = !!shareOptions.forcePureShare;
         let runToggleWrapper = document.getElementById("python-run-toggle-wrapper");
         let runSwitch = document.getElementById("run-enabled-switch");
@@ -687,12 +692,17 @@ except KeyboardInterrupt as _codemark_interrupt:
     // 根据弹窗中的选项生成分享链接
     function generateShareLink() {
         const payloadOverride = window.editorPendingSharePayloadOverride || null;
+        const payloadShareInfo = payloadOverride && typeof getEditorSharePayloadInfo === "function"
+            ? getEditorSharePayloadInfo(payloadOverride)
+            : null;
         const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
-        const shareLanguage = activeFile
+        const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
+            ? "python"
+            : (activeFile
             ? (activeFile.language || "python").toLowerCase()
-            : (server_pre_lang || "python").toLowerCase();
+            : (server_pre_lang || "python").toLowerCase());
         const runSwitch = document.getElementById("run-enabled-switch");
-        const runEnabled = !payloadOverride && shareLanguage === "python" && runSwitch && runSwitch.checked;
+        const runEnabled = shareLanguage === "python" && runSwitch && runSwitch.checked;
         const shareRequest = typeof buildEditorShareRequestData === "function"
             ? buildEditorShareRequestData(runEnabled, payloadOverride)
             : {
@@ -1694,10 +1704,15 @@ except KeyboardInterrupt as _codemark_interrupt:
     function share(options) {
         const shareOptions = options || {};
         window.editorPendingSharePayloadOverride = shareOptions.projectPayloadOverride || null;
+        const payloadShareInfo = window.editorPendingSharePayloadOverride && typeof getEditorSharePayloadInfo === "function"
+            ? getEditorSharePayloadInfo(window.editorPendingSharePayloadOverride)
+            : null;
         const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
-        const shareLanguage = activeFile
+        const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
+            ? "python"
+            : (activeFile
             ? (activeFile.language || "python").toLowerCase()
-            : (server_pre_lang || "python").toLowerCase();
+            : (server_pre_lang || "python").toLowerCase());
         const forcePureShare = !!shareOptions.forcePureShare;
         let runToggleWrapper = document.getElementById("python-run-toggle-wrapper");
         let runSwitch = document.getElementById("run-enabled-switch");
@@ -1729,12 +1744,17 @@ except KeyboardInterrupt as _codemark_interrupt:
     // 根据弹窗中的选项生成分享链接
     function generateShareLink() {
         const payloadOverride = window.editorPendingSharePayloadOverride || null;
+        const payloadShareInfo = payloadOverride && typeof getEditorSharePayloadInfo === "function"
+            ? getEditorSharePayloadInfo(payloadOverride)
+            : null;
         const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
-        const shareLanguage = activeFile
+        const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
+            ? "python"
+            : (activeFile
             ? (activeFile.language || "python").toLowerCase()
-            : (server_pre_lang || "python").toLowerCase();
+            : (server_pre_lang || "python").toLowerCase());
         const runSwitch = document.getElementById("run-enabled-switch");
-        const runEnabled = !payloadOverride && shareLanguage === "python" && runSwitch && runSwitch.checked;
+        const runEnabled = shareLanguage === "python" && runSwitch && runSwitch.checked;
         const shareRequest = typeof buildEditorShareRequestData === "function"
             ? buildEditorShareRequestData(runEnabled, payloadOverride)
             : {
