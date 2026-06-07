@@ -116,7 +116,7 @@
 
 <!-- Share Modal -->
 <div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" style="max-width: 90%;">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Share your code</h5>
@@ -134,7 +134,15 @@
                 </div>
                 <!-- 这里会动态生成二维码+最终合成图 -->
                 <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
+                <div class="input-group my-3">
+                    <input type="text" class="form-control" id="share-link-input" value="" readonly>
+                    <div class="input-group-append">
+                        <button class="btn btn-info" type="button" onclick="copyLinkManually()">手动复制</button>
+                    </div>
+                </div>
+                <div id="copy-success" class="copy-success">分享链接已经复制！</div>
                 <p>You can save this picture or scan the QR code to share it.</p>
+                <div id="final-image-container"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
@@ -218,6 +226,10 @@
         editorDraftSaveTimer = setTimeout(function () {
             saveEditorDraftCache();
         }, EDITOR_DRAFT_SAVE_DEBOUNCE_MS);
+    }
+
+    function isEditorInstanceReady() {
+        return !!(window.editor && typeof window.editor.getValue === "function");
     }
 
     function resolveInitialEditorCode(defaultCode) {
@@ -666,7 +678,8 @@ except KeyboardInterrupt as _codemark_interrupt:
         const payloadShareInfo = window.editorPendingSharePayloadOverride && typeof getEditorSharePayloadInfo === "function"
             ? getEditorSharePayloadInfo(window.editorPendingSharePayloadOverride)
             : null;
-        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const editorInstanceReady = isEditorInstanceReady();
+        const activeFile = editorInstanceReady && typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
         const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
             ? "python"
             : (activeFile
@@ -686,8 +699,10 @@ except KeyboardInterrupt as _codemark_interrupt:
             };
         }
 
-        $('#qrcode').empty();
+        prepareHiddenShareQrSource();
+        $('#share-link-input').val('');
         $('#share-modal .modal-title').text('Share your code');
+        $('#copy-success').hide();
         let existingFinalImageContainer = document.getElementById("final-image-container");
         if (existingFinalImageContainer) {
             existingFinalImageContainer.remove();
@@ -705,7 +720,8 @@ except KeyboardInterrupt as _codemark_interrupt:
         const payloadShareInfo = payloadOverride && typeof getEditorSharePayloadInfo === "function"
             ? getEditorSharePayloadInfo(payloadOverride)
             : null;
-        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const editorInstanceReady = isEditorInstanceReady();
+        const activeFile = editorInstanceReady && typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
         const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
             ? "python"
             : (activeFile
@@ -713,11 +729,11 @@ except KeyboardInterrupt as _codemark_interrupt:
             : (server_pre_lang || "python").toLowerCase());
         const runSwitch = document.getElementById("run-enabled-switch");
         const runEnabled = shareLanguage === "python" && runSwitch && runSwitch.checked;
-        const shareRequest = typeof buildEditorShareRequestData === "function"
+        const shareRequest = (editorInstanceReady || payloadOverride) && typeof buildEditorShareRequestData === "function"
             ? buildEditorShareRequestData(runEnabled, payloadOverride)
             : {
                 requestData: {
-                    code: window.editor.getValue(),
+                    code: editorInstanceReady ? window.editor.getValue() : "",
                     language: shareLanguage,
                     template: runEnabled ? "editor" : "sharecode",
                     theme: getCurrentThemeValue()
@@ -731,21 +747,25 @@ except KeyboardInterrupt as _codemark_interrupt:
             data: shareRequest.requestData,
             success: function (d) {
                 let shareLink = d.share_link;
-                // 生成二维码
-                $('#qrcode').empty();
+                prepareHiddenShareQrSource();
                 $('#qrcode').qrcode({
                     text: shareLink,
                     width: 200,
                     height: 200
                 });
-                // 更新弹窗标题
-                $('#share-modal .modal-title').html(
-                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
-                );
+                $('#share-modal .modal-title')
+                    .empty()
+                    .append(document.createTextNode('Code link：'))
+                    .append($('<a></a>', {
+                        href: shareLink,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        text: shareLink
+                    }));
+                $('#share-link-input').val(shareLink);
 
-                // 叠加二维码到编辑器截图
                 let qrcodeCanvas = $('#qrcode canvas')[0];
-                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+                let qrcodeSrc = qrcodeCanvas.toDataURL('image/png');
                 let existingFinalImageContainer = document.getElementById("final-image-container");
                 if (existingFinalImageContainer) {
                     existingFinalImageContainer.remove();
@@ -755,20 +775,22 @@ except KeyboardInterrupt as _codemark_interrupt:
                 finalImageContainer.style.marginTop = "20px";
                 document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-                html2canvas(document.querySelector("#editor")).then(canvas => {
-                    let ctx = canvas.getContext('2d');
-                    let img = new Image();
-                    img.src = qrcode_src;
-                    img.onload = function () {
-                        let qrSize = 120;
-                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
-                        let finalImgElement = document.createElement("img");
-                        finalImgElement.src = canvas.toDataURL('image/png');
-                        finalImgElement.style.maxWidth = "90%";
-                        finalImageContainer.appendChild(finalImgElement);
+                withSharePreviewTimeout(createShareEditorAreaCanvas(), 24000).catch(function () {
+                    const editorArea = document.querySelector("#editorArea");
+                    if (!editorArea) {
+                        throw new Error("Missing editor area.");
                     }
+                    return createBlankShareEditorAreaCanvas(editorArea);
+                }).then(canvas => {
+                    return appendQrToShareCanvas(canvas, qrcodeSrc);
+                }).then(finalCanvas => {
+                    const finalImg = document.createElement("img");
+                    finalImg.src = finalCanvas.toDataURL('image/png');
+                    finalImg.style.maxWidth = "90%";
+                    finalImageContainer.appendChild(finalImg);
                 });
 
+                copyToClipboard(shareLink);
                 // 保持分享弹窗显示
                 $('#share-modal').modal('show');
             }
@@ -1120,6 +1142,10 @@ except KeyboardInterrupt as _codemark_interrupt:
         editorDraftSaveTimer = setTimeout(function () {
             saveEditorDraftCache();
         }, EDITOR_DRAFT_SAVE_DEBOUNCE_MS);
+    }
+
+    function isEditorInstanceReady() {
+        return !!(window.editor && typeof window.editor.getValue === "function");
     }
 
     function resolveInitialEditorCode(defaultCode) {
@@ -1731,7 +1757,8 @@ except KeyboardInterrupt as _codemark_interrupt:
         const payloadShareInfo = window.editorPendingSharePayloadOverride && typeof getEditorSharePayloadInfo === "function"
             ? getEditorSharePayloadInfo(window.editorPendingSharePayloadOverride)
             : null;
-        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const editorInstanceReady = isEditorInstanceReady();
+        const activeFile = editorInstanceReady && typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
         const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
             ? "python"
             : (activeFile
@@ -1751,9 +1778,10 @@ except KeyboardInterrupt as _codemark_interrupt:
             };
         }
 
-        $('#qrcode').empty();
+        prepareHiddenShareQrSource();
         $('#share-link-input').val('');
         $('#share-modal .modal-title').text('Share your code');
+        $('#copy-success').hide();
         let existingFinalImageContainer = document.getElementById("final-image-container");
         if (existingFinalImageContainer) {
             existingFinalImageContainer.remove();
@@ -1771,7 +1799,8 @@ except KeyboardInterrupt as _codemark_interrupt:
         const payloadShareInfo = payloadOverride && typeof getEditorSharePayloadInfo === "function"
             ? getEditorSharePayloadInfo(payloadOverride)
             : null;
-        const activeFile = typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
+        const editorInstanceReady = isEditorInstanceReady();
+        const activeFile = editorInstanceReady && typeof getEditorActiveShareFile === "function" ? getEditorActiveShareFile() : null;
         const shareLanguage = payloadShareInfo && payloadShareInfo.hasPython
             ? "python"
             : (activeFile
@@ -1779,11 +1808,11 @@ except KeyboardInterrupt as _codemark_interrupt:
             : (server_pre_lang || "python").toLowerCase());
         const runSwitch = document.getElementById("run-enabled-switch");
         const runEnabled = shareLanguage === "python" && runSwitch && runSwitch.checked;
-        const shareRequest = typeof buildEditorShareRequestData === "function"
+        const shareRequest = (editorInstanceReady || payloadOverride) && typeof buildEditorShareRequestData === "function"
             ? buildEditorShareRequestData(runEnabled, payloadOverride)
             : {
                 requestData: {
-                    code: window.editor.getValue(),
+                    code: editorInstanceReady ? window.editor.getValue() : "",
                     language: shareLanguage,
                     template: runEnabled ? "editor" : "sharecode",
                     theme: getCurrentThemeValue()
@@ -1796,32 +1825,31 @@ except KeyboardInterrupt as _codemark_interrupt:
             dataType: 'json',
             data: shareRequest.requestData,
             success: function (d) {
-                // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
                 let shareLink = d.share_link;
 
-                // 1. 生成二维码（内容是 shareLink）
-                $('#qrcode').empty();
+                prepareHiddenShareQrSource();
                 $('#qrcode').qrcode({
                     text: shareLink,
                     width: 200,
                     height: 200
                 });
 
-                // 2. 更新弹窗标题中的可点击链接
-                $('#share-modal .modal-title').html(
-                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
-                );
-                // 2. 把分享链接放入输入框
+                $('#share-modal .modal-title')
+                    .empty()
+                    .append(document.createTextNode('Code link：'))
+                    .append($('<a></a>', {
+                        href: shareLink,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        text: shareLink
+                    }));
                 $('#share-link-input').val(shareLink);
 
-                // 3. 自动复制到剪贴板
                 copyToClipboard(shareLink);
 
-                // 如果想把二维码叠加到编辑器截图，可以执行以下逻辑：
                 let qrcodeCanvas = $('#qrcode canvas')[0];
-                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+                let qrcodeSrc = qrcodeCanvas.toDataURL('image/png');
 
-                // 新建一个容器来放最终合成的图片（避免覆盖原二维码）
                 let existingFinalImageContainer = document.getElementById("final-image-container");
                 if (existingFinalImageContainer) {
                     existingFinalImageContainer.remove();
@@ -1831,22 +1859,19 @@ except KeyboardInterrupt as _codemark_interrupt:
                 finalImageContainer.style.marginTop = "20px";
                 document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
 
-                // 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
-                html2canvas(document.querySelector("#editor")).then(canvas => {
-                    let ctx = canvas.getContext('2d');
-                    let img = new Image();
-                    img.src = qrcode_src;
-                    img.onload = function () {
-                        // 在编辑器截图上叠加二维码，缩小到 120x120
-                        let qrSize = 120;
-                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
-
-                        // 显示合成后的最终图片
-                        let finalImgElement = document.createElement("img");
-                        finalImgElement.src = canvas.toDataURL('image/png');
-                        finalImgElement.style.maxWidth = "90%";
-                        finalImageContainer.appendChild(finalImgElement);
+                withSharePreviewTimeout(createShareEditorAreaCanvas(), 24000).catch(function () {
+                    const editorArea = document.querySelector("#editorArea");
+                    if (!editorArea) {
+                        throw new Error("Missing editor area.");
                     }
+                    return createBlankShareEditorAreaCanvas(editorArea);
+                }).then(canvas => {
+                    return appendQrToShareCanvas(canvas, qrcodeSrc);
+                }).then(finalCanvas => {
+                    const finalImg = document.createElement("img");
+                    finalImg.src = finalCanvas.toDataURL('image/png');
+                    finalImg.style.maxWidth = "90%";
+                    finalImageContainer.appendChild(finalImg);
                 });
 
                 // 保持分享弹窗显示
