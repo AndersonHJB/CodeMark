@@ -1,0 +1,20 @@
+{% for file_info in tree.files %}
+    <li>
+        <a class="article-link {% if file_info.is_active %}active-file{% endif %}"
+           href="/article/{{ file_info.path }}">
+            <i class="fab fa-python"></i> {{ file_info.title }}
+        </a>
+    </li>
+{% endfor %}
+{% for subdir in tree.subdirs_list %}
+    <li>
+        <div class="folder-name" onclick="toggleFolder(this)">
+            <i class="fas fa-folder folder-icon"></i>  <!-- 左侧文件夹图标 -->
+            {{ subdir.dirname }}
+            <i class="fas fa-angle-right arrow-icon"></i>
+        </div>
+        <ul class="nested {% if subdir.is_open %}show{% endif %}">
+            {% include "_article_tree_sidebar.html" with tree=subdir.tree %}
+        </ul>
+    </li>
+{% endfor %}

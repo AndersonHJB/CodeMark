@@ -57,13 +57,13 @@ In the UI, this logo is not a heavy brand visual. It acts as a clear functional 
 
 - [Bornforthis](https://bornforthis.cn/)
 - [Django](https://www.djangoproject.com/)
-- [Jinja2](https://jinja.palletsprojects.com/)
+- [Django Templates](https://docs.djangoproject.com/en/stable/topics/templates/)
 - [CodeMirror](https://codemirror.net/)
 - [CodeMirror CDN](https://cdnjs.com/libraries/codemirror)
 - [Pyodide](https://pyodide.org/en/stable/index.html)
 - [Ace Builds](https://github.com/ajaxorg/ace-builds)
 
-Python dependencies are listed in `requirements.txt`, including Django, Jinja2, Markdown, Pillow, qrcode, and other runtime packages.
+Python dependencies are listed in `requirements.txt`, including Django, Markdown, Pillow, qrcode, and other runtime packages.
 
 ## Local Setup🚀
 
@@ -112,4 +112,3 @@ Any modifications or derivative works based on CodeMark must also follow the GNU
 ## How to Contribute
 
 Contributions are welcome, including feature improvements, bug fixes, documentation updates, and usage feedback. By contributing, you agree that your contributions will be licensed under the same terms as the original project.
-

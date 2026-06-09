@@ -7,12 +7,11 @@
 from contextvars import ContextVar
 from functools import wraps
 
-from django.conf import settings
 from django.http import FileResponse, HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve as static_serve
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 import markdown
 import base64
 import io
@@ -26,10 +25,6 @@ import qrcode  # pip install qrcode[pil]
 
 
 _request_context = ContextVar("django_request")
-_template_env = Environment(
-    loader=FileSystemLoader(str(settings.TEMPLATES_DIR)),
-    autoescape=select_autoescape(["html", "xml"]),
-)
 
 
 class RequestProxy:
@@ -59,27 +54,32 @@ def django_view(view_func):
     return wrapped
 
 
-def render_template(template_name, **context):
-    context.setdefault("request", request._current())
-    context.setdefault("url_for", url_for)
-    template = _template_env.get_template(template_name)
-    return HttpResponse(template.render(**context))
+def add_json_context(context):
+    for key in ("pre_code", "pre_lang", "pre_theme", "pre_project", "share_project_id"):
+        context[f"{key}_json"] = (
+            json.dumps(context.get(key), ensure_ascii=False)
+            .replace("<", "\\u003C")
+            .replace(">", "\\u003E")
+            .replace("&", "\\u0026")
+            .replace("\u2028", "\\u2028")
+            .replace("\u2029", "\\u2029")
+        )
+    return context
+
+
+def render_page(template_name, **context):
+    add_json_context(context)
+    return render(request._current(), template_name, context)
 
 
 def jsonify(payload):
     return JsonResponse(payload, json_dumps_params={"ensure_ascii": False})
 
 
-def url_for(endpoint, _external=False, _scheme=None, **values):
-    if endpoint == "static":
-        filename = (values.get("filename") or "").lstrip("/")
-        path = settings.STATIC_URL + filename
-    else:
-        path = reverse(endpoint, kwargs=values)
-
+def build_url(endpoint, _external=False, _scheme=None, **values):
+    path = reverse(endpoint, kwargs=values)
     if not _external:
         return path
-
     absolute_url = request._current().build_absolute_uri(path)
     if _scheme:
         absolute_url = re.sub(r"^https?", _scheme, absolute_url, count=1)
@@ -560,7 +560,7 @@ def parse_project_sections(body_lines, project_id=None):
                 if project_id:
                     asset_data["source_project_id"] = project_id
                     asset_data["source_stored_path"] = stored_path
-                    asset_data["url"] = url_for(
+                    asset_data["url"] = build_url(
                         "get_shared_asset",
                         project_id=project_id,
                         asset_path=stored_path,
@@ -790,7 +790,7 @@ def get_title_from_filename(filename):
     return name
 
 
-def build_directory_tree(root_dir):
+def build_directory_tree(root_dir, relative_path="", current_file=""):
     """
     递归地构建目录树数据结构：
     返回示例:
@@ -810,6 +810,7 @@ def build_directory_tree(root_dir):
     tree = {
         'dirname': os.path.basename(root_dir),
         'subdirs': {},
+        'subdirs_list': [],
         'files': []
     }
 
@@ -822,18 +823,40 @@ def build_directory_tree(root_dir):
     # 排序文件
     files_sorted = sorted(files, key=parse_sort_key)
     for f in files_sorted:
+        file_path = "/".join(part for part in (relative_path, f) if part)
         tree['files'].append({
             'filename': f,
-            'title': get_title_from_filename(f)
+            'path': file_path,
+            'title': get_title_from_filename(f),
+            'is_active': file_path == current_file,
         })
 
     # 递归处理子目录
     for d in dirs:
         subdir_path = os.path.join(root_dir, d)
+        subdir_relative_path = "/".join(part for part in (relative_path, d) if part)
         # 这里直接递归构建子目录结构
-        tree['subdirs'][d] = build_directory_tree(subdir_path)
+        subdir_tree = build_directory_tree(subdir_path, subdir_relative_path, current_file)
+        tree['subdirs'][d] = subdir_tree
+        tree['subdirs_list'].append({
+            'dirname': d,
+            'path': subdir_relative_path,
+            'tree': subdir_tree,
+            'is_open': bool(current_file and current_file.startswith(subdir_relative_path)),
+            'delay_ms': 240 + len(tree['subdirs_list']) * 80,
+        })
 
     return tree
+
+
+def build_article_meta(meta):
+    return {
+        "title": (meta.get("title") or ["无标题"])[0],
+        "author": (meta.get("author") or [""])[0],
+        "date": (meta.get("date") or [""])[0],
+        "categories": [item.lstrip("-") for item in meta.get("category", []) if item.lstrip("-")],
+        "tags": [item.lstrip("-") for item in meta.get("tag", []) if item.lstrip("-")],
+    }
 
 
 @django_view
@@ -844,7 +867,7 @@ def index():
     # 构建整个 articles 文件夹的目录树
     directory_tree = build_directory_tree('articles')
     # 传给模板做展示
-    return render_template('index.html', directory_tree=directory_tree)
+    return render_page('index.html', directory_tree=directory_tree)
 
 
 @django_view
@@ -883,14 +906,14 @@ def article(filename):
         meta = md.Meta if hasattr(md, 'Meta') else {}
 
     # 构建整个 articles 文件夹的目录树（用于左侧侧边栏）
-    directory_tree = build_directory_tree('articles')
+    directory_tree = build_directory_tree('articles', current_file=filename)
 
-    return render_template('article.html',
-                           content=html_content,
-                           toc=toc,
-                           directory_tree=directory_tree,
-                           current_file=filename,
-                           meta=meta)
+    return render_page('article.html',
+                       content=html_content,
+                       toc=toc,
+                       directory_tree=directory_tree,
+                       current_file=filename,
+                       meta=build_article_meta(meta))
 
 
 def is_mobile(user_agent: str) -> bool:
@@ -914,7 +937,7 @@ def editor():
     直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用可执行 Python 的模板 editor.html。
     """
-    return render_template(
+    return render_page(
         'editor.html',
         pre_code="",
         pre_lang="python",
@@ -931,7 +954,7 @@ def sharecode():
     直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
     使用不执行 Python 的模板 sharecode.html。
     """
-    return render_template(
+    return render_page(
         'sharecode.html',
         pre_code="",
         pre_lang="python",
@@ -1006,7 +1029,7 @@ def upload_code():
     # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
     # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
     # share_link = request.host_url.strip('/') + "/share/" + project_id
-    share_link = url_for('show_shared_code', project_id=project_id, _external=True)  # 可以强制 https: _scheme='https'
+    share_link = build_url('show_shared_code', project_id=project_id, _external=True)  # 可以强制 https: _scheme='https'
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(share_link)
     qr.make(fit=True)
@@ -1201,7 +1224,7 @@ def show_shared_code(project_id):
     # 根据 template_type 来渲染不同的模板，并将 lang 也传过去
     target_template = 'sharecode.html' if template_type == "sharecode" else 'editor.html'
     if target_template == "sharecode.html":
-        return render_template(
+        return render_page(
             target_template,
             pre_code=code_content,
             pre_lang=lang,
@@ -1211,7 +1234,7 @@ def show_shared_code(project_id):
             is_mobile=is_mobile_request()
         )
 
-    return render_template(
+    return render_page(
         target_template,
         pre_code=code_content,
         pre_lang=lang,

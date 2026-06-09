@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -8,33 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
           rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
 </head>
 <body class="home-page">
 <div class="ambient-orb orb-one" aria-hidden="true"></div>
 <div class="ambient-orb orb-two" aria-hidden="true"></div>
 <div class="ambient-grid" aria-hidden="true"></div>
-
-{% macro render_article_tree(tree, parent_path='') %}
-    {% for file_info in tree.files %}
-        <li class="article-item">
-            <a href="/article/{{ (parent_path ~ '/' ~ file_info.filename).lstrip('/') }}">
-                {{ file_info.title }}
-            </a>
-        </li>
-    {% endfor %}
-    {% for dirname, subdir_tree in tree.subdirs.items() %}
-        <li class="branch-item">
-            <details class="branch">
-                <summary>{{ dirname }}</summary>
-                <ul class="article-list nested-list">
-                    {{ render_article_tree(subdir_tree, parent_path ~ '/' ~ dirname) }}
-                </ul>
-            </details>
-        </li>
-    {% endfor %}
-{% endmacro %}
 
 <div class="home-shell">
     <header class="hero reveal" style="--delay: 40ms;">
@@ -70,14 +51,14 @@
 
             {% if directory_tree.subdirs %}
                 <div class="category-grid">
-                    {% for dirname, subdir_tree in directory_tree.subdirs.items() %}
-                        <article class="category-card reveal" style="--delay: {{ 240 + loop.index0 * 80 }}ms;">
+                    {% for subdir in directory_tree.subdirs_list %}
+                        <article class="category-card reveal" style="--delay: {{ subdir.delay_ms }}ms;">
                             <div class="card-head">
-                                <h3>{{ dirname }}</h3>
+                                <h3>{{ subdir.dirname }}</h3>
                                 <span class="card-pill">专题</span>
                             </div>
                             <ul class="article-list">
-                                {{ render_article_tree(subdir_tree, dirname) }}
+                                {% include "_article_tree_index.html" with tree=subdir.tree %}
                             </ul>
                         </article>
                     {% endfor %}
@@ -94,7 +75,7 @@
                     <ul class="article-list">
                         {% for file_info in directory_tree.files %}
                             <li class="article-item">
-                                <a href="/article/{{ file_info.filename }}">{{ file_info.title }}</a>
+                                <a href="/article/{{ file_info.path }}">{{ file_info.title }}</a>
                             </li>
                         {% endfor %}
                     </ul>
