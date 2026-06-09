@@ -1,76 +1,115 @@
-# OK
+# CodeMark🦭
 
-OK is a browser-based code workspace for programming education, homework, demos, and lightweight project sharing. It combines Markdown articles, runnable Python code blocks, a multi-file editor, share links, and QR codes in one Django app.
+CodeMark combines `Code` and `Markdown` into a lightweight browser-based experience for writing, running, managing, and sharing code.
 
-This repository contains the Django backend version. The original frontend templates and interactions are preserved; Django uses Jinja2 to keep the existing `url_for(...)` template calls working.
+It is designed for teaching, homework, classroom demos, and code snippet sharing. Students can start with online Python execution before dealing with a full local development environment, while teachers and creators can share runnable examples more easily.
 
-## Why OK
+If you are passionate about open source or want to join this meaningful project, feel free to contact me.
 
-OK is short and clear: the workspace is ready.
+Looking for Python and Web experts to join the team～
 
-- `O` represents the learning loop: read, edit, run, and share.
-- `K` represents Keyboard, Knowledge, and hands-on coding.
-- `OK` tells users that they can start immediately.
+## Project Purpose🎯
 
-## Features
+CodeMark is not intended to replace a professional IDE. Its goal is to reduce the initial friction of programming education and code sharing.
 
-- Markdown article pages turn Python fenced code blocks into editable and runnable CodeMirror blocks.
-- Browser-side Python execution powered by Pyodide.
-- `/editor` provides a runnable multi-file workspace.
-- `/sharecode` provides a pure code sharing workspace.
-- `/upload_code` stores share payloads and creates share links plus QR codes.
-- `/download_project_zip` exports the current project as a zip archive.
-- Static assets, project tree, file uploads, previews, themes, and mobile entry points.
+- For students: focus on code logic and output before configuring a local environment.
+- For teachers: present, assign, explain, and share code examples more efficiently.
+- For creators: combine code, explanation, execution results, and share links in one place.
+- For self-learners: quickly test ideas, save snippets, and continue discussions through shared links.
 
-## Quick Start
+## Core Features✨
+
+- Online code editing directly in the browser.
+- Python execution powered by Pyodide.
+- Share links and QR codes for code snippets or projects.
+- Project file sidebar with file, folder, upload, download, rename, delete, and selection workflows.
+- Asset preview for imported resources such as images.
+- Pure sharing mode for code projects that do not need execution.
+- Mobile-friendly entry points for editing, sharing, and file management.
+
+## Logo Meaning💡
+
+![CodeMark OK Logo](static/images/logo.png)
+
+The `OK` mark in the upper-left sidebar is a lightweight workspace entry point. It communicates that the project is ready for writing, managing, and sharing code.
+
+- `O`: represents code projects, file collections, and the learning loop.
+- `K`: represents Code, Keyboard, and Knowledge.
+- `OK`: communicates readiness, confirmation, and usability.
+
+In the UI, this logo is not a heavy brand visual. It acts as a clear functional entry: clicking it expands or collapses the project file sidebar, helping users manage files, folders, and code resources.
+
+## Use Cases🎬
+
+1. Teaching documents: teachers can combine examples and explanations for classroom demos.
+2. Homework documents: students can solve coding tasks online and share links for review.
+3. University courses: useful for programming assignments, snippets, and classroom interaction.
+4. Code demos: suitable for quick Python examples, algorithms, or experiment ideas.
+5. Learning notes: useful for small multi-file code projects.
+
+## Pages🧭
+
+- `/editor`: runnable Python editor for writing and executing code.
+- `/sharecode`: pure code sharing and multi-file project display.
+- `/share/<project_id>`: shared project page that opens either runnable mode or pure sharing mode.
+
+## Project Dependencies🖲️
+
+- [Bornforthis](https://bornforthis.cn/)
+- [Flask](https://flask.palletsprojects.com/en/3.0.x/)
+- [CodeMirror](https://codemirror.net/)
+- [CodeMirror CDN](https://cdnjs.com/libraries/codemirror)
+- [Pyodide](https://pyodide.org/en/stable/index.html)
+- [Ace Builds](https://github.com/ajaxorg/ace-builds)
+
+Python dependencies are listed in `requirements.txt`, including Flask, Markdown, Pillow, qrcode, and other runtime packages.
+
+## Local Setup🚀
+
+Using a virtual environment is recommended:
 
 ```bash
-git clone git@github.com:AndersonHJB/OK-Code.git
-cd OK-Code
-
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
-python manage.py check
 python app.py
 ```
 
-Default URL:
-
-```text
-http://127.0.0.1:8991
-```
-
-Run with an explicit port:
+You can also run it with Flask:
 
 ```bash
-python manage.py runserver 127.0.0.1:8993
+python -m flask --app app run
 ```
 
-## Main Routes
+## Maintenance Commands⚙️
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Home and article tree |
-| `/article/<path>` | Markdown article reader with runnable Python blocks |
-| `/editor` | Runnable Python workspace |
-| `/sharecode` | Pure code sharing workspace |
-| `/share/<project_id>` | Shared project page |
-| `/upload_code` | POST share payload |
-| `/download_project_zip` | POST zip export |
+Export dependencies:
 
-## Runtime Data
+```bash
+pip freeze > requirements.txt
+```
 
-`sharecode/` stores generated share files, QR codes, and uploaded assets. It may become large and may contain user content, so it is ignored by Git.
+Deployment scripts should be adjusted for the actual server path. Avoid reusing local or old absolute paths directly.
 
-## Documentation
+## Statement🖨️
 
-- [Architecture](docs/architecture.md)
-- [Deployment](docs/deployment.md)
-- [Runtime data](docs/runtime-data.md)
-- [Markdown metadata icons](docs/markdown-metadata-icons.md)
+This project is fully maintained by AI Yuechuang. If you want to use it for graduation projects, course design, or similar purposes, please contact me in advance. Commercial use is strictly prohibited.
 
-## License
+CodeMark is licensed under the GNU General Public License (GPL) Version 3.
+See the LICENSE file for more details.
 
-OK is licensed under GNU General Public License v3.0. See [LICENSE](LICENSE).
+## Author✍️& Buy Me a Coffee☕️
+
+![img_1.png](static/info/img_1.png)
+
+## About CodeMark
+
+CodeMark is an open-source project created and maintained by 黄家宝|Bornforthis. By using this project, you agree to the terms and conditions of the GNU General Public License (GPL) Version 3.
+
+Any modifications or derivative works based on CodeMark must also follow the GNU GPL license requirements.
+
+## How to Contribute
+
+Contributions are welcome, including feature improvements, bug fixes, documentation updates, and usage feedback. By contributing, you agree that your contributions will be licensed under the same terms as the original project.
+
+

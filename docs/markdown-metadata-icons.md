@@ -1,6 +1,6 @@
-# OK Markdown 元数据图标说明
+# CodeMark Markdown 元数据图标说明
 
-OK 的 Markdown 预览支持在文档顶部编写元数据。`icon` 字段使用 Bootstrap Icons 渲染，推荐写内置图标代码，而不是直接写 CSS 类名。
+CodeMark 的 Markdown 预览支持在文档顶部编写元数据。`icon` 字段使用 Bootstrap Icons 渲染，推荐写内置图标代码，而不是直接写 CSS 类名。
 
 ```markdown
 title: CodeMark 学习系统开发计划
