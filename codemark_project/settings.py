@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+APP_DIR = BASE_DIR / "codemark_app"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "codemark-local-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") != "0"
 
@@ -25,10 +26,10 @@ ROOT_URLCONF = "codemark_project.urls"
 WSGI_APPLICATION = "codemark_project.wsgi.application"
 ASGI_APPLICATION = "codemark_project.asgi.application"
 
-TEMPLATES_DIR = BASE_DIR / "templates"
+TEMPLATES_DIR = APP_DIR / "templates"
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+CODEMARK_ARTICLES_DIR = APP_DIR / "articles"
 
 TEMPLATES = [
     {

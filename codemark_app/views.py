@@ -7,6 +7,7 @@
 from contextvars import ContextVar
 from functools import wraps
 
+from django.conf import settings
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -865,7 +866,7 @@ def index():
     新版主页：遍历 'articles' 目录，将其按目录分组后，在首页以类别的形式展示
     """
     # 构建整个 articles 文件夹的目录树
-    directory_tree = build_directory_tree('articles')
+    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR)
     # 传给模板做展示
     return render_page('index.html', directory_tree=directory_tree)
 
@@ -878,7 +879,7 @@ def article(filename):
     2. 同时也把目录树传给 article.html，用以在左侧显示 VuePress 风格 sidebar。
     3. 将 current_file=filename 传递给模板，用于高亮当前文章并展开所在目录。
     """
-    full_path = os.path.join('articles', filename)
+    full_path = os.path.join(settings.CODEMARK_ARTICLES_DIR, filename)
     if not os.path.isfile(full_path):
         return HttpResponse(f"File not found: {filename}", status=404)
 
@@ -906,7 +907,7 @@ def article(filename):
         meta = md.Meta if hasattr(md, 'Meta') else {}
 
     # 构建整个 articles 文件夹的目录树（用于左侧侧边栏）
-    directory_tree = build_directory_tree('articles', current_file=filename)
+    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, current_file=filename)
 
     return render_page('article.html',
                        content=html_content,
