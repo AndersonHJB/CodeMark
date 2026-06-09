@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% if is_mobile %}AI悦创代码分享 - 移动端{% else %}AI悦创代码分享小工具｜便捷分享代码{% endif %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <meta name="keywords"
+          content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码链接，支持项目化多文件分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/default.min.css') }}" rel="stylesheet">
+
+    {% if pre_code %}
+        <script>let server_pre_code = {{ pre_code|tojson }};</script>
+    {% else %}
+        <script>let server_pre_code = "";</script>
+    {% endif %}
+    {% if pre_lang %}
+        <script>let server_pre_lang = "{{ pre_lang }}";</script>
+    {% else %}
+        <script>let server_pre_lang = "python";</script>
+    {% endif %}
+    {% if pre_theme %}
+        <script>let server_pre_theme = {{ pre_theme|tojson }};</script>
+    {% else %}
+        <script>let server_pre_theme = "monokai";</script>
+    {% endif %}
+    {% if pre_project %}
+        <script>let server_pre_project = {{ pre_project|tojson }};</script>
+    {% else %}
+        <script>let server_pre_project = null;</script>
+    {% endif %}
+    {% if share_project_id %}
+        <script>let server_share_project_id = "{{ share_project_id }}";</script>
+    {% else %}
+        <script>let server_share_project_id = "";</script>
+    {% endif %}
+
+    <link href="{{ url_for('static', filename='css/sharecode.css') }}" rel="stylesheet">
+</head>
+<body>
+<div id="appRoot" class="sidebar-collapsed">
+    <aside id="projectSidebar">
+        <div class="sidebar-header">
+            <button id="sidebarLogoButton" class="sidebar-logo-btn" type="button" aria-label="展开边栏" aria-controls="projectSidebar" aria-expanded="false" onclick="handleSidebarLogoClick()">
+                <svg class="sidebar-logo-svg" viewBox="0 0 1000 1000" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+                    <g transform="matrix(1.4026,0,0,1.4026,-203.526,-204.224)">
+                        <g transform="matrix(0,-1,-1,0,501.589,155.604)">
+                            <path d="M-346.482,-346.482C-537.84,-346.482 -692.964,-191.356 -692.964,0C-692.964,191.356 -537.84,346.482 -346.482,346.482C-155.125,346.482 0,191.356 0,0C0,-191.356 -155.125,-346.482 -346.482,-346.482" style="fill:rgb(255,248,0);fill-rule:nonzero;"/>
+                        </g>
+                        <g transform="matrix(1,0,0,1,501.589,838.569)">
+                            <path d="M0,-672.965C-185.537,-672.965 -336.482,-522.02 -336.482,-336.483C-336.482,-150.945 -185.537,0 0,0C185.537,0 336.482,-150.945 336.482,-336.483C336.482,-522.02 185.537,-672.965 0,-672.965M0,20C-48.121,20 -94.807,10.573 -138.762,-8.019C-181.213,-25.974 -219.335,-51.676 -252.071,-84.411C-284.807,-117.147 -310.509,-155.27 -328.464,-197.72C-347.056,-241.676 -356.482,-288.362 -356.482,-336.483C-356.482,-384.603 -347.056,-431.289 -328.464,-475.245C-310.509,-517.695 -284.807,-555.818 -252.071,-588.554C-219.335,-621.289 -181.213,-646.991 -138.762,-664.947C-94.807,-683.538 -48.121,-692.965 0,-692.965C48.12,-692.965 94.807,-683.538 138.762,-664.947C181.213,-646.991 219.335,-621.289 252.071,-588.554C284.807,-555.818 310.509,-517.695 328.464,-475.245C347.056,-431.289 356.482,-384.603 356.482,-336.483C356.482,-288.362 347.056,-241.676 328.464,-197.72C310.509,-155.27 284.807,-117.147 252.071,-84.411C219.335,-51.676 181.213,-25.974 138.762,-8.019C94.807,10.573 48.12,20 0,20" style="fill-rule:nonzero;"/>
+                        </g>
+                        <g transform="matrix(1,0,0,1,367.718,410.379)">
+                            <path d="M0,-36.841L37.819,-36.841L33.188,0.769L-4.623,0.844L0,-36.841ZM-40.716,68.511L-12.924,68.511L-8.008,28.438L29.781,28.438L24.886,68.187L53.001,68.187L57.822,28.438L92.427,28.438L95.659,0.646L61.184,0.714L65.738,-36.841L101.153,-36.841L104.384,-64.633L69.1,-64.564L74.007,-105.029L46.215,-105.029L41.226,-64.509L3.385,-64.434L8.405,-105.352L-19.71,-105.352L-24.661,-64.379L-59.783,-64.31L-63.338,-36.841L-27.988,-36.841L-32.547,0.898L-68.509,0.969L-72.063,28.438L-35.875,28.438L-40.716,68.511Z" style="fill:rgb(5,5,5);fill-rule:nonzero;"/>
+                        </g>
+                        <g transform="matrix(1,0,0,1,711.06,323.151)">
+                            <path d="M0,154.223L-2.723,119.566L-111.149,85.404L-9.654,35.152L-12.625,0L-143.825,68.571L-140.607,108.179L0,154.223Z" style="fill:rgb(5,5,5);fill-rule:nonzero;"/>
+                        </g>
+                        <g transform="matrix(1,0,0,1,659.86,639.05)">
+                            <path d="M0,-10.069C-4.68,-0.523 -14.224,5.839 -27.699,5.278C-41.175,4.716 -106.493,-4.08 -124.461,-4.641C-142.429,-5.203 -151.6,12.203 -163.952,25.679C-173.123,2.846 -180.609,-7.823 -192.775,-11.566C-204.94,-15.309 -266.328,-20.549 -283.36,-22.608C-300.392,-24.667 -306.755,-26.351 -312.744,-38.517C-318.733,-50.683 -315.177,-70.521 -315.177,-70.521L-349.24,-74.452C-349.24,-74.452 -351.861,-60.415 -351.486,-38.33C-351.112,-16.245 -348.117,-1.834 -329.775,6.402C-311.434,14.637 -258.092,20.064 -224.965,22.497C-191.837,24.931 -187.533,29.61 -184.351,37.283C-181.169,44.955 -184.675,60.199 -184.675,60.199C-184.675,60.199 -177.436,61.216 -150.292,64.383C-149.274,46.513 -147.351,41.989 -141.131,36.899C-134.911,31.809 -124.505,33.618 -93.063,36.897C-61.62,40.176 -37.417,46.057 -10.159,45.152C17.099,44.246 26.485,27.846 32.479,10.202C38.474,-7.441 39.154,-31.647 39.154,-31.647L5.45,-35.266C5.45,-35.266 4.68,-19.615 0,-10.069" style="fill:rgb(5,5,5);fill-rule:nonzero;"/>
+                        </g>
+                    </g>
+                </svg>
+            </button>
+            <div class="sidebar-title">Project Files</div>
+            <button id="sidebarHeaderToggle" class="sidebar-floating-toggle" type="button" aria-label="折叠边栏" aria-controls="projectSidebar" aria-expanded="false" onclick="toggleProjectSidebar()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
+                    <path fill="currentColor" d="M14.53 3.47a.75.75 0 0 1 0 1.06L9.06 10l5.47 5.47a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="sidebar-actions">
+            <button class="sidebar-action primary" onclick="openCreateFileDialog()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M5.5 3A2.5 2.5 0 0 0 3 5.5v9A2.5 2.5 0 0 0 5.5 17h9a2.5 2.5 0 0 0 2.5-2.5v-5.25a.75.75 0 0 0-1.5 0v5.25a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h5.25a.75.75 0 0 0 0-1.5H5.5Zm10.78.22a.75.75 0 0 0-1.06 0L9.44 9a.75.75 0 0 0-.19.33l-.7 2.45a.75.75 0 0 0 .93.93l2.45-.7a.75.75 0 0 0 .33-.19l5.78-5.78a.75.75 0 0 0 0-1.06l-1.75-1.75Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">new file</span>
+            </button>
+            <button class="sidebar-action upload" onclick="performClick('file-input')">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M3.5 13.5a.75.75 0 0 1 .75.75v1.25A1.5 1.5 0 0 0 5.75 17h8.5a1.5 1.5 0 0 0 1.5-1.5v-1.25a.75.75 0 0 1 1.5 0v1.25a3 3 0 0 1-3 3h-8.5a3 3 0 0 1-3-3v-1.25a.75.75 0 0 1 .75-.75ZM10 3.5a.75.75 0 0 1 .53.22l3.25 3.25a.75.75 0 1 1-1.06 1.06l-1.97-1.97v6.44a.75.75 0 0 1-1.5 0V6.06L7.28 8.03a.75.75 0 0 1-1.06-1.06l3.25-3.25A.75.75 0 0 1 10 3.5Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">upload</span>
+            </button>
+            <button class="sidebar-action folder" onclick="openProjectFolderUploadDialog()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M2.75 5A2.25 2.25 0 0 1 5 2.75h3.35c.6 0 1.17.24 1.59.66l.84.84c.14.14.33.22.53.22H15A2.25 2.25 0 0 1 17.25 6.7v6.55A2.25 2.25 0 0 1 15 15.5H5a2.25 2.25 0 0 1-2.25-2.25V5Zm9 4a.75.75 0 0 0-1.5 0v1h-1a.75.75 0 0 0 0 1.5h1v1a.75.75 0 0 0 1.5 0v-1h1a.75.75 0 0 0 0-1.5h-1V9Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">upload folder</span>
+            </button>
+            <button id="projectSelectionToggleButton" class="sidebar-action select" type="button" title="显示选择框" aria-pressed="false" onclick="toggleProjectTreeSelectionVisible()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M6.25 3.5A2.75 2.75 0 0 0 3.5 6.25v7.5a2.75 2.75 0 0 0 2.75 2.75h7.5a2.75 2.75 0 0 0 2.75-2.75v-7.5a2.75 2.75 0 0 0-2.75-2.75h-7.5Zm0 1.5h7.5A1.25 1.25 0 0 1 15 6.25v7.5A1.25 1.25 0 0 1 13.75 15h-7.5A1.25 1.25 0 0 1 5 13.75v-7.5A1.25 1.25 0 0 1 6.25 5Zm6.58 2.88a.75.75 0 0 0-1.06-1.06L8.75 9.84 7.98 9.07a.75.75 0 0 0-1.06 1.06l1.3 1.3a.75.75 0 0 0 1.06 0l3.55-3.55Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">select</span>
+            </button>
+            <button id="projectSelectedDeleteButton" class="sidebar-action selection-delete" type="button" title="先选择要删除的文件或文件夹" disabled onclick="deleteSelectedProjectTreeItems()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M8.5 2.75a1.75 1.75 0 0 0-1.67 1.25H4.25a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5h-2.58a1.75 1.75 0 0 0-1.67-1.25h-3Zm-.08 4.5a.75.75 0 0 1 .78.72l.28 6.5a.75.75 0 0 1-1.5.06l-.28-6.5a.75.75 0 0 1 .72-.78Zm3.16 0a.75.75 0 0 1 .72.78l-.28 6.5a.75.75 0 0 1-1.5-.06l.28-6.5a.75.75 0 0 1 .78-.72ZM5.5 6.5a.75.75 0 0 1 .75.7l.57 8.04a1.25 1.25 0 0 0 1.25 1.16h3.86a1.25 1.25 0 0 0 1.25-1.16l.57-8.04a.75.75 0 1 1 1.5.1l-.57 8.05a2.75 2.75 0 0 1-2.74 2.55H8.07a2.75 2.75 0 0 1-2.74-2.55L4.75 7.3a.75.75 0 0 1 .75-.8Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">delete selected</span>
+            </button>
+            <button class="sidebar-action clear" type="button" title="清空所有文件" onclick="clearAllProjectFiles()">
+                <span class="sidebar-action-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path fill="currentColor" d="M8.5 2.75a1.75 1.75 0 0 0-1.67 1.25H4.25a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5h-2.58a1.75 1.75 0 0 0-1.67-1.25h-3Zm-.08 4.5a.75.75 0 0 1 .78.72l.28 6.5a.75.75 0 0 1-1.5.06l-.28-6.5a.75.75 0 0 1 .72-.78Zm3.16 0a.75.75 0 0 1 .72.78l-.28 6.5a.75.75 0 0 1-1.5-.06l.28-6.5a.75.75 0 0 1 .78-.72ZM5.5 6.5a.75.75 0 0 1 .75.7l.57 8.04a1.25 1.25 0 0 0 1.25 1.16h3.86a1.25 1.25 0 0 0 1.25-1.16l.57-8.04a.75.75 0 1 1 1.5.1l-.57 8.05a2.75 2.75 0 0 1-2.74 2.55H8.07a2.75 2.75 0 0 1-2.74-2.55L4.75 7.3a.75.75 0 0 1 .75-.8Z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-action-text">clear all</span>
+            </button>
+        </div>
+        <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
+        <div id="projectFileTree"></div>
+        <div id="sidebarResizeHandle" role="separator" aria-orientation="vertical" aria-label="调整侧边栏宽度"></div>
+    </aside>
+
+    <div id="sidebarBackdrop" onclick="closeSidebarFromBackdrop()"></div>
+
+    <main id="workspaceMain">
+        <div id="editorArea" onclick="hideFloatingMenuIfOpen()">
+            <div id="editor"></div>
+            <div id="assetViewer"></div>
+            <div id="htmlPreviewPane">
+                <iframe id="htmlPreviewFrame" title="Preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+            </div>
+            <div id="editorPreviewControls" class="editor-preview-controls html-share-view-control" aria-label="Preview controls">
+                <button class="preview-mode-btn" type="button" data-share-view-mode="source" aria-pressed="true" title="源码视图">
+                    <i class="bi bi-code-slash" aria-hidden="true"></i>
+                    <span>Source</span>
+                </button>
+                <button class="preview-mode-btn" type="button" data-share-view-mode="preview" aria-pressed="false" title="预览视图">
+                    <i class="bi bi-window" aria-hidden="true"></i>
+                    <span>Preview</span>
+                </button>
+                <button class="preview-mode-btn" type="button" data-share-view-mode="split" aria-pressed="false" title="源码与预览分屏实时渲染">
+                    <i class="bi bi-layout-split" aria-hidden="true"></i>
+                    <span>Split</span>
+                </button>
+                <button id="previewFullscreenButton" class="preview-fullscreen-btn" type="button" aria-pressed="false" title="全屏预览">
+                    <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i>
+                    <span>Full</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="toolbar" id="desktopToolbar">
+            <button class="toolbar-btn save" onclick="save()">save</button>
+            <button class="toolbar-btn open" onclick="performClick('file-input')">open</button>
+            <button class="toolbar-btn folder" onclick="openProjectFolderUploadDialog()">folder</button>
+            <button class="toolbar-btn download project-download-btn" onclick="downloadProjectArchive()">zip</button>
+            <button class="toolbar-btn share" onclick="share()">share</button>
+            <button class="toolbar-btn run python-run-btn" onclick="goPythonRunPage()">py-run</button>
+            <button class="toolbar-btn home" onclick="home()">home</button>
+
+            <div class="toolbar-select-group">
+                <span>Language</span>
+                <select id="lang-selector-desktop" class="toolbar-select">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="jsx">JSX</option>
+                    <option value="tsx">TSX</option>
+                    <option value="c_cpp">C/C++</option>
+                    <option value="java">Java</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="golang">Go</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="scss">SCSS</option>
+                    <option value="sass">Sass</option>
+                    <option value="less">Less</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="json">JSON</option>
+                    <option value="yaml">YAML</option>
+                    <option value="xml">XML</option>
+                    <option value="sql">SQL</option>
+                    <option value="sh">Shell/Bash</option>
+                    <option value="csharp">C#</option>
+                    <option value="rust">Rust</option>
+                    <option value="swift">Swift</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="dart">Dart</option>
+                    <option value="lua">Lua</option>
+                    <option value="r">R</option>
+                    <option value="perl">Perl</option>
+                    <option value="scala">Scala</option>
+                    <option value="groovy">Groovy</option>
+                    <option value="haskell">Haskell</option>
+                    <option value="clojure">Clojure</option>
+                    <option value="elixir">Elixir</option>
+                    <option value="erlang">Erlang</option>
+                    <option value="julia">Julia</option>
+                    <option value="matlab">MATLAB</option>
+                    <option value="objectivec">Objective-C</option>
+                    <option value="powershell">PowerShell</option>
+                    <option value="dockerfile">Dockerfile</option>
+                    <option value="makefile">Makefile</option>
+                    <option value="ini">INI</option>
+                    <option value="toml">TOML</option>
+                    <option value="diff">Diff/Patch</option>
+                    <option value="graphql">GraphQL</option>
+                    <option value="terraform">Terraform</option>
+                    <option value="protobuf">Protocol Buffers</option>
+                    <option value="nginx">Nginx</option>
+                    <option value="vue">Vue</option>
+                    <option value="plaintext">Plain Text</option>
+                </select>
+            </div>
+
+            <div class="toolbar-select-group">
+                <span>Theme</span>
+                <select id="theme-selector-desktop" class="toolbar-select">
+                    <option value="monokai">monokai</option>
+                    <option value="github">github</option>
+                    <option value="tomorrow">tomorrow</option>
+                    <option value="kuroir">kuroir</option>
+                    <option value="twilight">twilight</option>
+                    <option value="vibrant_ink">vibrant_ink</option>
+                    <option value="xcode">xcode</option>
+                    <option value="textmate">textmate</option>
+                    <option value="terminal">terminal</option>
+                    <option value="solarized_dark">solarized_dark</option>
+                    <option value="solarized_light">solarized_light</option>
+                </select>
+            </div>
+
+            <a class="toolbar-link" href="#" data-toggle="modal" data-target="#about-modal">About</a>
+        </div>
+    </main>
+</div>
+
+<div id="floatingToggle" onclick="toggleFloatingMenu()">≡</div>
+
+<div id="floatingMenu">
+    <button id="mobile-toggle-files" onclick="toggleProjectSidebar()">files</button>
+    <button id="mobile-new-file" onclick="openCreateFileDialog()">new file</button>
+    <button id="mobile-save" onclick="save()">save</button>
+    <button id="mobile-open" onclick="performClick('file-input')">open</button>
+    <button id="mobile-folder" onclick="openProjectFolderUploadDialog()">folder</button>
+    <button id="mobile-download" class="project-download-btn" onclick="downloadProjectArchive()">download</button>
+    <button id="mobile-share" onclick="share()">share</button>
+    <button id="mobile-python-run" class="python-run-btn" onclick="goPythonRunPage()">py-run</button>
+    <button id="mobile-home" onclick="home()">home</button>
+
+    <div class="mobile-select-wrap">
+        <label for="lang-selector-mobile">Language</label>
+        <select id="lang-selector-mobile" class="mobile-select">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="jsx">JSX</option>
+            <option value="tsx">TSX</option>
+            <option value="c_cpp">C/C++</option>
+            <option value="java">Java</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="golang">Go</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="scss">SCSS</option>
+            <option value="sass">Sass</option>
+            <option value="less">Less</option>
+            <option value="markdown">Markdown</option>
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+            <option value="xml">XML</option>
+            <option value="sql">SQL</option>
+            <option value="sh">Shell/Bash</option>
+            <option value="csharp">C#</option>
+            <option value="rust">Rust</option>
+            <option value="swift">Swift</option>
+            <option value="kotlin">Kotlin</option>
+            <option value="dart">Dart</option>
+            <option value="lua">Lua</option>
+            <option value="r">R</option>
+            <option value="perl">Perl</option>
+            <option value="scala">Scala</option>
+            <option value="groovy">Groovy</option>
+            <option value="haskell">Haskell</option>
+            <option value="clojure">Clojure</option>
+            <option value="elixir">Elixir</option>
+            <option value="erlang">Erlang</option>
+            <option value="julia">Julia</option>
+            <option value="matlab">MATLAB</option>
+            <option value="objectivec">Objective-C</option>
+            <option value="powershell">PowerShell</option>
+            <option value="dockerfile">Dockerfile</option>
+            <option value="makefile">Makefile</option>
+            <option value="ini">INI</option>
+            <option value="toml">TOML</option>
+            <option value="diff">Diff/Patch</option>
+            <option value="graphql">GraphQL</option>
+            <option value="terraform">Terraform</option>
+            <option value="protobuf">Protocol Buffers</option>
+            <option value="nginx">Nginx</option>
+            <option value="vue">Vue</option>
+            <option value="plaintext">Plain Text</option>
+        </select>
+    </div>
+
+    <div class="mobile-select-wrap">
+        <label for="theme-selector-mobile">Theme</label>
+        <select id="theme-selector-mobile" class="mobile-select">
+            <option value="monokai">monokai</option>
+            <option value="github">github</option>
+            <option value="tomorrow">tomorrow</option>
+            <option value="kuroir">kuroir</option>
+            <option value="twilight">twilight</option>
+            <option value="vibrant_ink">vibrant_ink</option>
+            <option value="xcode">xcode</option>
+            <option value="textmate">textmate</option>
+            <option value="terminal">terminal</option>
+            <option value="solarized_dark">solarized_dark</option>
+            <option value="solarized_light">solarized_light</option>
+        </select>
+    </div>
+</div>
+
+<input id="file-input" type="file" multiple style="display: none;"/>
+<input id="folder-input" type="file" webkitdirectory directory multiple style="display: none;"/>
+
+<div id="projectTreeContextMenu" class="project-context-menu" role="menu" aria-hidden="true">
+    <button type="button" data-action="new-file">新建文件</button>
+    <button type="button" data-action="new-folder">新建文件夹</button>
+    <button type="button" data-action="upload-file">上传文件</button>
+    <button type="button" data-action="upload-folder">上传文件夹</button>
+    <div class="project-context-menu-separator" data-item-only="true"></div>
+    <button type="button" data-action="copy-path" data-item-only="true">复制路径</button>
+    <button type="button" data-action="download" data-item-only="true">下载</button>
+    <button type="button" data-action="share" data-item-only="true">分享</button>
+    <button type="button" data-action="rename" data-item-only="true">重命名</button>
+    <button type="button" data-action="delete" data-item-only="true" class="danger">删除</button>
+</div>
+
+<div id="projectTreeNotice" class="project-notice" aria-live="polite"></div>
+
+<div id="projectUploadOverlay" class="project-upload-overlay" aria-hidden="true">
+    <div id="projectUploadDialog" class="project-upload-dialog" role="dialog" aria-modal="true" aria-labelledby="projectUploadTitle">
+        <div class="project-upload-dialog-header">
+            <h2 id="projectUploadTitle" class="project-upload-dialog-title">上传文件夹</h2>
+            <button type="button" class="project-upload-dialog-close" aria-label="关闭" onclick="closeProjectFolderUploadDialog()">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="project-upload-dialog-body">
+            <div class="project-upload-target-row">
+                <label for="projectUploadTargetSelect">上传到</label>
+                <select id="projectUploadTargetSelect"></select>
+            </div>
+            <div id="projectUploadDropZone" class="project-upload-drop-zone" role="button" tabindex="0">
+                <span class="project-upload-drop-icon" aria-hidden="true">
+                    <i class="bi bi-folder-plus"></i>
+                </span>
+                <div class="project-upload-drop-title">拖拽文件夹到这里</div>
+                <div class="project-upload-drop-subtitle">或点击选择本地文件夹</div>
+                <button type="button" id="projectUploadChooseFolderBtn" class="project-upload-choose-btn">选择文件夹</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="projectUploadProgressPanel" class="project-upload-progress-panel" aria-live="polite" aria-hidden="true">
+    <div class="project-upload-progress-header">
+        <button type="button" class="project-upload-progress-collapse" aria-label="折叠上传进度" onclick="toggleProjectUploadProgressPanel()">
+            <i id="projectUploadProgressCollapseIcon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div>
+            <div id="projectUploadProgressTitle" class="project-upload-progress-title">正在上传</div>
+            <div id="projectUploadProgressSummary" class="project-upload-progress-summary"></div>
+        </div>
+        <div id="projectUploadProgressHeaderRing" class="project-upload-progress-ring" aria-hidden="true">
+            <i class="bi bi-check-lg" aria-hidden="true"></i>
+        </div>
+        <button type="button" class="project-upload-progress-close" aria-label="关闭上传进度" onclick="closeProjectUploadProgressPanel()">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div id="projectUploadProgressList" class="project-upload-progress-list"></div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share your code</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
+                <div class="input-group my-3">
+                    <input type="text" class="form-control" id="share-link-input" value="" readonly>
+                    <div class="input-group-append">
+                        <button class="btn btn-info" type="button" onclick="copyLinkManually()">手动复制</button>
+                    </div>
+                </div>
+                <div id="copy-success" class="copy-success">分享链接已经复制！</div>
+                <p>You can save this picture or scan the QR code to share it.</p>
+                <div id="final-image-container"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="projectConfirmOverlay">
+    <div class="overlay-dialog" id="projectConfirmDialog">
+        <div class="overlay-dialog-header">
+            <h5 id="projectConfirmTitle" class="overlay-dialog-title">确认操作</h5>
+            <button class="overlay-dialog-close" onclick="closeProjectConfirmDialog()">×</button>
+        </div>
+        <div class="overlay-dialog-body">
+            <p id="projectConfirmMessage" class="project-confirm-message"></p>
+            <div class="overlay-actions">
+                <button class="btn-secondary-lite" onclick="closeProjectConfirmDialog()">取消</button>
+                <button id="projectConfirmActionBtn" class="btn-danger-lite" type="button" onclick="runProjectConfirmAction()">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">About</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <h3>关于 CodeMark</h3>
+                <hr>
+                <p>CodeMark 是一个面向课堂演示、作业交流和作品展示的在线代码分享工具。</p>
+                <p>你可以把代码文件、项目资源和页面预览整理到同一个分享链接中，方便对方直接查看、复盘或继续编辑。</p>
+                <p>分享页支持二维码与链接复制，也支持多文件项目的结构化展示，适合教学、协作和个人代码记录。</p>
+                <p>如需课程定制、高校合作或私有化部署支持，可添加微信：Jiabcdefh</p>
+                <img src="{{ url_for('static', filename='/images/Jiabcdefh.JPG') }}" alt="微信：Jiabcdefh"
+                     style="zoom:25%;">
+                <br>
+                <a href="https://github.com/AndersonHJB/" target="_blank" rel="noreferrer">Github</a>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-javascript.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-c_cpp.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-java.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-php.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-ruby.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-golang.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="{{ url_for('static', filename='js/highlight.min.js') }}" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-anchor@9.2.0/dist/markdownItAnchor.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-footnote@4.0.0/dist/markdown-it-footnote.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-deflist@3.0.0/dist/markdown-it-deflist.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-abbr@2.0.0/dist/markdown-it-abbr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-sub@2.0.0/dist/markdown-it-sub.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-sup@2.0.0/dist/markdown-it-sup.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-mark@4.0.0/dist/markdown-it-mark.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/dist/markdown-it-task-lists.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-attrs@4.3.1/markdown-it-attrs.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-admon@1.0.0/dist/markdown-it-admon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-emoji@3.0.0/dist/markdown-it-emoji.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/vscode-icons/vscode-icons-map.js') }}" type="text/javascript"></script>
+
+<script>
+    window.SHARECODE_STATIC_PATHS = {
+        aceBasePath: "{{ url_for('static', filename='js/ace') }}/",
+        vscodeIconsBasePath: "{{ url_for('static', filename='vendor/vscode-icons/svg') }}/",
+        highlightCssPath: "{{ url_for('static', filename='css/default.min.css') }}",
+        highlightJsPath: "{{ url_for('static', filename='js/highlight.min.js') }}"
+    };
+</script>
+<script src="{{ url_for('static', filename='js/sharecode_page/state.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/sidebar.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/project-core.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/language-combobox.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/line-highlights.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/preview.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/icons.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/project-tree.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/upload.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/markdown-paste.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/markdown-metadata.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/initial-state.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/ui-actions.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/sharecode_page/app-init.js') }}" type="text/javascript"></script>
+</body>
+</html>

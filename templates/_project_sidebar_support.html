@@ -1,0 +1,76 @@
+<input id="folder-input" type="file" webkitdirectory directory multiple style="display: none;">
+
+<div id="projectTreeContextMenu" class="project-context-menu" role="menu" aria-hidden="true">
+    <button type="button" data-action="new-file">新建文件</button>
+    <button type="button" data-action="new-folder">新建文件夹</button>
+    <button type="button" data-action="upload-file">上传文件</button>
+    <button type="button" data-action="upload-folder">上传文件夹</button>
+    <div class="project-context-menu-separator" data-item-only="true"></div>
+    <button type="button" data-action="copy-path" data-item-only="true">复制路径</button>
+    <button type="button" data-action="download" data-item-only="true">下载</button>
+    <button type="button" data-action="share" data-item-only="true">分享</button>
+    <button type="button" data-action="rename" data-item-only="true">重命名</button>
+    <button type="button" data-action="delete" data-item-only="true" class="danger">删除</button>
+</div>
+
+<div id="projectTreeNotice" class="project-notice" aria-live="polite"></div>
+
+<div id="projectUploadOverlay" class="project-upload-overlay" aria-hidden="true">
+    <div id="projectUploadDialog" class="project-upload-dialog" role="dialog" aria-modal="true" aria-labelledby="projectUploadTitle">
+        <div class="project-upload-dialog-header">
+            <h2 id="projectUploadTitle" class="project-upload-dialog-title">上传文件夹</h2>
+            <button type="button" class="project-upload-dialog-close" aria-label="关闭" onclick="closeProjectFolderUploadDialog()">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="project-upload-dialog-body">
+            <div class="project-upload-target-row">
+                <label for="projectUploadTargetSelect">上传到</label>
+                <select id="projectUploadTargetSelect"></select>
+            </div>
+            <div id="projectUploadDropZone" class="project-upload-drop-zone" role="button" tabindex="0">
+                <span class="project-upload-drop-icon" aria-hidden="true">
+                    <i class="bi bi-folder-plus"></i>
+                </span>
+                <div class="project-upload-drop-title">拖拽文件夹到这里</div>
+                <div class="project-upload-drop-subtitle">或点击选择本地文件夹</div>
+                <button type="button" id="projectUploadChooseFolderBtn" class="project-upload-choose-btn">选择文件夹</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="projectUploadProgressPanel" class="project-upload-progress-panel" aria-live="polite" aria-hidden="true">
+    <div class="project-upload-progress-header">
+        <button type="button" class="project-upload-progress-collapse" aria-label="折叠上传进度" onclick="toggleProjectUploadProgressPanel()">
+            <i id="projectUploadProgressCollapseIcon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div>
+            <div id="projectUploadProgressTitle" class="project-upload-progress-title">正在上传</div>
+            <div id="projectUploadProgressSummary" class="project-upload-progress-summary"></div>
+        </div>
+        <div id="projectUploadProgressHeaderRing" class="project-upload-progress-ring" aria-hidden="true">
+            <i class="bi bi-check-lg" aria-hidden="true"></i>
+        </div>
+        <button type="button" class="project-upload-progress-close" aria-label="关闭上传进度" onclick="closeProjectUploadProgressPanel()">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div id="projectUploadProgressList" class="project-upload-progress-list"></div>
+</div>
+
+<div id="projectConfirmOverlay">
+    <div class="overlay-dialog" id="projectConfirmDialog">
+        <div class="overlay-dialog-header">
+            <h5 id="projectConfirmTitle" class="overlay-dialog-title">确认操作</h5>
+            <button class="overlay-dialog-close" type="button" onclick="closeProjectConfirmDialog()">×</button>
+        </div>
+        <div class="overlay-dialog-body">
+            <p id="projectConfirmMessage" class="project-confirm-message"></p>
+            <div class="overlay-actions">
+                <button class="btn-secondary-lite" type="button" onclick="closeProjectConfirmDialog()">取消</button>
+                <button id="projectConfirmActionBtn" class="btn-danger-lite" type="button" onclick="runProjectConfirmAction()">确认</button>
+            </div>
+        </div>
+    </div>
+</div>

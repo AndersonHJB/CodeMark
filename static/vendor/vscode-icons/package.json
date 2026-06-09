@@ -1,0 +1,29 @@
+{
+	"name": "@iconify-json/vscode-icons",
+	"description": "VSCode Icons icon set in Iconify JSON format",
+	"version": "1.2.46",
+	"iconSetVersion": "12.18.0",
+	"main": "index.js",
+	"module": "index.mjs",
+	"types": "index.d.ts",
+	"homepage": "https://icon-sets.iconify.design/vscode-icons/",
+	"bugs": "https://github.com/iconify/icon-sets/issues",
+	"license": "MIT",
+	"exports": {
+		"./*": "./*",
+		".": {
+			"types": "./index.d.ts",
+			"require": "./index.js",
+			"import": "./index.mjs"
+		},
+		"./icons.json": "./icons.json",
+		"./info.json": "./info.json"
+	},
+	"iconSet": {
+		"icons": "icons.json",
+		"info": "info.json"
+	},
+	"dependencies": {
+		"@iconify/types": "*"
+	}
+}

@@ -1,0 +1,44 @@
+<aside id="projectSidebar">
+    <div class="sidebar-header">
+        <button id="sidebarLogoButton" class="sidebar-logo-btn" type="button" aria-label="展开边栏" aria-controls="projectSidebar" aria-expanded="false" onclick="handleSidebarLogoClick()">
+            <img class="sidebar-logo-svg" src="{{ url_for('static', filename='images/logo.png') }}" alt="" aria-hidden="true">
+        </button>
+        <div class="sidebar-title">Project Files</div>
+        <button id="sidebarHeaderToggle" class="sidebar-floating-toggle" type="button" aria-label="折叠边栏" aria-controls="projectSidebar" aria-expanded="false" onclick="toggleProjectSidebar()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
+                <path fill="currentColor" d="M14.53 3.47a.75.75 0 0 1 0 1.06L9.06 10l5.47 5.47a.75.75 0 0 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"></path>
+            </svg>
+        </button>
+    </div>
+    <div class="sidebar-actions">
+        <button class="sidebar-action primary" type="button" onclick="openCreateFileDialog()">
+            <span class="sidebar-action-icon" aria-hidden="true"><i class="bi bi-file-earmark-plus"></i></span>
+            <span class="sidebar-action-text">new file</span>
+        </button>
+        <button class="sidebar-action upload" type="button" onclick="performClick('file-input')">
+            <span class="sidebar-action-icon" aria-hidden="true"><i class="bi bi-upload"></i></span>
+            <span class="sidebar-action-text">upload</span>
+        </button>
+        <button class="sidebar-action folder" type="button" onclick="openProjectFolderUploadDialog()">
+            <span class="sidebar-action-icon" aria-hidden="true"><i class="bi bi-folder-plus"></i></span>
+            <span class="sidebar-action-text">upload folder</span>
+        </button>
+        <button id="projectSelectionToggleButton" class="sidebar-action select" type="button" title="显示选择框" aria-pressed="false" onclick="toggleProjectTreeSelectionVisible()">
+            <span class="sidebar-action-icon" aria-hidden="true"><i class="bi bi-check2-square"></i></span>
+            <span class="sidebar-action-text">select</span>
+        </button>
+        <button id="projectSelectedDeleteButton" class="sidebar-action selection-delete" type="button" title="先选择要删除的文件或文件夹" disabled onclick="deleteSelectedProjectTreeItems()">
+            <span class="sidebar-action-icon" aria-hidden="true"><i class="bi bi-trash3"></i></span>
+            <span class="sidebar-action-text">delete selected</span>
+        </button>
+        <button class="sidebar-action clear" type="button" title="清空所有文件" onclick="clearAllProjectFiles()">
+            <span class="sidebar-action-icon" aria-hidden="true"><i class="bi bi-trash3"></i></span>
+            <span class="sidebar-action-text">clear all</span>
+        </button>
+    </div>
+    <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
+    <div id="projectFileTree"></div>
+    <div id="sidebarResizeHandle" role="separator" aria-orientation="vertical" aria-label="调整侧边栏宽度"></div>
+</aside>
+
+<div id="sidebarBackdrop" onclick="closeSidebarFromBackdrop()"></div>

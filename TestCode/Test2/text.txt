@@ -1,0 +1,1278 @@
+app.py:
+# -*- coding: utf-8 -*-
+# @Time    : 2024/11/16 09:07
+# @Author  : AI悦创
+# @FileName: app.py
+# @Software: PyCharm
+# @Blog    ：https://bornforthis.cn/
+# code is far away from bugs with the god animal protecting
+#    I love animals. They taste delicious.
+from flask import Flask, render_template, request, jsonify, url_for
+import markdown
+import os, re, random
+import uuid
+import datetime
+import qrcode  # pip install qrcode[pil]
+
+app = Flask(__name__)
+# app.config['SERVER_NAME'] = 'codemark.bornforthis.cn'  # 用于生成绝对 URL，可根据实际情况修改
+# app.config['PREFERRED_URL_SCHEME'] = 'https' # 强制使用 https
+
+def parse_sort_key(filename):
+    """
+    如果文件名以数字开头，则按数字排序，否则返回一个随机数以保证随机排序。
+    示例：
+        01-hello.md -> sort_key = 1
+        10-world.md -> sort_key = 10
+        readme.md   -> sort_key = 随机
+    """
+    match = re.match(r'^(\d+)', filename)
+    if match:
+        return int(match.group(1))
+    else:
+        # 如果你想每次都相同随机顺序，可自行改为其他逻辑
+        return random.randint(100000, 999999)
+
+o;'l;"""""'
+    去掉文件的扩展名和开头的数字序号后，作为文章展示标题。
+    比如 '01-hello.md' -> 'hello'; 'readme.md' -> 'readme'
+    你也可以在这里做更精细的标题提取，比如读取 markdown 第一行的 # 标题等。
+    """
+    # 去掉 .md
+    name = filename.rsplit('.md', 1)[0]
+    # 去掉开头的数字和中划线等
+    name = re.sub(r'^(\d+)(-|\s)*', '', name)
+    return name
+
+
+def build_directory_tree(root_dir):
+    """
+    递归地构建目录树数据结构：
+    返回示例:
+    {
+      'dirname': 'articles',
+      'subdirs': {
+          'Python': {
+              'dirname': 'Python',
+              'subdirs': {...},
+              'files': [{'filename': '01-intro.md','title': 'intro'}, ...]
+          },
+          ...
+      },
+      'files': [{'filename': 'readme.md','title': 'readme'}, ...]
+    }
+    """
+    tree = {
+        'dirname': os.path.basename(root_dir),
+        'subdirs': {},
+        'files': []
+    }
+
+    # 获取当前目录下的所有条目
+    entries = os.listdir(root_dir)
+    # 先把目录和文件分开
+    dirs = [d for d in entries if os.path.isdir(os.path.join(root_dir, d))]
+    files = [f for f in entries if os.path.isfile(os.path.join(root_dir, f)) and f.endswith('.md')]
+
+    # 排序文件
+    files_sorted = sorted(files, key=parse_sort_key)
+    for f in files_sorted:
+        tree['files'].append({
+            'filename': f,
+            'title': get_title_from_filename(f)
+        })
+
+    # 递归处理子目录
+    for d in dirs:
+        subdir_path = os.path.join(root_dir, d)
+        # 这里直接递归构建子目录结构
+        tree['subdirs'][d] = build_directory_tree(subdir_path)
+
+    return tree
+
+
+@app.route('/')
+def index():
+    """
+    新版主页：遍历 'articles' 目录，将其按目录分组后，在首页以类别的形式展示
+    """
+    # 构建整个 articles 文件夹的目录树
+    directory_tree = build_directory_tree('articles')
+    # 传给模板做展示
+    return render_template('index.html', directory_tree=directory_tree)
+
+
+@app.route('/article/<path:filename>')
+def article(filename):
+    """
+    文章阅读页面。
+    1. 根据 filename 打开指定 .md 文件，渲染为 HTML。
+    2. 同时也把目录树传给 article.html，用以在左侧显示 VuePress 风格 sidebar。
+    3. 将 current_file=filename 传递给模板，用于高亮当前文章并展开所在目录。
+    """
+    full_path = os.path.join('articles', filename)
+    if not os.path.isfile(full_path):
+        return f"File not found: {filename}", 404
+
+    with open(full_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        md = markdown.Markdown(extensions=[
+            'extra',  # 包含tables、fenced_code、footnotes、def_list等常用扩展
+            'admonition',  # 支持 !!! note / warning 等提示块
+            'attr_list',  # 允许添加HTML属性
+            'codehilite',  # 代码高亮
+            'def_list',
+            'fenced_code',
+            'footnotes',
+            'tables',
+            'abbr',
+            'meta',
+            'nl2br',
+            'sane_lists',
+            'smarty',
+            'toc',
+        ])
+        html_content = md.convert(content)
+        toc = md.toc
+        # 获取元信息（meta），每个字段都是列表，如 meta['title'] = ['xxx']
+        meta = md.Meta if hasattr(md, 'Meta') else {}
+
+    # 构建整个 articles 文件夹的目录树（用于左侧侧边栏）
+    directory_tree = build_directory_tree('articles')
+
+    return render_template('article.html',
+                           content=html_content,
+                           toc=toc,
+                           directory_tree=directory_tree,
+                           current_file=filename,
+                           meta=meta)
+
+def is_mobile(user_agent: str) -> bool:
+    """
+    判断是否为移动端访问，根据 user-agent 中常见的移动端标识来做简单匹配。
+    你可以根据业务需要，添加或修改更多关键词。
+    """
+    mobile_regex = re.compile(r'Mobile|Android|iPhone|iPad|iPod', re.IGNORECASE)
+    return bool(mobile_regex.search(user_agent))
+@app.route('/editor')
+def editor():
+    """
+    直接访问 /editor 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    使用可执行 Python 的模板 editor.html。
+    """
+    # 获取 User-Agent
+    user_agent = request.headers.get('User-Agent', '')
+    if is_mobile(user_agent):
+        # 如果是移动端，则渲染 mobile_editor.html
+        return render_template('mobile_editor.html', pre_code="")
+    else:
+        # 否则渲染原本的 editor.html
+        return render_template('editor.html', pre_code="")
+
+
+@app.route('/sharecode')
+def sharecode():
+    """
+    直接访问 /sharecode 时，如果没带任何参数，就给它一个空字符串，用于编辑器初始化。
+    使用不执行 Python 的模板 sharecode.html。
+    """
+    return render_template('sharecode.html', pre_code="")
+
+
+@app.route('/upload_code', methods=['POST'])
+def upload_code():
+    """
+    前端 share() 函数会通过 AJAX 调用这个接口，提交代码内容。
+    这里将代码保存到本地文件，生成二维码图片，并返回一个可分享的链接。
+
+    同时根据 template 值（editor / sharecode）记录在文本文件第一行，
+    以便后续 /share/<project_id> 时做判断，使用对应模板渲染。
+    """
+    # 从前端获取代码
+    code = request.form.get('code', '')
+    # 也可以取一下语言信息
+    language = request.form.get('language', '')
+    # 新增获取模板类型（默认用 editor）
+    template_type = request.form.get('template', 'editor')
+
+    # 生成一个唯一 ID
+    unique_id = str(uuid.uuid4())
+    # 时间戳
+    timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    # 拼接最终 project_id
+    project_id = unique_id + "_" + timestamp
+
+    # 1. 先拼装 sharecode/<yearmonth>/ 路径
+    yearmonth = datetime.datetime.now().strftime('%Y%m')
+    month_folder = os.path.join('sharecode', yearmonth)
+    os.makedirs(month_folder, exist_ok=True)
+
+    # 2. 将代码写入本地 txt 文件
+    #   文件第一行写入 "__TEMPLATE__=<template_type>"
+    #   第二行开始写实际的 code 内容
+    code_file_path = os.path.join(month_folder, project_id + ".txt")
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(f"__TEMPLATE__={template_type}\n")
+        f.write(code)
+
+    # 3. 生成二维码并保存在 sharecode/images 文件夹
+    images_folder = os.path.join('sharecode', 'images')
+    os.makedirs(images_folder, exist_ok=True)
+
+    # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
+    # 如果你有域名，可用: https://yourdomain.com/share/<project_id>
+    # share_link = request.host_url.strip('/') + "/share/" + project_id
+    share_link = url_for('show_shared_code', project_id=project_id, _external=True)  # 可以强制 https: _scheme='https'
+    print(f"share_link: {share_link}")
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(share_link)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    img_file_path = os.path.join(images_folder, project_id + ".png")
+    img.save(img_file_path)
+
+    # 返回给前端
+    return jsonify({
+        "project_id": project_id,
+        "share_link": share_link,
+    })
+
+
+@app.route('/share/<project_id>')
+def show_shared_code(project_id):
+    """
+    当别人访问 /share/<project_id> 时，
+    从本地 txt 文件读取对应代码的同时，也读取第一行以判断使用哪种模板。
+    """
+    code_content = "File not found or removed."
+    template_type = "editor"  # 默认使用 editor
+    sharecode_root = "sharecode"
+    found = False
+
+    # 遍历 sharecode 文件夹下的所有子目录，找 <project_id>.txt
+    for folder in os.listdir(sharecode_root):
+        folder_path = os.path.join(sharecode_root, folder)
+        if os.path.isdir(folder_path):
+            possible_path = os.path.join(folder_path, project_id + ".txt")
+            if os.path.isfile(possible_path):
+                found = True
+                with open(possible_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+
+                if lines and lines[0].startswith("__TEMPLATE__="):
+                    template_type = lines[0].split("=", 1)[1].strip()
+                    code_content = "".join(lines[1:])
+                else:
+                    # 如果没有在第一行记录模板，则默认为 editor
+                    code_content = "".join(lines)
+                break
+
+    if not found:
+        return f"File not found: {project_id}", 404
+
+    # 根据 template_type 来渲染不同的模板
+    if template_type == "sharecode":
+        return render_template('sharecode.html', pre_code=code_content)
+    else:
+        # 默认为 editor
+        return render_template('editor.html', pre_code=code_content)
+
+
+if __name__ == '__main__':
+    # app.run(debug=True)
+    app.run(host="0.0.0.0", port=8991)
+sharecode.html:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>代码分享小工具｜便捷分享代码</title>
+    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便分享代码的在线小工具，可以生成带二维码的代码截图，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
+    <style type="text/css" media="screen">
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #2f3129;
+            overflow: hidden;
+        }
+
+        .container-fluid {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 2. 让 row 使用 no-gutters，去掉默认的左右内间距 */
+        .row.no-gutters {
+            margin-right: 0;
+            margin-left: 0;
+        }
+
+        /* 也可再覆盖 col 默认的padding */
+        .col-sm-8, .col-md-4 {
+            padding: 0 !important;
+        }
+
+        .ace_editor .ace_content span,
+        .ace_editor .ace_content .ace_line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+        }
+
+        img {
+            max-width: 100%;
+        }
+
+        .btn-area {
+            height: 56px;
+            background-color: #2f3129;
+        }
+
+        .btn-area button {
+            float: left;
+            color: #fff;
+            border-radius: 0;
+            border-width: 0;
+            height: 100%;
+            width: 80px;
+        }
+
+        /* 原 run 按钮已移除，仅保留 save / open / share */
+        #save {
+            background-color: #6dddf2;
+        }
+
+        #open {
+            background-color: #f53855;
+        }
+
+        #share {
+            background-color: #a7c336;
+        }
+
+        #home {
+            background-color: #ef7d62;
+        }
+
+        .help-link-container a {
+            color: #fff;
+        }
+
+        .choose-container {
+            color: #fff;
+            padding-left: 5px;
+            padding-right: 5px;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+        }
+
+        .theme-choose {
+            color: #fff;
+            padding-left: 5px;
+            padding-right: 5px;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+        }
+
+        .code-container {
+            padding-left: 0;
+            padding-right: 0;
+            /* 让编辑器所在列可伸缩，占满剩余空间 */
+            height: calc(100vh - 56px);
+            overflow: hidden;
+        }
+
+        #editor {
+            /* 让 Ace Editor 占满父容器的高度 */
+            height: 100%;
+            width: 100%;
+        }
+
+        /* 已去除与输出框相关的样式 */
+
+        .modal-dialog {
+            max-width: 90%;
+        }
+
+        /* Add custom styles for bootstrap-select in dark theme */
+        .bootstrap-select .dropdown-toggle {
+            background-color: #4a4a4a;
+            border-color: #666;
+            color: white;
+        }
+
+        .bootstrap-select .dropdown-toggle:hover {
+            background-color: #5a5a5a;
+        }
+    </style>
+
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
+    {% if pre_code %}
+        <script>
+            let server_pre_code = {{ pre_code|tojson }};
+        </script>
+    {% else %}
+        <script>
+            let server_pre_code = "";
+        </script>
+    {% endif %}
+</head>
+
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- 代码编辑区：只保留编辑器，不再展示输出框 -->
+        <div class="col-sm-12 code-container">
+            <div id="editor"></div>
+        </div>
+    </div>
+
+    <!-- 按钮区域：已去掉运行按钮 -->
+    <div class="row btn-area">
+        <button id="save" onclick="save()">save</button>
+        <button id="open" onclick="performClick('file-input')">open</button>
+        <button id="share" onclick="share()">share</button>
+        <button id="home" onclick="home()">home</button>
+
+        <!-- ========== 新增：语言选择器 ========== -->
+        <div class="choose-container" style="margin-left: 15px;">
+            <span class="ml-2 mr-2">Language: </span>
+            <select id="lang-selector" class="selectpicker" data-style="btn-dark" data-width="140px">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="c_cpp">C/C++</option>
+                <option value="java">Java</option>
+                <option value="php">PHP</option>
+                <option value="ruby">Ruby</option>
+                <option value="golang">Go</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="markdown">Markdown</option>
+                <!-- 需要更多可继续添加 -->
+            </select>
+        </div>
+
+        <div class="choose-container theme-selector-container">
+            <span class="ml-2 mr-2">Theme: </span>
+            <select id="theme-selector" class="selectpicker" data-style="btn-dark" data-width="120px">
+                <option value="monokai">monokai</option>
+                <option value="github">github</option>
+                <option value="tomorrow">tomorrow</option>
+                <option value="kuroir">kuroir</option>
+                <option value="twilight">twilight</option>
+                <option value="vibrant_ink">vibrant_ink</option>
+                <option value="xcode">xcode</option>
+                <option value="textmate">textmate</option>
+                <option value="terminal">terminal</option>
+                <option value="solarized_dark">solarized dark</option>
+                <option value="solarized_light">solarized light</option>
+            </select>
+        </div>
+        <div class="help-link-container my-auto ml-3">
+            <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
+        </div>
+        <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share your code</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <!-- 这里会动态生成二维码+最终合成图 -->
+                <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
+                <p>You can save this picture or scan the QR code to share it.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">About</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <h3>About</h3>
+                <hr>
+                <p>This page demonstrates running Python in the browser with Pyodide.</p>
+                <p>We have added support for micropip, NumPy, and Pandas.</p>
+                <p>Enjoy exploring Pyodide!</p>
+                <a href="https://github.com/AndersonHJB/">Github</a>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================== 代码编辑器相关 ================== -->
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-javascript.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-c_cpp.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-java.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-php.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-ruby.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-golang.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-html.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-css.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-markdown.js') }}" type="text/javascript"></script>
+
+<script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
+
+<!-- 第三方库 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- 已去掉 Pyodide 相关的引用与逻辑 -->
+
+<script type="text/javascript">
+    /*******************************************************
+     *  1. 修复浏览器“前进 / 后退”无法加载最新代码的问题
+     *  通过监听 pageshow 事件检测 bfcache，如果命中缓存则刷新
+     *******************************************************/
+    window.addEventListener("pageshow", function (event) {
+        // 方式1：检测 event.persisted（命中 bfcache 时为 true）
+        // 方式2：检测 performance.navigation.type === 2
+        if (event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // 2. 页面加载时，初始化 Ace 编辑器
+    window.addEventListener("load", async function () {
+        ace.config.set("basePath", "static/js/ace/");
+        window.editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/python");
+        editor.setOptions({
+            fontSize: "20pt",
+            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+        });
+
+        // Initialize bootstrap-select
+        $('.selectpicker').selectpicker({
+            style: 'btn-dark',
+            size: 10
+        });
+
+        // Set initial theme
+        $('#theme-selector').selectpicker('val', 'monokai');
+        $('#lang-selector').selectpicker('val', 'python');
+
+        // 主题切换事件
+        $('#theme-selector').on('changed.bs.select', function () {
+            let selectedTheme = $(this).val();
+            window.editor.setTheme("ace/theme/" + selectedTheme);
+        });
+
+        // 语言切换事件
+        $('#lang-selector').on('changed.bs.select', function () {
+            let selectedLang = $(this).val();
+            // 注意：对于 python3 在 Ace 中一般是 "python" 这个 mode
+            // 如果使用外部 python3 模式文件，可能是 "mode-python3"
+            // 这里为了兼容，你可以做一个映射。这里简单处理：
+            if (selectedLang === 'python') {
+                editor.session.setMode("ace/mode/python");
+            } else {
+                editor.session.setMode("ace/mode/" + selectedLang);
+            }
+        });
+
+        // Ctrl-D / Command-D：复制当前行
+        editor.commands.addCommand({
+            name: 'duplicateLine',
+            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
+            exec: function (editor) {
+                editor.execCommand("copylinesdown");
+            }
+        });
+
+        // 如果后端传来了 server_pre_code，则用它来填充编辑器
+        if (server_pre_code) {
+            editor.setValue(server_pre_code, -1);
+        } else {
+            editor.setValue("# This editor does NOT run Python code.\n# You can edit and share the code, but there's no execution here.", -1);
+        }
+    });
+
+    // 简单的：从文件拓展名来猜测语言
+    function detectLanguageFromFilename(filename) {
+        let lowerName = filename.toLowerCase();
+        if (lowerName.endsWith(".py")) return "python";
+        if (lowerName.endsWith(".js")) return "javascript";
+        if (lowerName.endsWith(".c") || lowerName.endsWith(".cpp") || lowerName.endsWith(".h")) return "c_cpp";
+        if (lowerName.endsWith(".java")) return "java";
+        if (lowerName.endsWith(".php")) return "php";
+        if (lowerName.endsWith(".rb")) return "ruby";
+        if (lowerName.endsWith(".go")) return "golang";
+        if (lowerName.endsWith(".html")) return "html";
+        if (lowerName.endsWith(".css")) return "css";
+        if (lowerName.endsWith(".md")) return "markdown";
+        // 都不符合时，默认返回 python
+        return "python";
+    }
+
+    // 打开文件
+    function performClick(elemId) {
+        const elem = document.getElementById(elemId);
+        if (elem) {
+            elem.click();
+        }
+    }
+
+    // 读取文件
+    function readSingleFile(e) {
+        let file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            window.editor.setValue(e.target.result, -1);
+            // 自动识别语言
+            let autoLang = detectLanguageFromFilename(file.name);
+            // 设置 Ace 的 mode
+            if (autoLang === 'python') {
+                editor.session.setMode("ace/mode/python");
+            } else {
+                editor.session.setMode("ace/mode/" + autoLang);
+            }
+            // 同步更新下拉框
+            $('#lang-selector').selectpicker('val', autoLang);
+        };
+        reader.readAsText(file);
+    }
+    // 回到首页
+    function home() {
+        window.location.href = "/";
+    }
+    // 保存为文件
+    function save() {
+        let code = window.editor.getValue();
+        // 这里可以根据当前 mode 来决定后缀，示例里简单判断
+        let langVal = $('#lang-selector').val();
+        let fileExt = ".txt";
+        if (langVal === "python") fileExt = ".py";
+        else if (langVal === "javascript") fileExt = ".js";
+        else if (langVal === "c_cpp") fileExt = ".cpp";
+        else if (langVal === "java") fileExt = ".java";
+        else if (langVal === "php") fileExt = ".php";
+        else if (langVal === "ruby") fileExt = ".rb";
+        else if (langVal === "golang") fileExt = ".go";
+        else if (langVal === "html") fileExt = ".html";
+        else if (langVal === "css") fileExt = ".css";
+        else if (langVal === "markdown") fileExt = ".md";
+
+        let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "bornforthis_code" + fileExt);
+    }
+
+    // 分享功能：上传代码到后端，返回一个可分享的链接
+    function share() {
+        let code = window.editor.getValue();
+        // 这里多传一个 language，方便后端存储
+        let langVal = $('#lang-selector').val();
+        $.ajax({
+            type: 'post',
+            url: '/upload_code',
+            dataType: 'json',
+            data: {
+                code: code,
+                language: langVal,
+                template: 'sharecode'   // 告诉后端此分享来自 sharecode 模板
+            },
+            success: function (d) {
+                // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
+                let shareLink = d.share_link;
+
+                // 1. 生成二维码
+                $('#qrcode').empty();
+                $('#qrcode').qrcode({
+                    text: shareLink,
+                    width: 200,
+                    height: 200
+                });
+
+                // 2. 更新弹窗标题中的可点击链接
+                $('.modal-title').html(
+                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
+                );
+
+                // 3. 合成二维码与编辑器截图
+                let qrcodeCanvas = $('#qrcode canvas')[0];
+                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+
+                let existingFinalImageContainer = document.getElementById("final-image-container");
+                if (existingFinalImageContainer) {
+                    existingFinalImageContainer.remove();
+                }
+                let finalImageContainer = document.createElement("div");
+                finalImageContainer.id = "final-image-container";
+                finalImageContainer.style.marginTop = "20px";
+                document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
+
+                // 截取编辑器区域，并将二维码绘制到截图右上角
+                html2canvas(document.querySelector("#editor")).then(canvas => {
+                    let ctx = canvas.getContext('2d');
+                    let img = new Image();
+                    img.src = qrcode_src;
+                    img.onload = function () {
+                        // 在编辑器截图上叠加二维码，缩小到 120x120
+                        let qrSize = 120;
+                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+
+                        // 显示合成后的最终图片
+                        let finalImgElement = document.createElement("img");
+                        finalImgElement.src = canvas.toDataURL('image/png');
+                        finalImgElement.style.maxWidth = "90%";
+                        finalImageContainer.appendChild(finalImgElement);
+                    };
+                });
+
+                // 4. 显示分享弹窗
+                $('#share-modal').modal('show');
+            }
+        });
+    }
+
+    // 监听文件选择
+    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
+</script>
+</body>
+</html>
+editor.html:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Python在线代码编写</title>
+    <meta name="keywords" content="代码, 代码分享, 在线工具, 创客, AI悦创, Python, Java, C++, code share, program share, 编程一对一教学, Java编程一对一教学">
+    <meta name="description" content="一个方便不用安装环境，可以浏览器编写代码和分享代码的在线小工具，还可以生成带二维码的代码截图，方便分享。">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css" rel="stylesheet">
+    <style type="text/css" media="screen">
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #2f3129;
+            overflow: hidden;
+        }
+
+        .container-fluid {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 2. 让 row 使用 no-gutters，去掉默认的左右内间距 */
+        .row.no-gutters {
+            margin-right: 0;
+            margin-left: 0;
+        }
+
+        /* 也可再覆盖 col 默认的padding */
+        .col-sm-8, .col-md-4 {
+            padding: 0 !important;
+        }
+
+        .ace_editor .ace_content span,
+        .ace_editor .ace_content .ace_line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+        }
+
+        img {
+            max-width: 100%;
+        }
+
+        .btn-area {
+            height: 56px;
+            background-color: #2f3129;
+        }
+
+        .btn-area button {
+            float: left;
+            color: #fff;
+            border-radius: 0;
+            border-width: 0;
+            height: 100%;
+            width: 80px;
+        }
+
+        #run {
+            float: left;
+            background-color: #a7c336;
+            color: #fff;
+            border-radius: 0;
+            border-width: 0;
+            height: 100%;
+            width: 80px;
+        }
+
+        #save {
+            background-color: #6dddf2;
+        }
+
+        #open {
+            background-color: #f53855;
+        }
+
+        #share {
+            background-color: #a7c336;
+        }
+
+        #home {
+            background-color: #ef7d62;
+        }
+
+        .help-link-container a {
+            color: #fff;
+        }
+
+        .choose-container {
+            color: #fff;
+            padding-left: 5px;
+            padding-right: 5px;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+        }
+
+        .theme-choose {
+            color: #fff;
+            padding-left: 5px;
+            padding-right: 5px;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+        }
+
+        .code-container {
+            padding-left: 0;
+            padding-right: 0;
+            /* 让编辑器所在列可伸缩，占满剩余空间 */
+            height: calc(100vh - 56px);
+            overflow: hidden;
+        }
+
+        #editor {
+            /* 让 Ace Editor 占满父容器的高度 */
+            height: 100%;
+            width: 100%;
+        }
+
+        .console {
+            width: 100%;
+            height: calc(100vh - 56px);
+            background-color: #000;
+            color: #FFF;
+            font-size: 20px;
+            font-weight: 700;
+            border-width: 0;
+            font-family: 'Monaco', 'Consolas', serif;
+            padding: 8px 8px;
+            white-space: pre;
+            overflow-x: auto;
+            overflow-y: auto;
+            resize: none;
+        }
+
+        .modal-dialog {
+            max-width: 90%;
+        }
+
+        /* Add custom styles for bootstrap-select in dark theme */
+        .bootstrap-select .dropdown-toggle {
+            background-color: #4a4a4a;
+            border-color: #666;
+            color: white;
+        }
+
+        .bootstrap-select .dropdown-toggle:hover {
+            background-color: #5a5a5a;
+        }
+    </style>
+
+    <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
+    {% if pre_code %}
+        <script>
+            let server_pre_code = {{ pre_code|tojson }};
+        </script>
+    {% else %}
+        <script>
+            let server_pre_code = "";
+        </script>
+    {% endif %}
+</head>
+
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- 代码编辑区 -->
+        <div class="col-sm-8 code-container">
+            <div id="editor"></div>
+        </div>
+        <!-- 控制台输出区 -->
+        <div class="col-md-4 pl-0 pr-0">
+            <textarea id="console" class="console" autocomplete="off">Initializing Pyodide...</textarea>
+        </div>
+    </div>
+
+    <!-- 按钮区域 -->
+    <div class="row btn-area">
+        <button id="run" onclick="run()">> run</button>
+        <button id="save" onclick="save()">save</button>
+        <button id="open" onclick="performClick('file-input')">open</button>
+        <button id="share" onclick="share()">share</button>
+        <button id="home" onclick="home()">home</button>
+        <div class="choose-container theme-selector-container">
+            <span class="ml-2 mr-2">Theme: </span>
+            <select id="theme-selector" class="selectpicker" data-style="btn-dark" data-width="120px">
+                <option value="monokai">monokai</option>
+                <option value="github">github</option>
+                <option value="tomorrow">tomorrow</option>
+                <option value="kuroir">kuroir</option>
+                <option value="twilight">twilight</option>
+                <option value="vibrant_ink">vibrant_ink</option>
+                <option value="xcode">xcode</option>
+                <option value="textmate">textmate</option>
+                <option value="terminal">terminal</option>
+                <option value="solarized_dark">solarized dark</option>
+                <option value="solarized_light">solarized light</option>
+            </select>
+        </div>
+        <div class="help-link-container my-auto ml-3">
+            <a id="about" href="#" data-toggle="modal" data-target="#about-modal">About</a>
+        </div>
+        <input id="file-input" type="file" style="position:fixed;top:-1000px;"/>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share your code</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <!-- 这里会动态生成二维码+最终合成图 -->
+                <div id="qrcode" style="margin-left:auto; margin-right:auto; margin-bottom: 20px;"></div>
+                <p>You can save this picture or scan the QR code to share it.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">About</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <h3>About</h3>
+                <hr>
+                <p>This page demonstrates running Python in the browser with Pyodide.</p>
+                <p>We have added support for micropip, NumPy, and Pandas.</p>
+                <p>Enjoy exploring Pyodide!</p>
+                <a href="https://github.com/AndersonHJB/">Github</a>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================== 代码编辑器相关 ================== -->
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/ext-language_tools.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python3.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.min.js') }}" type="text/javascript"></script>
+
+<!-- 第三方库 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script type="text/javascript">
+    /****************************************************
+     *  1. 监听 pageshow 事件，检测 bfcache，如果命中则刷新
+     *  这样即可在浏览器前进 / 后退时，强制页面重新加载
+     ****************************************************/
+    window.addEventListener("pageshow", function (event) {
+        // 当页面从缓存中加载（前进 / 后退）时，执行刷新
+        if (event.persisted
+            || (typeof window.performance !== "undefined" && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // 全局 pyodide 对象
+    let pyodide = null;
+
+    // 页面加载时，初始化 Pyodide 和编辑器
+    window.addEventListener("load", async function () {
+        // 加载 Pyodide 及常用包
+        await loadPyodideAndPackages();
+
+        // Initialize ace editor
+        ace.config.set("basePath", "static/js/ace/");
+        window.editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/python");
+        editor.setOptions({fontSize: "20pt"});
+
+        // Initialize bootstrap-select
+        $('.selectpicker').selectpicker({
+            style: 'btn-dark',
+            size: 10
+        });
+
+        // Set initial theme
+        $('#theme-selector').selectpicker('val', 'monokai');
+
+        // Theme change handler
+        $('#theme-selector').on('changed.bs.select', function (e) {
+            let selectedTheme = $(this).val();
+            window.editor.setTheme("ace/theme/" + selectedTheme);
+        });
+
+        // Custom keyboard shortcuts
+        editor.commands.addCommand({
+            name: 'duplicateLine',
+            bindKey: {win: 'Ctrl-D', mac: 'Command-D'},
+            exec: function (editor) {
+                // 调用 Ace 内置命令 copylinesdown
+                editor.execCommand("copylinesdown");
+            }
+        });
+
+        // Ctrl/Command + B：直接执行代码
+        editor.commands.addCommand({
+            name: 'runCode',
+            bindKey: {win: 'Ctrl-B', mac: 'Command-B'},
+            exec: function () {
+                run();
+            }
+        });
+        // ========== 自定义快捷键结束 ==========
+
+        // 如果后端传来了 server_pre_code，则用它来填充编辑器
+        if (server_pre_code) {
+            editor.setValue(server_pre_code, -1);
+        } else {
+            // 否则使用默认示例
+            editor.setValue("# Write your Python code here\nprint('Hello from Pyodide!')", -1);
+        }
+    });
+
+    // 加载 Pyodide，并预先加载一些常用包
+    async function loadPyodideAndPackages() {
+        // 加载 pyodide
+        pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+        });
+        // 通过内置的 loadPackage 方式加载 micropip、numpy、pandas 等
+        await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
+
+        // 在控制台提示一下
+        document.getElementById("console").value = "Pyodide and packages loaded!\n";
+    }
+
+    // 执行 Python 代码
+    async function run() {
+        let code = window.editor.getValue();
+        // 清空 console
+        let consoleElement = document.getElementById("console");
+        consoleElement.value = "";
+
+        // 重定向 stdout / stderr
+        try {
+            await pyodide.runPythonAsync(`
+import sys, builtins
+import js
+
+class PyodideIO:
+    def write(self, data):
+        # 把 stdout / stderr 写到前端 console
+        if data.strip() != '':
+            js_console_write(data)
+        return len(data)
+
+def js_console_write(text):
+    import js
+    textarea = js.document.getElementById("console")
+    textarea.value += text + "\\n"
+
+def py_input(prompt=''):
+    # 弹窗获取用户输入
+    return js.window.prompt(prompt)
+
+# 将自定义的 py_input 替换内置 input
+builtins.input = py_input
+sys.stdout = PyodideIO()
+sys.stderr = PyodideIO()
+
+# 执行用户编辑器的代码
+${code}
+            `);
+        } catch (err) {
+            // 如果有异常，打印到 console
+            consoleElement.value += String(err) + "\n";
+        }
+    }
+
+    // 打开文件
+    function performClick(elemId) {
+        const elem = document.getElementById(elemId);
+        if (elem) {
+            elem.click();
+        }
+    }
+
+    // 读文件
+    function readSingleFile(e) {
+        let file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            window.editor.setValue(e.target.result, -1);
+        };
+        reader.readAsText(file);
+    }
+    // 回到首页
+    function home() {
+        window.location.href = "/";
+    }
+    // 保存为文件
+    function save() {
+        let code = window.editor.getValue();
+        let blob = new Blob([code], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "bornforthis_code.py");
+    }
+
+    // 分享功能：上传代码到后端，返回一个可分享的链接
+    function share() {
+        let code = window.editor.getValue();
+        $.ajax({
+            type: 'post',
+            url: '/upload_code',
+            dataType: 'json',
+            data: {
+                code: code,
+                language: 'python',
+                template: 'editor'   // 告诉后端此分享来自 editor，可执行 Python
+            },
+            success: function (d) {
+                // 后端返回 share_link，例如 http://127.0.0.1:5000/share/xxxx
+                let shareLink = d.share_link;
+
+                // 1. 生成二维码（内容是 shareLink）
+                $('#qrcode').empty();
+                $('#qrcode').qrcode({
+                    text: shareLink,
+                    width: 200,
+                    height: 200
+                });
+
+                // 2. 更新弹窗标题中的可点击链接
+                $('.modal-title').html(
+                    'Code link：<a href="' + shareLink + '" target="_blank">' + shareLink + '</a>'
+                );
+
+                // 如果想把二维码叠加到编辑器截图，可以执行以下逻辑：
+                let qrcodeCanvas = $('#qrcode canvas')[0];
+                let qrcode_src = qrcodeCanvas.toDataURL('image/png');
+
+                // 新建一个容器来放最终合成的图片（避免覆盖原二维码）
+                // 先检查是否已经存在，如果多次点击 share，则重复创建前先清理
+                let existingFinalImageContainer = document.getElementById("final-image-container");
+                if (existingFinalImageContainer) {
+                    existingFinalImageContainer.remove();
+                }
+                let finalImageContainer = document.createElement("div");
+                finalImageContainer.id = "final-image-container";
+                finalImageContainer.style.marginTop = "20px";
+                // 把这个容器插到模态框里
+                document.getElementById("qrcode").parentNode.appendChild(finalImageContainer);
+
+                // 2.3 截取编辑器区域，并把二维码绘制到截图的右上角，然后再放到新容器
+                html2canvas(document.querySelector("#editor")).then(canvas => {
+                    let ctx = canvas.getContext('2d');
+                    let img = new Image();
+                    img.src = qrcode_src;
+                    img.onload = function () {
+                        // 在编辑器截图上叠加二维码，缩小到 120x120
+                        let qrSize = 120;
+                        ctx.drawImage(img, canvas.width - qrSize - 10, 10, qrSize, qrSize);
+
+                        // 显示合成后的最终图片
+                        let finalImgElement = document.createElement("img");
+                        finalImgElement.src = canvas.toDataURL('image/png');
+                        finalImgElement.style.maxWidth = "90%";
+                        finalImageContainer.appendChild(finalImgElement);
+                    }
+                });
+
+                // 4. 显示分享弹窗
+                $('#share-modal').modal('show');
+            }
+        });
+    }
+
+    // 监听文件选择
+    document.getElementById('file-input').addEventListener('change', readSingleFile, false);
+</script>
+</body>
+</html>

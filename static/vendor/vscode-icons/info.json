@@ -1,0 +1,30 @@
+{
+	"prefix": "vscode-icons",
+	"name": "VSCode Icons",
+	"total": 1482,
+	"version": "12.18.0",
+	"author": {
+		"name": "Roberto Huertas",
+		"url": "https://github.com/vscode-icons/vscode-icons"
+	},
+	"license": {
+		"title": "MIT",
+		"spdx": "MIT",
+		"url": "https://github.com/vscode-icons/vscode-icons/blob/master/LICENSE"
+	},
+	"samples": [
+		"file-type-actionscript2",
+		"file-type-json",
+		"file-type-manifest",
+		"default-file",
+		"file-type-diff",
+		"default-folder"
+	],
+	"height": 32,
+	"displayHeight": 16,
+	"category": "Programming",
+	"tags": [
+		"Has Padding"
+	],
+	"palette": true
+}
