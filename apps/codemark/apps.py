@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class CodemarkAppConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "codemark_app"
+    name = "apps.codemark"

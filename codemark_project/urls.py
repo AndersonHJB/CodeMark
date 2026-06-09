@@ -4,7 +4,7 @@ from django.urls import include, path
 
 
 urlpatterns = [
-    path("", include("codemark_app.urls")),
+    path("", include("apps.codemark.urls")),
 ]
 
 if settings.DEBUG:
