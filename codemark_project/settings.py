@@ -11,7 +11,7 @@ ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(",") if host.strip
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
-    "codemark_app",
+    "codemark_app.apps.CodemarkAppConfig",
 ]
 
 MIDDLEWARE = [
@@ -23,6 +23,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "codemark_project.urls"
 WSGI_APPLICATION = "codemark_project.wsgi.application"
+ASGI_APPLICATION = "codemark_project.asgi.application"
 
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_URL = "/static/"
