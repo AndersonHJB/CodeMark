@@ -461,11 +461,13 @@ function resetWorkspaceForEmptyProject(language, options) {
     if (editorElement) {
         editorElement.style.display = "block";
     }
-    if (window.editor) {
+    if (window.editor && typeof window.editor.setValue === "function") {
         window.editor.setValue("", -1);
         setLanguageSelectors(emptyLanguage);
         setEditorLang(emptyLanguage);
-        window.editor.resize();
+        if (window.editor && typeof window.editor.resize === "function") {
+            window.editor.resize();
+        }
     }
     clearActiveLineHighlightMarkers();
     renderProjectFileTree();
@@ -538,9 +540,11 @@ function refreshProjectAfterMutation(preferredActivePath, options) {
         if (editorElement) {
             editorElement.style.display = "block";
         }
-        if (window.editor) {
+        if (window.editor && typeof window.editor.setValue === "function") {
             window.editor.setValue("", -1);
-            window.editor.resize();
+            if (window.editor && typeof window.editor.resize === "function") {
+                window.editor.resize();
+            }
         }
         clearActiveLineHighlightMarkers();
         hideHtmlPreviewPane();

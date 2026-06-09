@@ -224,7 +224,7 @@
                 appRoot.classList.remove("sidebar-collapsed");
             }
         }
-        if (window.editor) {
+        if (window.editor && typeof window.editor.resize === "function") {
             window.editor.resize();
         }
     }

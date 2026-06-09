@@ -5,7 +5,7 @@ window.addEventListener("beforeunload", function () {
 
 window.addEventListener("resize", function () {
     applyCachedSidebarWidth();
-    if (window.editor) {
+    if (window.editor && typeof window.editor.resize === "function") {
         window.editor.resize();
     }
     if (!isMobileViewport()) {

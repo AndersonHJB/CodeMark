@@ -1226,9 +1226,11 @@ except KeyboardInterrupt as _codemark_interrupt:
             desktopConsoleCollapsedByAuto = false;
         }
 
-        if (window.editor) {
+        if (window.editor && typeof window.editor.resize === "function") {
             window.requestAnimationFrame(function () {
-                window.editor.resize();
+                if (window.editor && typeof window.editor.resize === "function") {
+                    window.editor.resize();
+                }
             });
         }
     }
@@ -1289,7 +1291,7 @@ except KeyboardInterrupt as _codemark_interrupt:
                     Math.max(DESKTOP_CONSOLE_MIN_WIDTH, startWidth + delta)
                 );
                 setConsoleWidth(nextWidth);
-                if (window.editor) {
+                if (window.editor && typeof window.editor.resize === "function") {
                     window.editor.resize();
                 }
             }

@@ -56,13 +56,14 @@ In the UI, this logo is not a heavy brand visual. It acts as a clear functional 
 ## Project Dependencies🖲️
 
 - [Bornforthis](https://bornforthis.cn/)
-- [Flask](https://flask.palletsprojects.com/en/3.0.x/)
+- [Django](https://www.djangoproject.com/)
+- [Jinja2](https://jinja.palletsprojects.com/)
 - [CodeMirror](https://codemirror.net/)
 - [CodeMirror CDN](https://cdnjs.com/libraries/codemirror)
 - [Pyodide](https://pyodide.org/en/stable/index.html)
 - [Ace Builds](https://github.com/ajaxorg/ace-builds)
 
-Python dependencies are listed in `requirements.txt`, including Flask, Markdown, Pillow, qrcode, and other runtime packages.
+Python dependencies are listed in `requirements.txt`, including Django, Jinja2, Markdown, Pillow, qrcode, and other runtime packages.
 
 ## Local Setup🚀
 
@@ -75,10 +76,10 @@ pip install -r requirements.txt
 python app.py
 ```
 
-You can also run it with Flask:
+You can also run it with Django:
 
 ```bash
-python -m flask --app app run
+python manage.py runserver 0.0.0.0:8991
 ```
 
 ## Maintenance Commands⚙️
@@ -111,5 +112,4 @@ Any modifications or derivative works based on CodeMark must also follow the GNU
 ## How to Contribute
 
 Contributions are welcome, including feature improvements, bug fixes, documentation updates, and usage feedback. By contributing, you agree that your contributions will be licensed under the same terms as the original project.
-
 

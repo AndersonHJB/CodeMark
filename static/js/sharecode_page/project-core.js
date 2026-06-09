@@ -217,7 +217,7 @@ function setThemeSelectors(theme) {
 function applyEditorTheme(theme) {
     const selected = normalizeSharecodeTheme(theme, SHARECODE_DEFAULT_THEME);
     currentSharecodeTheme = selected;
-    if (window.editor) {
+    if (window.editor && typeof window.editor.setTheme === "function") {
         window.editor.setTheme("ace/theme/" + selected);
     }
     setThemeSelectors(selected);
@@ -334,7 +334,7 @@ function openProjectFile(path) {
     updatePythonRunButtonVisibility();
     scheduleSharecodeDraftCacheSave();
     setTimeout(function () {
-        if (window.editor) {
+        if (window.editor && typeof window.editor.resize === "function") {
             window.editor.resize();
         }
     }, 30);

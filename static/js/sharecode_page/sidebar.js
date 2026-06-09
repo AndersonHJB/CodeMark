@@ -40,13 +40,15 @@ function applySidebarWidth(width, persist) {
     if (persist) {
         writeCachedSidebarWidth(nextWidth);
     }
-    if (window.editor) {
+    if (window.editor && typeof window.editor.resize === "function") {
         if (sidebarResizeFrame) {
             cancelAnimationFrame(sidebarResizeFrame);
         }
         sidebarResizeFrame = requestAnimationFrame(function () {
             sidebarResizeFrame = null;
-            window.editor.resize();
+            if (window.editor && typeof window.editor.resize === "function") {
+                window.editor.resize();
+            }
         });
     }
 }

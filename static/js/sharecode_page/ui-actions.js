@@ -30,7 +30,7 @@ function setSidebarOpen(open) {
         sidebarLogoButton.setAttribute("aria-label", sidebarOpen ? "点击折叠边栏" : "点击展开边栏");
     }
     setTimeout(function () {
-        if (window.editor) {
+        if (window.editor && typeof window.editor.resize === "function") {
             window.editor.resize();
         }
     }, 280);
@@ -1602,7 +1602,7 @@ function bindSelectorSync() {
         }
         updatePreviewFullscreenButton();
         scheduleHtmlPreviewVisibleRefresh({forceFrame: true});
-        if (window.editor) {
+        if (window.editor && typeof window.editor.resize === "function") {
             window.editor.resize();
         }
     });

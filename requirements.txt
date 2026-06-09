@@ -1,5 +1,6 @@
 # CodeMark runtime dependencies
-Flask>=3.0,<4
+Django>=5.0,<6
+Jinja2>=3.1,<4
 Markdown>=3.6,<4
 Pygments>=2.18,<3
 qrcode[pil]>=8.0,<9
@@ -9,9 +10,6 @@ Pillow>=11.0,<12
 python-markdown-math>=0.8,<1
 PyYAML>=6.0,<7
 lxml>=5.0,<6
-
-# Optional API/CORS support
-Flask-Cors>=5.0,<7
 
 # Development and utility scripts
 fpdf2>=2.8,<3

@@ -503,9 +503,11 @@ function showSourcePaneForActiveFile() {
         editorElement.style.display = "block";
     }
     setEditorAreaShareViewClass(SHARE_VIEW_SOURCE);
-    if (window.editor) {
+    if (window.editor && typeof window.editor.resize === "function") {
         setTimeout(function () {
-            window.editor.resize();
+            if (window.editor && typeof window.editor.resize === "function") {
+                window.editor.resize();
+            }
         }, 0);
     }
 }
@@ -598,9 +600,11 @@ function showSplitPreviewPane() {
         previewPane.style.display = "block";
     }
     setEditorAreaShareViewClass(SHARE_VIEW_SPLIT);
-    if (window.editor) {
+    if (window.editor && typeof window.editor.resize === "function") {
         setTimeout(function () {
-            window.editor.resize();
+            if (window.editor && typeof window.editor.resize === "function") {
+                window.editor.resize();
+            }
             updateMarkdownSplitScrollSyncState();
             requestSyncMarkdownPreviewToEditor();
         }, 0);
