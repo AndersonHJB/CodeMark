@@ -282,7 +282,7 @@ pip install gunicorn
 
 ```bash
 DJANGO_SETTINGS_MODULE=codemark_project.settings.prod
-DJANGO_SECRET_KEY=替换为生产密钥
+DJANGO_SECRET_KEY="替换为生产密钥"
 DJANGO_DEBUG=0
 DJANGO_ALLOWED_HOSTS=example.com,www.example.com,127.0.0.1,localhost
 DJANGO_LOG_LEVEL=INFO
@@ -299,6 +299,16 @@ print(get_random_secret_key())
 PY
 ```
 
+or
+
+```bash
+source .venv/bin/activate
+
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+
+
 ### 5. 初始化运行目录和静态资源
 
 ```bash
@@ -307,6 +317,48 @@ cd /www/wwwroot/codemark-ok
 ```
 
 该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。
+
+我喜欢下面的操作：
+
+```bash
+mkdir -p logs media/sharecode staticfiles
+```
+
+如果是从旧版本迁移，确认旧的 `sharecode/` 数据已经迁移到：
+
+```bash
+media/sharecode/
+```
+
+收集静态资源：
+
+```bash
+source .venv/bin/activate
+set -a
+source .env.prod
+set +a
+python manage.py collectstatic --noinput
+python manage.py check
+```
+
+使用 Gunicorn 启动：
+
+先手动验证：
+
+```bash
+source .venv/bin/activate
+set -a
+source .env.prod
+set +a
+gunicorn codemark_project.wsgi:application \
+  --bind 127.0.0.1:8991 \
+  --workers 3 \
+  --timeout 120
+```
+
+浏览器访问服务器反向代理地址，确认页面正常后再配置 systemd。
+
+看这个：[https://github.com/AndersonHJB/OK-Code/blob/3c44653e8159ab4119f1b33a299ea30c3b78840c/docs/deployment.md](https://github.com/AndersonHJB/OK-Code/blob/3c44653e8159ab4119f1b33a299ea30c3b78840c/docs/deployment.md)
 
 ### 6. Python 项目管理器配置
 
