@@ -1,6 +1,6 @@
-from .project_payload import DEFAULT_CODE_THEME
-from .responsive import is_mobile_request
-from .runtime import django_view, render_page
+from apps.common.project_payload import DEFAULT_CODE_THEME
+from apps.common.responsive import is_mobile_request
+from apps.common.runtime import django_view, render_page
 
 
 @django_view

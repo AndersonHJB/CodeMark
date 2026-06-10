@@ -12,7 +12,9 @@ ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(",") if host.strip
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
-    "apps.codemark.apps.CodemarkAppConfig",
+    "apps.articles.apps.ArticlesConfig",
+    "apps.editor.apps.EditorConfig",
+    "apps.sharing.apps.SharingConfig",
 ]
 
 MIDDLEWARE = [

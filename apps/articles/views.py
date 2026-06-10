@@ -6,7 +6,7 @@ from django.conf import settings
 from django.http import HttpResponse
 import markdown
 
-from .runtime import django_view, render_page
+from apps.common.runtime import django_view, render_page
 
 
 def parse_sort_key(filename):

@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import qrcode
 
-from .project_payload import (
+from apps.common.project_payload import (
     DEFAULT_CODE_THEME,
     THEME_MARKER,
     decode_base64_payload,
@@ -26,8 +26,8 @@ from .project_payload import (
     write_zip_bytes,
     write_zip_folder,
 )
-from .responsive import is_mobile_request
-from .runtime import (
+from apps.common.responsive import is_mobile_request
+from apps.common.runtime import (
     build_url,
     django_view,
     jsonify,

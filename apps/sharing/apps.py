@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class CodemarkAppConfig(AppConfig):
+class SharingConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.codemark"
+    name = "apps.sharing"

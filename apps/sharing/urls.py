@@ -4,9 +4,6 @@ from . import views
 
 
 urlpatterns = [
-    path("", views.index, name="index"),
-    path("article/<path:filename>", views.article, name="article"),
-    path("editor", views.editor, name="editor"),
     path("sharecode", views.sharecode, name="sharecode"),
     path("upload_code", views.upload_code, name="upload_code"),
     path("download_project_zip", views.download_project_zip, name="download_project_zip"),
