@@ -9,6 +9,7 @@ from django.urls import resolve, reverse
 from apps.common.project_payload import FILENAME_MARKER, FILE_LANGUAGE_MARKER
 
 from . import views
+from .models import SharedFileAdminEntry
 from .share_files import get_shared_code_record, list_shared_code_records
 
 
@@ -120,6 +121,39 @@ class AdminShareFileViewTests(TestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "staff_20260610123600")
+
+    def test_admin_index_has_share_file_entry(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="admin",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "分享文件后台")
+        self.assertContains(response, reverse("admin:sharing_sharedfileadminentry_changelist"))
+
+    def test_admin_share_file_entry_redirects_to_custom_backend(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="admin2",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(reverse("admin:sharing_sharedfileadminentry_changelist"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("admin_share_files"))
 
 
 class ShareUploadTests(TestCase):
