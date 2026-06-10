@@ -19,6 +19,9 @@ from apps.common.project_payload import (
 SHARE_PROJECT_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 SHARE_TIMESTAMP_PATTERN = re.compile(r"_([0-9]{14})$")
 SHARE_SYSTEM_DIRS = {"assets", "images"}
+IMAGE_EXTENSIONS = {"avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "webp"}
+VIDEO_EXTENSIONS = {"avi", "m4v", "mkv", "mov", "mp4", "mpeg", "mpg", "ogv", "webm"}
+AUDIO_EXTENSIONS = {"aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "weba"}
 
 
 def iter_share_file_paths():
@@ -58,6 +61,32 @@ def parse_share_timestamp(project_id, fallback_timestamp):
     return datetime.datetime.fromtimestamp(fallback_timestamp, tz=timezone.get_current_timezone())
 
 
+def classify_asset_preview_type(asset):
+    mime_type = (asset.get("mime_type") or "").strip().lower()
+    if mime_type.startswith("image/"):
+        return "image"
+    if mime_type.startswith("video/"):
+        return "video"
+    if mime_type.startswith("audio/"):
+        return "audio"
+
+    asset_path = asset.get("path") or asset.get("stored_path") or ""
+    extension = os.path.splitext(asset_path.lower())[1].lstrip(".")
+    if extension in IMAGE_EXTENSIONS:
+        return "image"
+    if extension in VIDEO_EXTENSIONS:
+        return "video"
+    if extension in AUDIO_EXTENSIONS:
+        return "audio"
+    return "file"
+
+
+def enrich_asset_previews(assets):
+    for asset in assets:
+        asset["preview_type"] = classify_asset_preview_type(asset)
+    return assets
+
+
 def parse_share_file(file_path, include_content=False):
     project_id = os.path.splitext(os.path.basename(file_path))[0]
     file_stat = os.stat(file_path)
@@ -88,7 +117,7 @@ def parse_share_file(file_path, include_content=False):
     raw_content = parsed_project.get("raw_content", "")
     text_files = parsed_project.get("text_files", [])
     folders = parsed_project.get("folders", [])
-    assets = parsed_project.get("assets", [])
+    assets = enrich_asset_previews(parsed_project.get("assets", []))
 
     if not parsed_project.get("has_markers"):
         if raw_content:

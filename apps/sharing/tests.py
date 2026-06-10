@@ -6,11 +6,11 @@ from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
 
-from apps.common.project_payload import FILENAME_MARKER, FILE_LANGUAGE_MARKER
+from apps.common.project_payload import ASSET_MARKER, FILENAME_MARKER, FILE_LANGUAGE_MARKER
 
 from . import views
 from .models import SharedFileAdminEntry
-from .share_files import get_shared_code_record, list_shared_code_records
+from .share_files import classify_asset_preview_type, get_shared_code_record, list_shared_code_records
 
 
 class SharingUrlPatternTests(SimpleTestCase):
@@ -92,6 +92,18 @@ class ShareFileRegistryTests(SimpleTestCase):
             self.assertEqual([item["path"] for item in record["text_files"]], ["main.py", "notes.md"])
             self.assertIn(FILENAME_MARKER, record["stored_content"])
 
+    def test_asset_preview_type_uses_mime_and_extension_fallback(self):
+        cases = [
+            ({"path": "images/photo.bin", "mime_type": "image/jpeg"}, "image"),
+            ({"path": "movies/clip.mp4", "mime_type": "application/octet-stream"}, "video"),
+            ({"path": "sounds/voice.mp3", "mime_type": ""}, "audio"),
+            ({"path": "downloads/archive.zip", "mime_type": "application/zip"}, "file"),
+        ]
+
+        for asset, expected_type in cases:
+            with self.subTest(asset=asset):
+                self.assertEqual(classify_asset_preview_type(asset), expected_type)
+
 
 class AdminShareFileViewTests(TestCase):
     def test_share_file_admin_requires_staff_login(self):
@@ -121,6 +133,37 @@ class AdminShareFileViewTests(TestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "staff_20260610123600")
+
+    def test_detail_page_renders_media_asset_previews(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            month_dir = os.path.join(tmpdir, "202606")
+            os.makedirs(month_dir)
+            project_id = "media_20260610123700"
+            with open(os.path.join(month_dir, f"{project_id}.txt"), "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n")
+                share_file.write("__LANG__=python\n")
+                share_file.write("__THEME__=monokai\n")
+                share_file.write(f"{ASSET_MARKER}images/photo.jpg|images/photo.jpg|image/jpeg|12\n")
+                share_file.write(f"{ASSET_MARKER}videos/demo.mp4|videos/demo.mp4|video/mp4|34\n")
+                share_file.write(f"{ASSET_MARKER}audio/demo.mp3|audio/demo.mp3|audio/mpeg|56\n")
+
+            User = get_user_model()
+            user = User.objects.create_user(
+                username="media-staff",
+                password="test-password",
+                is_staff=True,
+                is_superuser=True,
+            )
+            client = Client()
+            client.force_login(user)
+
+            response = client.get(reverse("admin_share_file_detail", kwargs={"project_id": project_id}))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "<img", html=False)
+            self.assertContains(response, "<video", html=False)
+            self.assertContains(response, "<audio", html=False)
+            self.assertContains(response, "images/photo.jpg")
 
     def test_admin_index_has_share_file_entry(self):
         User = get_user_model()
