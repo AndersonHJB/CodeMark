@@ -12,6 +12,11 @@ allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(",") if host.strip()]
 
 INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.articles.apps.ArticlesConfig",
     "apps.editor.apps.EditorConfig",
@@ -20,8 +25,11 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -38,6 +46,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 CODEMARK_ARTICLES_DIR = CONTENT_DIR / "articles"
 CODEMARK_SHARECODE_DIR = MEDIA_ROOT / "sharecode"
 
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.getenv("DJANGO_SQLITE_PATH", BASE_DIR / "db.sqlite3"),
+    }
+}
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -46,6 +61,8 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -56,6 +73,8 @@ LANGUAGE_CODE = "zh-hans"
 TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 USE_TZ = True
+LOGIN_URL = "/admin/login/"
+LOGIN_REDIRECT_URL = "/admin/share-files/"
 
 LOGGING = {
     "version": 1,

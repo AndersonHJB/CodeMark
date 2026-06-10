@@ -4,6 +4,8 @@ from . import views
 
 
 urlpatterns = [
+    path("admin/share-files/", views.admin_share_files, name="admin_share_files"),
+    path("admin/share-files/<str:project_id>/", views.admin_share_file_detail, name="admin_share_file_detail"),
     path("sharecode", views.sharecode, name="sharecode"),
     path("upload_code", views.upload_code, name="upload_code"),
     path("download_project_zip", views.download_project_zip, name="download_project_zip"),

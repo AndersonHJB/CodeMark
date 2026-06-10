@@ -7,7 +7,10 @@ import uuid
 import zipfile
 
 from django.conf import settings
+from django.contrib import admin
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 import qrcode
 
@@ -37,6 +40,7 @@ from apps.common.runtime import (
     send_file,
     send_from_directory,
 )
+from apps.sharing.share_files import get_shared_code_record, list_shared_code_records
 
 
 @django_view
@@ -342,3 +346,41 @@ def show_shared_code(project_id):
         share_project_id=project_id,
         is_mobile=is_mobile_request()
     )
+
+
+@staff_member_required
+@django_view
+def admin_share_files():
+    query = request.GET.get("q", "")
+    records = list_shared_code_records(query)
+    selected_project_id = request.GET.get("project_id", "")
+    selected_record = None
+    if selected_project_id:
+        selected_record = get_shared_code_record(selected_project_id)
+        if not selected_record:
+            return redirect("admin_share_files")
+
+    context = admin.site.each_context(request._current())
+    context.update({
+        "title": "分享文件后台",
+        "records": records,
+        "record_count": len(records),
+        "query": query,
+        "selected_record": selected_record,
+    })
+    return render(request._current(), "admin/share_files.html", context)
+
+
+@staff_member_required
+@django_view
+def admin_share_file_detail(project_id):
+    record = get_shared_code_record(project_id)
+    if not record:
+        return HttpResponse(f"Share file not found: {project_id}", status=404)
+
+    context = admin.site.each_context(request._current())
+    context.update({
+        "title": f"分享文件 {project_id}",
+        "record": record,
+    })
+    return render(request._current(), "admin/share_file_detail.html", context)

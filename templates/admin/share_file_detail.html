@@ -1,0 +1,187 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .share-detail-shell {
+        display: grid;
+        gap: 18px;
+    }
+    .share-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+    }
+    .share-detail-panel {
+        padding: 14px;
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    .share-detail-panel h2 {
+        margin: 0 0 10px;
+        font-size: 15px;
+    }
+    .share-detail-meta {
+        margin: 0;
+        color: var(--body-quiet-color);
+        line-height: 1.7;
+        word-break: break-word;
+    }
+    .share-detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .share-file-block {
+        border: 1px solid var(--border-color);
+        background: var(--body-bg);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .share-file-heading {
+        padding: 10px 12px;
+        background: var(--darkened-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .share-code-content {
+        margin: 0;
+        padding: 14px;
+        max-height: 560px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .share-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+    }
+    .share-detail-table th,
+    .share-detail-table td {
+        padding: 9px 11px;
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+        vertical-align: top;
+    }
+    .share-detail-table th {
+        background: var(--darkened-bg);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">首页</a>
+    &rsaquo; <a href="{% url 'admin_share_files' %}">分享文件后台</a>
+    &rsaquo; {{ record.project_id }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="share-detail-shell">
+    <div class="share-detail-actions">
+        <a class="button" href="{% url 'admin_share_files' %}">返回列表</a>
+        <a class="button" href="{{ record.share_path }}" target="_blank" rel="noopener">打开分享页</a>
+    </div>
+
+    <div class="share-detail-grid">
+        <section class="share-detail-panel">
+            <h2>基础信息</h2>
+            <p class="share-detail-meta">Project ID: {{ record.project_id }}</p>
+            <p class="share-detail-meta">模板: {{ record.template_type }}</p>
+            <p class="share-detail-meta">语言: {{ record.language }}</p>
+            <p class="share-detail-meta">主题: {{ record.theme }}</p>
+        </section>
+        <section class="share-detail-panel">
+            <h2>存储信息</h2>
+            <p class="share-detail-meta">文本路径: {{ record.storage_path }}</p>
+            <p class="share-detail-meta">二维码路径: {{ record.qr_path|default:"-" }}</p>
+            <p class="share-detail-meta">大小: {{ record.size }} bytes</p>
+        </section>
+        <section class="share-detail-panel">
+            <h2>统计</h2>
+            <p class="share-detail-meta">文本文件: {{ record.text_file_count }}</p>
+            <p class="share-detail-meta">文件夹: {{ record.folder_count }}</p>
+            <p class="share-detail-meta">资源: {{ record.asset_count }}</p>
+            <p class="share-detail-meta">内容字符: {{ record.content_chars }}</p>
+        </section>
+        <section class="share-detail-panel">
+            <h2>时间</h2>
+            <p class="share-detail-meta">创建: {{ record.created_at|date:"Y-m-d H:i:s" }}</p>
+            <p class="share-detail-meta">修改: {{ record.modified_at|date:"Y-m-d H:i:s" }}</p>
+        </section>
+    </div>
+
+    {% if record.folders %}
+        <section>
+            <h2>文件夹</h2>
+            <table class="share-detail-table">
+                <thead><tr><th>路径</th></tr></thead>
+                <tbody>
+                {% for folder in record.folders %}
+                    <tr><td>{{ folder }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    {% if record.assets %}
+        <section>
+            <h2>资源文件</h2>
+            <table class="share-detail-table">
+                <thead>
+                <tr>
+                    <th>项目路径</th>
+                    <th>存储路径</th>
+                    <th>MIME</th>
+                    <th>大小</th>
+                    <th>访问</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for asset in record.assets %}
+                    <tr>
+                        <td>{{ asset.path }}</td>
+                        <td>{{ asset.stored_path }}</td>
+                        <td>{{ asset.mime_type }}</td>
+                        <td>{{ asset.size }} bytes</td>
+                        <td>{% if asset.url %}<a href="{{ asset.url }}" target="_blank" rel="noopener">打开</a>{% else %}-{% endif %}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    <section>
+        <h2>文本文件内容</h2>
+        {% for text_file in record.text_files %}
+            <article class="share-file-block">
+                <div class="share-file-heading">
+                    <strong>{{ text_file.path }}</strong>
+                    <span>{{ text_file.language }} / {{ text_file.content|length }} 字符</span>
+                </div>
+                <pre class="share-code-content">{{ text_file.content }}</pre>
+            </article>
+        {% empty %}
+            <div class="share-detail-panel">没有文本文件内容。</div>
+        {% endfor %}
+    </section>
+
+    <section>
+        <h2>原始存储内容</h2>
+        <article class="share-file-block">
+            <pre class="share-code-content">{{ record.stored_content }}</pre>
+        </article>
+    </section>
+</div>
+{% endblock %}
