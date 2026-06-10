@@ -93,11 +93,14 @@ DJANGO_LOG_LEVEL=INFO
 
 注意：`.env.prod` 不要提交到 Git。
 
-### 5. 准备运行目录
+### 5. 初始化运行目录和静态资源
 
 ```bash
-mkdir -p logs media/sharecode staticfiles
+cd /www/wwwroot/codemark-ok
+./scripts/init_deploy.sh .env.prod
 ```
+
+该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。
 
 如果是从旧版本迁移，确认旧的 `sharecode/` 数据已经迁移到：
 
@@ -105,18 +108,7 @@ mkdir -p logs media/sharecode staticfiles
 media/sharecode/
 ```
 
-### 6. 收集静态资源
-
-```bash
-source .venv/bin/activate
-set -a
-source .env.prod
-set +a
-python manage.py collectstatic --noinput
-python manage.py check
-```
-
-### 7. 使用 Gunicorn 启动
+### 6. 使用 Gunicorn 启动
 
 先手动验证：
 
@@ -133,7 +125,7 @@ gunicorn codemark_project.wsgi:application \
 
 浏览器访问服务器反向代理地址，确认页面正常后再配置 systemd。
 
-### 8. 配置 systemd
+### 7. 配置 systemd
 
 创建服务文件：
 
@@ -176,7 +168,7 @@ sudo systemctl status codemark-ok
 journalctl -u codemark-ok -f
 ```
 
-### 9. 配置 Nginx
+### 8. 配置 Nginx
 
 创建站点配置：
 
@@ -220,18 +212,14 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 10. 后续更新
+### 9. 后续更新
 
 ```bash
 cd /www/wwwroot/codemark-ok
 git pull
 source .venv/bin/activate
 pip install -r requirements.txt
-set -a
-source .env.prod
-set +a
-python manage.py collectstatic --noinput
-python manage.py check
+./scripts/init_deploy.sh .env.prod
 sudo systemctl restart codemark-ok
 ```
 
@@ -315,14 +303,10 @@ PY
 
 ```bash
 cd /www/wwwroot/codemark-ok
-mkdir -p logs media/sharecode staticfiles
-source .venv/bin/activate
-set -a
-source .env.prod
-set +a
-python manage.py collectstatic --noinput
-python manage.py check
+./scripts/init_deploy.sh .env.prod
 ```
+
+该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。
 
 ### 6. Python 项目管理器配置
 
@@ -395,11 +379,7 @@ cd /www/wwwroot/codemark-ok
 git pull
 source .venv/bin/activate
 pip install -r requirements.txt
-set -a
-source .env.prod
-set +a
-python manage.py collectstatic --noinput
-python manage.py check
+./scripts/init_deploy.sh .env.prod
 ```
 
 然后在 Python 项目管理器中重启项目。
