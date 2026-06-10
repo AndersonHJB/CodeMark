@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 
@@ -119,3 +120,47 @@ class AdminShareFileViewTests(TestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "staff_20260610123600")
+
+
+class ShareUploadTests(TestCase):
+    def test_large_image_asset_share_is_accepted_and_persisted(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            data_url = "data:image/png;base64," + ("A" * (3 * 1024 * 1024))
+            payload = {
+                "text_files": [
+                    {
+                        "path": "README.md",
+                        "content": "# Image share\n",
+                        "language": "markdown",
+                    }
+                ],
+                "assets": [
+                    {
+                        "path": "images/example.png",
+                        "mime_type": "image/png",
+                        "size": 0,
+                        "data_base64": data_url,
+                    }
+                ],
+                "folders": ["images"],
+                "active_file": "README.md",
+                "theme": "monokai",
+            }
+
+            response = self.client.post(reverse("upload_code"), {
+                "language": "markdown",
+                "template": "sharecode",
+                "theme": "monokai",
+                "project_payload": json.dumps(payload),
+            })
+
+            self.assertEqual(response.status_code, 200)
+            project_id = response.json()["project_id"]
+            saved_asset_path = os.path.join(
+                tmpdir,
+                "assets",
+                project_id,
+                "images",
+                "example.png",
+            )
+            self.assertTrue(os.path.exists(saved_asset_path))

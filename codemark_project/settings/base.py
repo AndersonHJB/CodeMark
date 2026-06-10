@@ -8,6 +8,14 @@ LOGS_DIR = BASE_DIR / "logs"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "codemark-local-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") != "0"
 
+
+def env_int(name, default):
+    try:
+        return int(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
 allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(",") if host.strip()]
 
@@ -45,6 +53,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 CODEMARK_ARTICLES_DIR = CONTENT_DIR / "articles"
 CODEMARK_SHARECODE_DIR = MEDIA_ROOT / "sharecode"
+DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 50 * 1024 * 1024)
 
 DATABASES = {
     "default": {
