@@ -1,0 +1,108 @@
+.cpp-editor-page #workspaceMain {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+}
+
+.cpp-editor-page #appRoot {
+    width: 100vw;
+}
+
+.cpp-editor-page .console-shell {
+    min-width: 0;
+}
+
+.cpp-editor-page .console {
+    min-height: 0;
+}
+
+.cpp-editor-page .cpp-stdin-panel {
+    flex: 0 0 132px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 9px 10px 10px;
+    background: #10151e;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cpp-editor-page .cpp-stdin-panel label,
+.cpp-editor-page .cpp-mobile-stdin-panel label {
+    margin: 0;
+    color: #d9e2f5;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.cpp-editor-page #stdin-input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    resize: none;
+    border: 1px solid #39475d;
+    border-radius: 4px;
+    outline: none;
+    background: #070a0f;
+    color: #f7fbff;
+    padding: 8px 10px;
+    font: 14px/1.45 Monaco, Menlo, "Ubuntu Mono", Consolas, monospace;
+}
+
+.cpp-editor-page #stdin-input:focus {
+    border-color: #86a4d8;
+    box-shadow: 0 0 0 2px rgba(134, 164, 216, 0.2);
+}
+
+.cpp-editor-page #cpp-mobile-stdin-btn {
+    background-color: #56634a;
+}
+
+.cpp-editor-page .cpp-mobile-stdin-panel {
+    display: none;
+    width: 90%;
+    margin: 5px 0 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background: #222;
+    border: 1px solid #4b4b4b;
+}
+
+.cpp-editor-page .cpp-mobile-stdin-panel.show {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cpp-editor-page .cpp-mobile-stdin-panel #stdin-input {
+    min-height: 110px;
+    flex: 0 0 auto;
+    font-size: 13px;
+}
+
+.cpp-editor-page .cpp-run-btn[disabled] {
+    cursor: wait;
+    opacity: 0.76;
+    filter: grayscale(0.15);
+}
+
+.cpp-editor-page .copy-success {
+    display: none;
+}
+
+.cpp-editor-mobile #appRoot,
+.cpp-editor-mobile #workspaceMain,
+.cpp-editor-mobile #editorArea {
+    height: 100%;
+}
+
+.cpp-editor-mobile #editorArea {
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .cpp-editor-page .modal-dialog {
+        max-width: 95% !important;
+    }
+}

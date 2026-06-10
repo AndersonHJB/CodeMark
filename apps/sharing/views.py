@@ -325,7 +325,13 @@ def show_shared_code(project_id):
         return HttpResponse(f"File not found: {project_id}", status=404)
 
     # 根据 template_type 来渲染不同的模板，并将 lang 也传过去
-    target_template = 'sharecode.html' if template_type == "sharecode" else 'editor.html'
+    if template_type == "sharecode":
+        target_template = "sharecode.html"
+    elif template_type == "cpp_editor":
+        target_template = "cpp_editor.html"
+        lang = normalize_language(lang, "c_cpp")
+    else:
+        target_template = "editor.html"
     if target_template == "sharecode.html":
         return render_page(
             target_template,

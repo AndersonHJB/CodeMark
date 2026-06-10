@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.articles.apps.ArticlesConfig",
     "apps.editor.apps.EditorConfig",
+    "apps.cpp_editor.apps.CppEditorConfig",
     "apps.sharing.apps.SharingConfig",
 ]
 
@@ -54,6 +55,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 CODEMARK_ARTICLES_DIR = CONTENT_DIR / "articles"
 CODEMARK_SHARECODE_DIR = MEDIA_ROOT / "sharecode"
 DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 50 * 1024 * 1024)
+CPP_EDITOR_COMPILE_TIMEOUT_SECONDS = env_int("CPP_EDITOR_COMPILE_TIMEOUT_SECONDS", 12)
+CPP_EDITOR_RUN_TIMEOUT_SECONDS = env_int("CPP_EDITOR_RUN_TIMEOUT_SECONDS", 3)
+CPP_EDITOR_MAX_CODE_BYTES = env_int("CPP_EDITOR_MAX_CODE_BYTES", 100 * 1024)
+CPP_EDITOR_MAX_STDIN_BYTES = env_int("CPP_EDITOR_MAX_STDIN_BYTES", 32 * 1024)
+CPP_EDITOR_MAX_OUTPUT_BYTES = env_int("CPP_EDITOR_MAX_OUTPUT_BYTES", 64 * 1024)
 
 DATABASES = {
     "default": {
