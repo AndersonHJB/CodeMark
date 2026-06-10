@@ -96,6 +96,30 @@ python manage.py create_admin_account --username admin
 
 也可以通过环境变量设置账号信息：`CODEMARK_ADMIN_USERNAME`、`CODEMARK_ADMIN_EMAIL`、`CODEMARK_ADMIN_PASSWORD`。
 
+## 部署说明🚢
+
+完整部署、宝塔部署、更新和排障流程请查看：
+
+- [CodeMark 部署文档](docs/deployment.md)
+
+最小生产部署流程：
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install gunicorn
+cp .env.example .env.prod
+# 编辑 .env.prod，设置 DJANGO_SETTINGS_MODULE、DJANGO_SECRET_KEY、DJANGO_DEBUG、DJANGO_ALLOWED_HOSTS
+./scripts/init_deploy.sh .env.prod
+set -a
+source .env.prod
+set +a
+python manage.py create_admin_account --username admin
+```
+
+生产环境需要通过 Gunicorn 或面板 Python 项目管理器运行，并使用 Nginx 反向代理。`media/sharecode/` 和 `db.sqlite3` 是运行时数据，更新前请备份。
+
 ## 维护命令⚙️
 
 导出依赖：

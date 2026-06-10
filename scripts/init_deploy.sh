@@ -9,7 +9,7 @@ Usage:
 Default ENV_FILE is .env.prod.
 
 This script creates runtime directories, loads production environment variables,
-runs collectstatic, and runs Django system checks.
+runs database migrations, collects static files, and runs Django system checks.
 EOF
 }
 
@@ -66,6 +66,9 @@ set -a
 source "$ENV_FILE"
 set +a
 export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-codemark_project.settings.prod}"
+
+echo "==> Running database migrations"
+python manage.py migrate --noinput
 
 echo "==> Collecting static files"
 python manage.py collectstatic --noinput
