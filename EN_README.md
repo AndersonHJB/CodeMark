@@ -67,6 +67,8 @@ Python dependencies are listed in `requirements.txt`, including Django, Markdown
 
 ## Local Setup🚀
 
+Python 3.12+ is required. The current Django version is 6.0.x, which officially supports Python 3.12, 3.13, and 3.14.
+
 Using a virtual environment is recommended:
 
 ```bash

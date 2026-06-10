@@ -47,12 +47,19 @@ fi
 
 if [[ ! -f "$VENV_ACTIVATE" ]]; then
     echo "Missing virtual environment: $VENV_DIR" >&2
-    echo "Create it first: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt" >&2
+    echo "Create it first with Python 3.12+: python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt" >&2
     exit 1
 fi
 
 echo "==> Activating virtual environment"
 source "$VENV_ACTIVATE"
+
+python - <<'PY'
+import sys
+
+if sys.version_info < (3, 12):
+    raise SystemExit("Python 3.12+ is required for Django 6.0.")
+PY
 
 echo "==> Loading environment file: $ENV_FILE"
 set -a

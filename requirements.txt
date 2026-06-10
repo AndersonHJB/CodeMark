@@ -1,5 +1,6 @@
 # CodeMark runtime dependencies
-Django>=5.0,<6
+# Django 6.0 supports Python 3.12, 3.13, and 3.14.
+Django==6.0.6
 Markdown>=3.6,<4
 Pygments>=2.18,<3
 qrcode[pil]>=8.0,<9

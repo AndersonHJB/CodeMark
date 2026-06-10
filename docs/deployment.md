@@ -24,7 +24,7 @@ OK/
 
 生产环境建议使用：
 
-- Python 3.11+。
+- Python 3.12+。Django 6.0 官方支持 Python 3.12、3.13、3.14。
 - Nginx。
 - Gunicorn。
 - `codemark_project.settings.prod`。
@@ -46,7 +46,7 @@ OK/
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip nginx git
+sudo apt install -y python3.12 python3.12-venv python3-pip nginx git
 ```
 
 ### 2. 拉取代码
@@ -62,7 +62,7 @@ cd /www/wwwroot/codemark-ok
 ### 3. 创建虚拟环境并安装依赖
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -269,7 +269,7 @@ git clone <your-repo-url> codemark-ok
 
 ```bash
 cd /www/wwwroot/codemark-ok
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -368,7 +368,7 @@ gunicorn codemark_project.wsgi:application \
 
 - 项目名称：`codemark-ok`
 - 项目路径：`/www/wwwroot/codemark-ok`
-- Python 版本：选择服务器 Python 3。
+- Python 版本：选择服务器 Python 3.12+。
 - 启动方式：Gunicorn。
 - 启动文件/模块：`codemark_project.wsgi:application`
 - 端口：`8991`
