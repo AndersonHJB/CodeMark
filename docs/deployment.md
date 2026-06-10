@@ -100,7 +100,7 @@ cd /www/wwwroot/codemark-ok
 ./scripts/init_deploy.sh .env.prod
 ```
 
-该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。
+该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。如果项目根目录存在 `.venv`，脚本会优先使用 `.venv`；否则会使用当前命令所在的 Python 环境。
 
 如果是从旧版本迁移，确认旧的 `sharecode/` 数据已经迁移到：
 
@@ -316,7 +316,7 @@ cd /www/wwwroot/codemark-ok
 ./scripts/init_deploy.sh .env.prod
 ```
 
-该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。
+该脚本会自动创建 `logs/`、`media/sharecode/`、`staticfiles/`，加载 `.env.prod`，执行 `collectstatic`，并运行 `python manage.py check`。如果项目根目录存在 `.venv`，脚本会优先使用 `.venv`；否则会使用宝塔当前选中的 Python 环境。
 
 我喜欢下面的操作：
 
@@ -359,6 +359,8 @@ gunicorn codemark_project.wsgi:application \
 浏览器访问服务器反向代理地址，确认页面正常后再配置 systemd。
 
 看这个：[https://github.com/AndersonHJB/OK-Code/blob/3c44653e8159ab4119f1b33a299ea30c3b78840c/docs/deployment.md](https://github.com/AndersonHJB/OK-Code/blob/3c44653e8159ab4119f1b33a299ea30c3b78840c/docs/deployment.md)
+
+![](./deployment.assets/image-20260610210248838.png)
 
 ### 6. Python 项目管理器配置
 
