@@ -6,6 +6,7 @@ import re
 import uuid
 import zipfile
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import qrcode
@@ -88,9 +89,9 @@ def upload_code():
     # 拼接最终 project_id
     project_id = unique_id + "_" + timestamp
 
-    # 1. 先拼装 sharecode/<yearmonth>/ 路径
+    # 1. 先拼装 media/sharecode/<yearmonth>/ 路径
     yearmonth = datetime.datetime.now().strftime('%Y%m')
-    month_folder = os.path.join('sharecode', yearmonth)
+    month_folder = os.path.join(settings.CODEMARK_SHARECODE_DIR, yearmonth)
     os.makedirs(month_folder, exist_ok=True)
 
     code_file_path = os.path.join(month_folder, project_id + ".txt")
@@ -112,8 +113,8 @@ def upload_code():
             f.write(f"{THEME_MARKER}{theme}\n")
             f.write(code)
 
-    # 3. 生成二维码并保存在 sharecode/images 文件夹
-    images_folder = os.path.join('sharecode', 'images')
+    # 3. 生成二维码并保存在 media/sharecode/images 文件夹
+    images_folder = os.path.join(settings.CODEMARK_SHARECODE_DIR, 'images')
     os.makedirs(images_folder, exist_ok=True)
 
     # 构造可分享链接，比如 http://127.0.0.1:5000/share/<project_id>
@@ -204,7 +205,12 @@ def download_project_zip():
                         and re.fullmatch(r"[A-Za-z0-9._-]+", source_project_id)
                         and source_stored_path
                     ):
-                        source_abs_path = os.path.join("sharecode", "assets", source_project_id, source_stored_path)
+                        source_abs_path = os.path.join(
+                            settings.CODEMARK_SHARECODE_DIR,
+                            "assets",
+                            source_project_id,
+                            source_stored_path,
+                        )
                         if os.path.isfile(source_abs_path):
                             with open(source_abs_path, "rb") as source_file:
                                 asset_bytes = source_file.read()
@@ -229,7 +235,7 @@ def get_shared_asset(project_id, asset_path):
     safe_asset_path = normalize_project_relative_path(asset_path)
     if not safe_asset_path:
         return HttpResponse("File not found", status=404)
-    asset_root = os.path.join("sharecode", "assets", project_id)
+    asset_root = os.path.join(settings.CODEMARK_SHARECODE_DIR, "assets", project_id)
     abs_asset_path = os.path.join(asset_root, safe_asset_path)
     if not os.path.isfile(abs_asset_path):
         return HttpResponse("File not found", status=404)
@@ -247,8 +253,11 @@ def show_shared_code(project_id):
     lang = "python"  # 默认 python
     theme = DEFAULT_CODE_THEME
     pre_project = None
-    sharecode_root = "sharecode"
+    sharecode_root = settings.CODEMARK_SHARECODE_DIR
     found = False
+
+    if not os.path.isdir(sharecode_root):
+        return HttpResponse(f"File not found: {project_id}", status=404)
 
     # 遍历 sharecode 文件夹下的所有子目录，找 <project_id>.txt
     for folder in os.listdir(sharecode_root):

@@ -11,8 +11,10 @@ env/
 # Django/runtime
 db.sqlite3
 *.sqlite3
-*.log
-media/
+logs/*
+!logs/.gitkeep
+media/*
+!media/.gitkeep
 sharecode/
 staticfiles/
 

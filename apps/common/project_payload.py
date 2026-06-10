@@ -4,6 +4,8 @@ import os
 import re
 import shutil
 
+from django.conf import settings
+
 from .runtime import build_url
 
 
@@ -541,7 +543,7 @@ def persist_project_payload(code_file_path, template_type, language, theme, code
             "highlighted_lines": [],
         })
 
-    asset_folder = os.path.join("sharecode", "assets", project_id)
+    asset_folder = os.path.join(settings.CODEMARK_SHARECODE_DIR, "assets", project_id)
     os.makedirs(asset_folder, exist_ok=True)
 
     assets_meta = []
@@ -575,7 +577,12 @@ def persist_project_payload(code_file_path, template_type, language, theme, code
                 source_project_id = asset_item.get("source_project_id")
                 source_stored_path = normalize_project_relative_path(asset_item.get("source_stored_path", ""))
                 if source_project_id and source_stored_path:
-                    source_abs_path = os.path.join("sharecode", "assets", source_project_id, source_stored_path)
+                    source_abs_path = os.path.join(
+                        settings.CODEMARK_SHARECODE_DIR,
+                        "assets",
+                        source_project_id,
+                        source_stored_path,
+                    )
                     if os.path.isfile(source_abs_path):
                         shutil.copy2(source_abs_path, abs_stored_path)
                         written = True

@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CONTENT_DIR = BASE_DIR / "content"
+LOGS_DIR = BASE_DIR / "logs"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "codemark-local-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") != "0"
 
@@ -32,7 +33,10 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 CODEMARK_ARTICLES_DIR = CONTENT_DIR / "articles"
+CODEMARK_SHARECODE_DIR = MEDIA_ROOT / "sharecode"
 
 TEMPLATES = [
     {
@@ -52,3 +56,29 @@ LANGUAGE_CODE = "zh-hans"
 TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 USE_TZ = True
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[{levelname}] {asctime} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": LOGS_DIR / "django.log",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+    },
+}

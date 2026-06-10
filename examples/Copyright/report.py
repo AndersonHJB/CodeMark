@@ -9,7 +9,8 @@ class CodePDF(FPDF):
     def __init__(self):
         super().__init__()
         self.set_auto_page_break(auto=True, margin=15)
-        self.add_font("Mono", "", "/Users/huangjiabao/GitHub/Github_Repo/CodeMark/TestCode/Copyright/fonts/LXGWWenKaiMono-Regular.ttf", uni=True)
+        font_path = os.path.join(os.path.dirname(__file__), "fonts", "LXGWWenKaiMono-Regular.ttf")
+        self.add_font("Mono", "", font_path, uni=True)
         self.set_font("Mono", size=10)
 
     def header(self):
@@ -49,7 +50,6 @@ def main(project_path, output_pdf_path):
     print(f"✅ PDF 已生成：{output_pdf_path}")
 
 if __name__ == "__main__":
-    # 修改为你的项目根目录
-    project_dir = "/Users/huangjiabao/GitHub/Github_Repo/CodeMark"
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     output_pdf = "CodeMark.pdf"
     main(project_dir, output_pdf)
