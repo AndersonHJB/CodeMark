@@ -38,6 +38,10 @@
         };
         window.CPP_EDITOR_CONFIG = {
             runUrl: "{% url 'run_cpp' %}",
+            runStartUrl: "{% url 'start_cpp_run' %}",
+            runPollUrl: "{% url 'poll_cpp_run' %}",
+            runInputUrl: "{% url 'send_cpp_run_input' %}",
+            runStopUrl: "{% url 'stop_cpp_run' %}",
             uploadUrl: "{% url 'upload_code' %}",
             aceBasePath: "{% static 'js/ace' %}/",
             csrfToken: "{{ csrf_token }}",
@@ -58,12 +62,7 @@
     <button id="download-btn" class="project-download-btn" onclick="downloadProjectArchive()">zip</button>
     <button id="share-btn" onclick="share()">share</button>
     <button id="paste-btn" onclick="pasteCode()">paste</button>
-    <button id="cpp-mobile-stdin-btn" type="button" onclick="toggleMobileStdinPanel()">stdin</button>
     <button id="home-btn" onclick="home()">home</button>
-    <div class="cpp-mobile-stdin-panel" id="cppMobileStdinPanel">
-        <label for="stdin-input">stdin</label>
-        <textarea id="stdin-input" spellcheck="false" placeholder="每行输入会按顺序传给 cin"></textarea>
-    </div>
     <input id="file-input" type="file" accept=".cpp,.cc,.cxx,.c,.hpp,.h,.txt" style="display:none"/>
 </div>
 
@@ -184,6 +183,10 @@
         };
         window.CPP_EDITOR_CONFIG = {
             runUrl: "{% url 'run_cpp' %}",
+            runStartUrl: "{% url 'start_cpp_run' %}",
+            runPollUrl: "{% url 'poll_cpp_run' %}",
+            runInputUrl: "{% url 'send_cpp_run_input' %}",
+            runStopUrl: "{% url 'stop_cpp_run' %}",
             uploadUrl: "{% url 'upload_code' %}",
             aceBasePath: "{% static 'js/ace' %}/",
             csrfToken: "{{ csrf_token }}",
@@ -222,10 +225,6 @@
                             </div>
                         </div>
                         <div id="console" class="console" aria-live="polite"></div>
-                        <div class="cpp-stdin-panel">
-                            <label for="stdin-input">stdin</label>
-                            <textarea id="stdin-input" spellcheck="false" placeholder="每行输入会按顺序传给 cin"></textarea>
-                        </div>
                     </div>
                 </div>
             </div>

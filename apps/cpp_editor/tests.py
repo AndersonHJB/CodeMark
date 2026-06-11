@@ -1,10 +1,11 @@
 import tempfile
+import time
 from unittest.mock import patch
 
 from django.test import Client, SimpleTestCase, override_settings
 from django.urls import resolve, reverse
 
-from .services import compile_and_run_cpp
+from .services import compile_and_run_cpp, poll_interactive_cpp_run, send_interactive_cpp_stdin, start_interactive_cpp_run
 from . import views
 
 
@@ -27,6 +28,26 @@ class CppEditorUrlPatternTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), payload)
+
+    def test_interactive_cpp_routes_return_json_result(self):
+        start_payload = {"ok": True, "done": False, "session_id": "abc123", "timeout_seconds": 60}
+        poll_payload = {"ok": True, "events": [], "done": False, "exit_code": None}
+        input_payload = {"ok": True, "done": False, "stderr": ""}
+        stop_payload = {"ok": True}
+
+        with patch("apps.cpp_editor.views.start_interactive_cpp_run", return_value=start_payload):
+            start_response = self.client.post(reverse("start_cpp_run"), {"code": "int main(){}"})
+        with patch("apps.cpp_editor.views.poll_interactive_cpp_run", return_value=poll_payload):
+            poll_response = self.client.post(reverse("poll_cpp_run"), {"session_id": "abc123", "after_seq": "0"})
+        with patch("apps.cpp_editor.views.send_interactive_cpp_stdin", return_value=input_payload):
+            input_response = self.client.post(reverse("send_cpp_run_input"), {"session_id": "abc123", "stdin": "42"})
+        with patch("apps.cpp_editor.views.stop_interactive_cpp_run", return_value=stop_payload):
+            stop_response = self.client.post(reverse("stop_cpp_run"), {"session_id": "abc123"})
+
+        self.assertEqual(start_response.json(), start_payload)
+        self.assertEqual(poll_response.json(), poll_payload)
+        self.assertEqual(input_response.json(), input_payload)
+        self.assertEqual(stop_response.json(), stop_payload)
 
     def test_run_cpp_requires_csrf_when_checks_are_enforced(self):
         payload = {
@@ -64,6 +85,8 @@ class CppEditorUrlPatternTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "C++在线代码编写（移动端）")
         self.assertContains(response, "mobile-console-output")
+        self.assertNotContains(response, 'id="stdin-input"')
+        self.assertNotContains(response, "cpp-mobile-stdin-btn")
 
     def test_desktop_cpp_editor_has_context_menu(self):
         response = self.client.get(reverse("cpp_editor"))
@@ -72,6 +95,9 @@ class CppEditorUrlPatternTests(SimpleTestCase):
         self.assertContains(response, 'id="custom-context-menu"')
         self.assertContains(response, "代码格式化")
         self.assertContains(response, "复制分享链接")
+        self.assertContains(response, "runStartUrl")
+        self.assertNotContains(response, 'id="stdin-input"')
+        self.assertNotContains(response, "cpp-stdin-panel")
 
     def test_shared_cpp_editor_uses_cpp_template(self):
         with tempfile.TemporaryDirectory() as temp_dir, override_settings(CODEMARK_SHARECODE_DIR=temp_dir):
@@ -113,3 +139,51 @@ class CppEditorUrlPatternTests(SimpleTestCase):
 
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["stdout"], "42\n")
+
+    def test_interactive_cpp_run_accepts_stdin_after_process_starts(self):
+        code = (
+            "#include <iostream>\n"
+            "#include <string>\n"
+            "int main(){"
+            "std::cout << \"Name? \";"
+            "std::string name;"
+            "std::cin >> name;"
+            "std::cout << \"Hello \" << name << \"\\n\";"
+            "return 0;"
+            "}\n"
+        )
+        start_result = start_interactive_cpp_run(code)
+        self.assertTrue(start_result["ok"], start_result)
+        session_id = start_result["session_id"]
+        output = ""
+        last_seq = 0
+        deadline = time.time() + 5
+
+        while "Name? " not in output and time.time() < deadline:
+            poll_result = poll_interactive_cpp_run(session_id, last_seq)
+            for event in poll_result.get("events", []):
+                last_seq = max(last_seq, event["seq"])
+                output += event["text"]
+            if poll_result.get("done"):
+                break
+            time.sleep(0.05)
+
+        self.assertIn("Name? ", output)
+        input_result = send_interactive_cpp_stdin(session_id, "Ada")
+        self.assertTrue(input_result["ok"], input_result)
+
+        final_result = None
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            poll_result = poll_interactive_cpp_run(session_id, last_seq)
+            for event in poll_result.get("events", []):
+                last_seq = max(last_seq, event["seq"])
+                output += event["text"]
+            if poll_result.get("done"):
+                final_result = poll_result
+                break
+            time.sleep(0.05)
+
+        self.assertIsNotNone(final_result)
+        self.assertEqual(final_result["exit_code"], 0)
+        self.assertIn("Hello Ada\n", output)

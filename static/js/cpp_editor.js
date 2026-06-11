@@ -16,6 +16,8 @@
     const DESKTOP_CONSOLE_DEFAULT_WIDTH = 420;
     const DESKTOP_CONSOLE_MIN_WIDTH = 300;
     const DESKTOP_EDITOR_MIN_WIDTH = 460;
+    const CPP_INTERACTIVE_POLL_INTERVAL_MS = 120;
+    const CPP_INPUT_REVEAL_DELAY_MS = 500;
     const SUPPORTED_THEMES = new Set([
         "monokai",
         "github",
@@ -36,6 +38,17 @@
     let desktopConsoleCollapsedByAuto = false;
     let desktopConsoleManualOverride = false;
     let currentFilename = "main.cpp";
+    let activeCppSessionId = "";
+    let cppLastOutputSeq = 0;
+    let cppPollTimer = null;
+    let cppInputRevealTimer = null;
+    let cppHasProgramOutput = false;
+    let cppProgramOutputEndsWithNewline = true;
+    let cppInputExpected = false;
+    let cppOutputTruncationShown = false;
+    let cppUsesTerminalEcho = false;
+    let activeConsoleInputRow = null;
+    let activeConsoleInputElement = null;
 
     function getConfig() {
         return window.CPP_EDITOR_CONFIG || {};
@@ -129,18 +142,8 @@
         return defaultCode;
     }
 
-    function resolveInitialStdin() {
-        const isSharedPage = window.location.pathname.indexOf("/share/") === 0;
-        if (isSharedPage) {
-            return "";
-        }
-        const cache = loadDraftCache();
-        return cache && typeof cache.stdin === "string" ? cache.stdin : "";
-    }
-
     function getStdinValue() {
-        const stdinInput = document.getElementById("stdin-input");
-        return stdinInput ? stdinInput.value : "";
+        return "";
     }
 
     function normalizeCodeLanguage(language, fallback = "c_cpp") {
@@ -448,6 +451,8 @@
         if (output) {
             output.textContent = "";
         }
+        activeConsoleInputRow = null;
+        activeConsoleInputElement = null;
     }
 
     function appendOutputText(text) {
@@ -455,8 +460,98 @@
         if (!output) {
             return;
         }
-        output.appendChild(document.createTextNode(String(text ?? "")));
+        const node = document.createTextNode(String(text ?? ""));
+        if (activeConsoleInputRow && activeConsoleInputRow.parentNode === output) {
+            output.insertBefore(node, activeConsoleInputRow);
+        } else {
+            output.appendChild(node);
+        }
         scrollOutputToBottom();
+    }
+
+    function removeActiveConsoleInputRow() {
+        if (activeConsoleInputRow && activeConsoleInputRow.parentNode) {
+            activeConsoleInputRow.parentNode.removeChild(activeConsoleInputRow);
+        }
+        activeConsoleInputRow = null;
+        activeConsoleInputElement = null;
+    }
+
+    function replaceActiveConsoleInputWithHistory(value) {
+        const row = activeConsoleInputRow;
+        if (!row || !row.parentNode) {
+            return;
+        }
+        if (cppUsesTerminalEcho) {
+            row.parentNode.removeChild(row);
+        } else {
+            row.replaceWith(document.createTextNode(String(value ?? "") + "\n"));
+        }
+        activeConsoleInputRow = null;
+        activeConsoleInputElement = null;
+        scrollOutputToBottom();
+    }
+
+    function showConsoleInputRow() {
+        const output = getOutputElement();
+        if (!output || !isCppRunning || !activeCppSessionId || activeConsoleInputRow) {
+            return;
+        }
+
+        const row = document.createElement("div");
+        row.className = "console-input-row";
+
+        const inputElement = document.createElement("input");
+        inputElement.type = "text";
+        inputElement.className = "console-inline-input";
+        inputElement.autocomplete = "off";
+        inputElement.autocapitalize = "off";
+        inputElement.spellcheck = false;
+        row.appendChild(inputElement);
+
+        inputElement.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter") {
+                return;
+            }
+            event.preventDefault();
+            submitConsoleInput(inputElement.value);
+        });
+
+        output.appendChild(row);
+        activeConsoleInputRow = row;
+        activeConsoleInputElement = inputElement;
+        scrollOutputToBottom();
+        window.requestAnimationFrame(function () {
+            if (activeConsoleInputElement) {
+                activeConsoleInputElement.focus();
+            }
+        });
+    }
+
+    function scheduleConsoleInputReveal() {
+        if (cppInputRevealTimer) {
+            clearTimeout(cppInputRevealTimer);
+        }
+        cppInputRevealTimer = setTimeout(function () {
+            cppInputRevealTimer = null;
+            if (isCppRunning && activeCppSessionId) {
+                showConsoleInputRow();
+            }
+        }, CPP_INPUT_REVEAL_DELAY_MS);
+    }
+
+    function stripCppBlockComments(text) {
+        return String(text || "").replace(/\/\*[\s\S]*?\*\//g, " ");
+    }
+
+    function looksLikeCppNeedsStdin(code) {
+        const source = stripCppBlockComments(code)
+            .split("\n")
+            .map(stripCppStringsAndLineComment)
+            .join("\n");
+        return /(^|[^A-Za-z0-9_])(?:cin|wcin)\s*>>/.test(source)
+            || /(^|[^A-Za-z0-9_])(?:scanf|fscanf|sscanf|getchar|fgets|gets)\s*\(/.test(source)
+            || /(^|[^A-Za-z0-9_])(?:std::)?getline\s*\(\s*(?:std::)?cin\b/.test(source);
     }
 
     function setRunningState(running) {
@@ -465,6 +560,162 @@
             button.disabled = running;
             button.textContent = running ? "running" : "> run";
         });
+    }
+
+    function resetInteractiveRunState() {
+        if (cppPollTimer) {
+            clearTimeout(cppPollTimer);
+            cppPollTimer = null;
+        }
+        if (cppInputRevealTimer) {
+            clearTimeout(cppInputRevealTimer);
+            cppInputRevealTimer = null;
+        }
+        removeActiveConsoleInputRow();
+        activeCppSessionId = "";
+        cppLastOutputSeq = 0;
+        cppHasProgramOutput = false;
+        cppProgramOutputEndsWithNewline = true;
+        cppInputExpected = false;
+        cppOutputTruncationShown = false;
+        cppUsesTerminalEcho = false;
+    }
+
+    function buildCppRunFormData(runRequest) {
+        const formData = new URLSearchParams();
+        formData.set("code", runRequest.code);
+        formData.set("active_file", runRequest.activeFile || "main.cpp");
+        if (runRequest.projectPayload) {
+            formData.set("project_payload", JSON.stringify(runRequest.projectPayload));
+        }
+        return formData;
+    }
+
+    async function postCppRunForm(url, formData, options = {}) {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-CSRFToken": getCsrfToken()
+            },
+            body: formData.toString(),
+            keepalive: !!options.keepalive
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return await response.json();
+    }
+
+    function appendInteractiveRunEvents(events) {
+        let appendedProgramOutput = false;
+        (events || []).forEach(function (event) {
+            if (event && typeof event.seq === "number") {
+                cppLastOutputSeq = Math.max(cppLastOutputSeq, event.seq);
+            }
+            const text = event && typeof event.text === "string" ? event.text : "";
+            if (!text) {
+                return;
+            }
+            if (!event || event.stream !== "system") {
+                cppHasProgramOutput = true;
+                cppProgramOutputEndsWithNewline = text.endsWith("\n");
+                appendedProgramOutput = true;
+            } else if (text.indexOf("[输出已截断]") !== -1) {
+                cppOutputTruncationShown = true;
+            }
+            appendOutputText(text);
+        });
+        if (appendedProgramOutput && cppInputExpected && isCppRunning && activeCppSessionId && !activeConsoleInputRow) {
+            showConsoleInputRow();
+        }
+    }
+
+    function finishInteractiveRun(data) {
+        if (cppPollTimer) {
+            clearTimeout(cppPollTimer);
+            cppPollTimer = null;
+        }
+        if (cppInputRevealTimer) {
+            clearTimeout(cppInputRevealTimer);
+            cppInputRevealTimer = null;
+        }
+        removeActiveConsoleInputRow();
+        if (!cppHasProgramOutput) {
+            appendOutputText("[程序运行结束，无输出]\n");
+        } else if (!cppProgramOutputEndsWithNewline) {
+            appendOutputText("\n");
+        }
+        if (data && data.timed_out) {
+            appendOutputText("[运行超时，进程已终止]\n");
+        } else if (data && typeof data.exit_code !== "undefined" && data.exit_code !== null) {
+            appendOutputText(`[退出码: ${data.exit_code}]\n`);
+        }
+        if (data && data.output_truncated && !cppOutputTruncationShown) {
+            appendOutputText("[输出已截断]\n");
+        }
+        activeCppSessionId = "";
+        setRunningState(false);
+    }
+
+    async function pollInteractiveCppRun() {
+        if (!activeCppSessionId) {
+            return;
+        }
+        const formData = new URLSearchParams();
+        formData.set("session_id", activeCppSessionId);
+        formData.set("after_seq", String(cppLastOutputSeq));
+        try {
+            const data = await postCppRunForm(getConfig().runPollUrl, formData);
+            if (!data.ok && data.stderr) {
+                cppHasProgramOutput = true;
+                cppProgramOutputEndsWithNewline = true;
+                appendOutputText(data.stderr + "\n");
+            }
+            appendInteractiveRunEvents(data.events || []);
+            if (data.done) {
+                finishInteractiveRun(data);
+                return;
+            }
+            cppPollTimer = setTimeout(pollInteractiveCppRun, CPP_INTERACTIVE_POLL_INTERVAL_MS);
+        } catch (error) {
+            appendOutputText("C++ 输出读取失败：" + error + "\n");
+            finishInteractiveRun({exit_code: null, timed_out: false, output_truncated: false});
+        }
+    }
+
+    async function submitConsoleInput(value) {
+        if (!activeCppSessionId || !activeConsoleInputRow) {
+            return;
+        }
+        const submittedValue = String(value ?? "");
+        replaceActiveConsoleInputWithHistory(submittedValue);
+        const formData = new URLSearchParams();
+        formData.set("session_id", activeCppSessionId);
+        formData.set("stdin", submittedValue);
+        try {
+            const data = await postCppRunForm(getConfig().runInputUrl, formData);
+            if (!data.ok && data.stderr) {
+                appendOutputText(data.stderr + "\n");
+                return;
+            }
+            if (isCppRunning && activeCppSessionId) {
+                scheduleConsoleInputReveal();
+            }
+        } catch (error) {
+            appendOutputText("C++ 输入发送失败：" + error + "\n");
+        }
+    }
+
+    function stopActiveCppSession(options = {}) {
+        if (!activeCppSessionId || !getConfig().runStopUrl) {
+            return;
+        }
+        const formData = new URLSearchParams();
+        formData.set("session_id", activeCppSessionId);
+        postCppRunForm(getConfig().runStopUrl, formData, {keepalive: !!options.keepalive}).catch(function () {
+        });
+        activeCppSessionId = "";
     }
 
     function getEditorMainRow() {
@@ -685,7 +936,8 @@
         }
         showOutputPanelForRun();
         clearOutput();
-        appendOutputText("Compiling and running C++...\n");
+        resetInteractiveRunState();
+        appendOutputText("Compiling C++...\n");
         setRunningState(true);
         try {
             const runRequest = buildCppRunRequestData();
@@ -694,32 +946,38 @@
                 appendOutputText(runRequest.error + "\n");
                 return;
             }
-            const formData = new URLSearchParams();
-            formData.set("code", runRequest.code);
-            formData.set("stdin", getStdinValue());
-            formData.set("active_file", runRequest.activeFile || "main.cpp");
-            if (runRequest.projectPayload) {
-                formData.set("project_payload", JSON.stringify(runRequest.projectPayload));
+
+            if (!getConfig().runStartUrl) {
+                const fallbackFormData = buildCppRunFormData(runRequest);
+                fallbackFormData.set("stdin", getStdinValue());
+                const fallbackData = await postCppRunForm(getConfig().runUrl, fallbackFormData);
+                clearOutput();
+                renderRunResult(fallbackData);
+                return;
             }
-            const response = await fetch(getConfig().runUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-                    "X-CSRFToken": getCsrfToken()
-                },
-                body: formData.toString()
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            const data = await response.json();
+
+            cppInputExpected = looksLikeCppNeedsStdin(runRequest.code);
+            const data = await postCppRunForm(getConfig().runStartUrl, buildCppRunFormData(runRequest));
             clearOutput();
-            renderRunResult(data);
+            if (data.done) {
+                renderRunResult(data.result || data);
+                return;
+            }
+            if (!data.ok || !data.session_id) {
+                appendOutputText((data.stderr || "C++ 程序启动失败。") + "\n");
+                return;
+            }
+            activeCppSessionId = data.session_id;
+            cppUsesTerminalEcho = !!data.terminal_echo;
+            scheduleConsoleInputReveal();
+            pollInteractiveCppRun();
         } catch (error) {
             clearOutput();
             appendOutputText("C++ 运行请求失败：" + error + "\n");
         } finally {
-            setRunningState(false);
+            if (!activeCppSessionId) {
+                setRunningState(false);
+            }
         }
     }
 
@@ -763,11 +1021,6 @@
         window.editor.setValue(initialCode, -1);
         window.editor.session.on("change", scheduleDraftCacheSave);
 
-        const stdinInput = document.getElementById("stdin-input");
-        if (stdinInput) {
-            stdinInput.value = resolveInitialStdin();
-            stdinInput.addEventListener("input", scheduleDraftCacheSave);
-        }
         saveDraftCache();
         if (typeof initializeEditorProjectSidebar === "function") {
             initializeEditorProjectSidebar({
@@ -1081,13 +1334,6 @@
         }
     }
 
-    function toggleMobileStdinPanel() {
-        const panel = document.getElementById("cppMobileStdinPanel");
-        if (panel) {
-            panel.classList.toggle("show");
-        }
-    }
-
     function hideCustomContextMenu() {
         const menu = document.getElementById("custom-context-menu");
         if (menu) {
@@ -1147,7 +1393,6 @@
         window.toggleSidebar = toggleSidebar;
         window.closeSidebar = closeSidebar;
         window.closeMobileConsole = closeMobileConsole;
-        window.toggleMobileStdinPanel = toggleMobileStdinPanel;
         window.toggleConsoleWrap = toggleConsoleWrap;
         window.collapseConsolePanel = collapseConsolePanel;
         window.expandConsolePanel = expandConsolePanel;
@@ -1157,7 +1402,10 @@
         window.copyShareLinkInMenu = copyShareLinkInMenu;
     }
 
-    window.addEventListener("beforeunload", saveDraftCache);
+    window.addEventListener("beforeunload", function () {
+        stopActiveCppSession({keepalive: true});
+        saveDraftCache();
+    });
     window.addEventListener("pageshow", function (event) {
         if (event.persisted
             || (typeof window.performance !== "undefined" && window.performance.navigation.type === 2)) {
