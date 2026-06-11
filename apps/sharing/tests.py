@@ -26,6 +26,14 @@ class SharingUrlPatternTests(SimpleTestCase):
             with self.subTest(route_name=route_name):
                 self.assertIs(resolve(path).func, view_func)
 
+    def test_sharecode_page_includes_cpp_run_entries(self):
+        response = self.client.get(reverse("sharecode"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="toolbar-btn run cpp-run-btn"', html=False)
+        self.assertContains(response, 'id="mobile-cpp-run"', html=False)
+        self.assertContains(response, 'onclick="goCppRunPage()"', count=2, html=False)
+
     def test_dynamic_sharing_routes_keep_existing_names_and_paths(self):
         expected_routes = {
             "get_shared_asset": (

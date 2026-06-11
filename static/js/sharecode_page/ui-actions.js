@@ -1,13 +1,19 @@
 /* Sharecode toolbar, overlay, download, share, and copy actions. */
-function updatePythonRunButtonVisibility() {
+function updateRunButtonVisibility() {
     const active = getActiveProjectFile();
     const activeLanguage = active && active.kind === "text"
         ? normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path))
         : "";
-    const visible = activeLanguage === "python";
     document.querySelectorAll(".python-run-btn").forEach(btn => {
-        btn.style.display = visible ? "" : "none";
+        btn.style.display = activeLanguage === "python" ? "" : "none";
     });
+    document.querySelectorAll(".cpp-run-btn").forEach(btn => {
+        btn.style.display = activeLanguage === "c_cpp" ? "" : "none";
+    });
+}
+
+function updatePythonRunButtonVisibility() {
+    updateRunButtonVisibility();
 }
 
 function setSidebarOpen(open) {
@@ -1428,7 +1434,7 @@ async function appendQrToShareCanvas(canvas, qrcodeSrc) {
     return finalCanvas;
 }
 
-function goPythonRunPage() {
+function goRunEditorPageForActiveFile(language, template, errorMessage) {
     hideFloatingMenuIfOpen();
     createProjectFileFromEditorInput();
     syncActiveEditorToProject();
@@ -1437,7 +1443,8 @@ function goPythonRunPage() {
         return;
     }
     const lang = normalizeSharecodeLanguage(active.language || detectLanguageFromFilename(active.path));
-    if (lang !== 'python') {
+    const normalizedLanguage = normalizeSharecodeLanguage(language);
+    if (lang !== normalizedLanguage) {
         return;
     }
     const payload = buildSharePayload();
@@ -1448,8 +1455,8 @@ function goPythonRunPage() {
         dataType: 'json',
         data: {
             code: active.content || "",
-            language: 'python',
-            template: 'editor',
+            language: normalizedLanguage,
+            template: template,
             theme: getCurrentThemeValue(),
             project_payload: JSON.stringify(payload)
         },
@@ -1457,9 +1464,17 @@ function goPythonRunPage() {
             window.location.href = d.share_link;
         },
         error: function () {
-            showProjectNotice("Python 运行页生成失败，请稍后再试。");
+            showProjectNotice(errorMessage);
         }
     });
+}
+
+function goPythonRunPage() {
+    goRunEditorPageForActiveFile("python", "editor", "Python 运行页生成失败，请稍后再试。");
+}
+
+function goCppRunPage() {
+    goRunEditorPageForActiveFile("c_cpp", "cpp_editor", "C++ 运行页生成失败，请稍后再试。");
 }
 
 function copyToClipboard(text, onSuccess) {

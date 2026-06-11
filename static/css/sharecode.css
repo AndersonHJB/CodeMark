@@ -1476,7 +1476,8 @@ body.sidebar-resizing #projectSidebar {
 #mobile-folder { background: var(--accent-folder); }
 #mobile-download { background: var(--accent-download); }
 #mobile-share { background: var(--accent-share); }
-#mobile-python-run { background: var(--accent-run); }
+#mobile-python-run,
+#mobile-cpp-run { background: var(--accent-run); }
 #mobile-home { background: var(--accent-home); }
 
 #floatingMenu .mobile-select-wrap {
