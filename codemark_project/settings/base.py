@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.editor.apps.EditorConfig",
     "apps.cpp_editor.apps.CppEditorConfig",
     "apps.sharing.apps.SharingConfig",
+    "apps.algorithms.apps.AlgorithmsConfig",
 ]
 
 MIDDLEWARE = [

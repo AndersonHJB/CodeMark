@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算法动画实验室</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/algorithms.css' %}">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+</head>
+<body class="algorithm-page">
+<div class="algorithm-shell">
+    <header class="app-topbar">
+        <a class="brand-mark" href="/algorithms" aria-label="算法动画实验室">
+            <span class="brand-symbol" aria-hidden="true">A</span>
+            <span>算法动画实验室</span>
+        </a>
+        <nav class="top-links" aria-label="主导航">
+            <a href="/">首页</a>
+            <a href="/editor">Python 编辑器</a>
+            <a href="/cpp-editor">C++ 编辑器</a>
+            <a href="/sharecode">代码分享</a>
+        </nav>
+    </header>
+
+    <main class="workbench" data-algorithm-app>
+        <aside class="library-panel" aria-label="算法库">
+            <div class="library-heading">
+                <h1>算法库</h1>
+                <span id="library-count">0</span>
+            </div>
+            <div class="category-tabs" id="categoryTabs" role="tablist" aria-label="算法分类"></div>
+            <div class="algorithm-list" id="algorithmList"></div>
+        </aside>
+
+        <section class="studio-panel" aria-label="动画演示区">
+            <div class="studio-header">
+                <div>
+                    <p class="algorithm-category" id="algorithmCategory">排序</p>
+                    <h2 id="algorithmTitle">冒泡排序</h2>
+                </div>
+                <div class="run-stats" aria-label="运行统计">
+                    <span><strong id="stepIndex">1</strong>/<span id="stepTotal">1</span> 步</span>
+                    <span id="complexityLabel">O(n²)</span>
+                </div>
+            </div>
+
+            <div class="input-strip">
+                <label class="data-field">
+                    <span>自定义数据</span>
+                    <textarea id="dataInput" rows="2" spellcheck="false"></textarea>
+                </label>
+                <label class="target-field">
+                    <span>目标/键值</span>
+                    <input id="targetInput" type="text" spellcheck="false">
+                </label>
+                <button class="tool-button" id="exampleButton" type="button">示例</button>
+                <button class="tool-button primary" id="buildButton" type="button">生成动画</button>
+            </div>
+
+            <div class="canvas-shell">
+                <div class="canvas-toolbar">
+                    <span id="viewModeLabel">数组视图</span>
+                    <span id="currentPhase">准备中</span>
+                </div>
+                <div class="visual-stage" id="visualStage" aria-live="polite"></div>
+            </div>
+
+            <div class="playback-panel">
+                <div class="transport-buttons">
+                    <button class="icon-button" id="prevButton" type="button" aria-label="上一步">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M15 6l-6 6 6 6"></path>
+                        </svg>
+                    </button>
+                    <button class="play-button" id="playButton" type="button">播放</button>
+                    <button class="icon-button" id="nextButton" type="button" aria-label="单步">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9 6l6 6-6 6"></path>
+                        </svg>
+                    </button>
+                    <button class="tool-button" id="resetButton" type="button">重置</button>
+                </div>
+                <label class="speed-control">
+                    <span>速度</span>
+                    <input id="speedRange" type="range" min="180" max="1400" step="40" value="640">
+                    <output id="speedValue">0.64s</output>
+                </label>
+                <div class="timeline">
+                    <div class="timeline-fill" id="timelineFill"></div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="inspector-panel" aria-label="执行细节">
+            <section class="inspector-section">
+                <div class="section-title">
+                    <h2>当前状态</h2>
+                    <span id="stateBadge">初始化</span>
+                </div>
+                <dl class="state-grid" id="stateGrid"></dl>
+                <p class="step-description" id="stepDescription"></p>
+            </section>
+
+            <section class="inspector-section code-section">
+                <div class="section-title">
+                    <h2>伪代码</h2>
+                </div>
+                <ol class="pseudo-code" id="pseudoCode"></ol>
+            </section>
+
+            <section class="inspector-section">
+                <div class="section-title">
+                    <h2>执行记录</h2>
+                </div>
+                <div class="step-log" id="stepLog"></div>
+            </section>
+        </aside>
+    </main>
+</div>
+<script src="{% static 'js/algorithms.js' %}"></script>
+</body>
+</html>

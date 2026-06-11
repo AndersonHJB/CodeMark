@@ -9,6 +9,7 @@ urlpatterns = [
     path("", include("apps.editor.urls")),
     path("", include("apps.cpp_editor.urls")),
     path("", include("apps.sharing.urls")),
+    path("", include("apps.algorithms.urls")),
     path("admin/", admin.site.urls),
 ]
 
