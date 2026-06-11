@@ -79,6 +79,184 @@ print(get_random_secret_key())
 PY
 ```
 
+## 数据库、迁移和管理员账号教程
+
+当前项目默认使用 SQLite，数据库配置位于 `codemark_project/settings/base.py`：
+
+```python
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.getenv("DJANGO_SQLITE_PATH", BASE_DIR / "db.sqlite3"),
+    }
+}
+```
+
+也就是说，未设置 `DJANGO_SQLITE_PATH` 时，数据库文件会创建在项目根目录的 `db.sqlite3`。如果生产环境希望把数据库放到固定路径，可以在 `.env.prod` 中设置：
+
+```bash
+DJANGO_SQLITE_PATH=/www/wwwroot/codemark-ok/db.sqlite3
+```
+
+SQLite 不需要手动执行 `CREATE DATABASE`。第一次运行迁移时，Django 会自动创建数据库文件和所需数据表。需要注意的是：如果 `DJANGO_SQLITE_PATH` 指向的父目录不存在，或者运行用户没有写入权限，迁移会失败。
+
+### 1. 本地创建数据库
+
+本地开发默认使用 `codemark_project.settings.dev`，通常不需要额外环境变量：
+
+```bash
+cd /path/to/OK
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+```
+
+执行完成后，项目根目录会出现 `db.sqlite3`，其中包含 Django Auth、Session、Admin 和项目应用所需的数据表。
+
+验证迁移状态：
+
+```bash
+python manage.py showmigrations
+python manage.py migrate --check
+```
+
+### 2. 生产创建数据库
+
+生产环境建议先加载 `.env.prod`，确保使用 `codemark_project.settings.prod` 和正确的数据库路径：
+
+```bash
+cd /www/wwwroot/codemark-ok
+source .venv/bin/activate
+set -a
+source .env.prod
+set +a
+python manage.py migrate --noinput
+```
+
+如果使用部署初始化脚本，脚本已经包含迁移步骤：
+
+```bash
+./scripts/init_deploy.sh .env.prod
+```
+
+脚本会依次创建运行时目录、加载环境变量、执行 `migrate --noinput`、收集静态文件并运行系统检查。
+
+### 3. 创建和应用迁移
+
+修改 `models.py` 后，先生成迁移文件：
+
+```bash
+python manage.py makemigrations
+```
+
+也可以只为指定应用生成迁移，并给迁移命名：
+
+```bash
+python manage.py makemigrations sharing --name add_share_file_status
+```
+
+应用迁移：
+
+```bash
+python manage.py migrate
+```
+
+上线前建议先查看迁移计划和检查是否遗漏迁移文件：
+
+```bash
+python manage.py migrate --plan
+python manage.py makemigrations --check --dry-run
+```
+
+生产环境执行迁移时建议使用：
+
+```bash
+python manage.py migrate --noinput
+```
+
+如需回退某个应用到指定迁移版本，可以使用：
+
+```bash
+python manage.py migrate sharing 0001
+```
+
+回退迁移可能删除字段或数据，生产环境执行前必须备份数据库。
+
+### 4. 创建管理员账号
+
+项目提供了自定义管理命令 `create_admin_account`，用于创建或更新 Django 超级管理员账号。
+
+使用环境变量创建账号：
+
+```bash
+CODEMARK_ADMIN_USERNAME=admin
+CODEMARK_ADMIN_EMAIL=admin@example.com
+CODEMARK_ADMIN_PASSWORD='替换为强密码'
+python manage.py create_admin_account
+```
+
+也可以直接通过命令参数传入：
+
+```bash
+python manage.py create_admin_account \
+  --username admin \
+  --email admin@example.com \
+  --password '替换为强密码'
+```
+
+如果没有传入密码，命令会生成一个随机密码并打印到终端。请立即保存随机密码；命令不会把明文密码保存到项目文件中。
+
+重置已有管理员密码：
+
+```bash
+python manage.py create_admin_account \
+  --username admin \
+  --password '新的强密码' \
+  --reset-password
+```
+
+只确认管理员账号存在，不修改已有密码：
+
+```bash
+python manage.py create_admin_account --username admin
+```
+
+查看命令帮助：
+
+```bash
+python manage.py help create_admin_account
+```
+
+### 5. 数据库备份和重建
+
+生产环境更新或迁移前备份 SQLite 数据库：
+
+```bash
+cd /www/wwwroot/codemark-ok
+cp db.sqlite3 db.sqlite3.$(date +%Y%m%d%H%M%S).bak
+```
+
+如果 `.env.prod` 中设置了自定义路径：
+
+```bash
+cp "$DJANGO_SQLITE_PATH" "$DJANGO_SQLITE_PATH.$(date +%Y%m%d%H%M%S).bak"
+```
+
+全新部署时，数据库初始化顺序建议为：
+
+```bash
+source .venv/bin/activate
+set -a
+source .env.prod
+set +a
+python manage.py migrate --noinput
+python manage.py create_admin_account --username admin
+python manage.py check
+```
+
+仅在确认不需要保留任何账号、会话和后台数据时，才可以删除 `db.sqlite3` 后重新执行 `migrate`。不要在生产环境直接删除数据库来解决迁移问题。
+
 ## 命令行部署
 
 以下以 Ubuntu/Debian 和 `/www/wwwroot/codemark-ok` 为例，实际路径按服务器调整。

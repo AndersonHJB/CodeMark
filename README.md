@@ -87,20 +87,57 @@ python app.py
 python manage.py runserver 0.0.0.0:8991
 ```
 
-初始化管理员后台：
+数据库与后台初始化：
 
 ```bash
 python manage.py migrate
 python manage.py create_admin_account --username admin
 ```
 
-也可以通过环境变量设置账号信息：`CODEMARK_ADMIN_USERNAME`、`CODEMARK_ADMIN_EMAIL`、`CODEMARK_ADMIN_PASSWORD`。
+当前项目默认使用 SQLite。首次执行 `python manage.py migrate` 时，Django 会自动在项目根目录创建 `db.sqlite3` 并初始化所需数据表。
+
+创建管理员账号时可以直接传入账号信息：
+
+```bash
+python manage.py create_admin_account \
+  --username admin \
+  --email admin@example.com \
+  --password '替换为强密码'
+```
+
+也可以通过环境变量设置账号信息：
+
+```bash
+CODEMARK_ADMIN_USERNAME=admin
+CODEMARK_ADMIN_EMAIL=admin@example.com
+CODEMARK_ADMIN_PASSWORD='替换为强密码'
+python manage.py create_admin_account
+```
+
+重置管理员密码：
+
+```bash
+python manage.py create_admin_account \
+  --username admin \
+  --password '新的强密码' \
+  --reset-password
+```
+
+常用迁移命令：
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+python manage.py showmigrations
+python manage.py makemigrations --check --dry-run
+```
 
 ## 部署说明🚢
 
 完整部署、宝塔部署、更新和排障流程请查看：
 
 - [CodeMark 部署文档](docs/deployment.md)
+- [数据库、迁移和管理员账号教程](docs/deployment.md#数据库迁移和管理员账号教程)
 
 最小生产部署流程：
 

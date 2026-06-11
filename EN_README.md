@@ -84,6 +84,55 @@ You can also run it with Django:
 python manage.py runserver 0.0.0.0:8991
 ```
 
+## Database and Admin Initialization
+
+The project uses SQLite by default. The first `migrate` run creates `db.sqlite3` in the project root and initializes the required Django tables:
+
+```bash
+python manage.py migrate
+python manage.py create_admin_account --username admin
+```
+
+Create an admin account with explicit values:
+
+```bash
+python manage.py create_admin_account \
+  --username admin \
+  --email admin@example.com \
+  --password 'replace-with-a-strong-password'
+```
+
+You can also use environment variables:
+
+```bash
+CODEMARK_ADMIN_USERNAME=admin
+CODEMARK_ADMIN_EMAIL=admin@example.com
+CODEMARK_ADMIN_PASSWORD='replace-with-a-strong-password'
+python manage.py create_admin_account
+```
+
+Reset an existing admin password:
+
+```bash
+python manage.py create_admin_account \
+  --username admin \
+  --password 'new-strong-password' \
+  --reset-password
+```
+
+Common migration commands:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+python manage.py showmigrations
+python manage.py makemigrations --check --dry-run
+```
+
+The full Chinese deployment guide includes a dedicated database, migration, and admin-account tutorial:
+
+- [CodeMark deployment guide](docs/deployment.md)
+
 ## Maintenance Commands⚙️
 
 Export dependencies:
