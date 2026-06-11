@@ -492,14 +492,24 @@
         scrollOutputToBottom();
     }
 
+    function syncConsoleInputPlacement() {
+        if (!activeConsoleInputRow) {
+            return;
+        }
+        activeConsoleInputRow.classList.toggle(
+            "cpp-console-input-row-inline",
+            cppHasProgramOutput && !cppProgramOutputEndsWithNewline
+        );
+    }
+
     function showConsoleInputRow() {
         const output = getOutputElement();
         if (!output || !isCppRunning || !activeCppSessionId || activeConsoleInputRow) {
             return;
         }
 
-        const row = document.createElement("div");
-        row.className = "console-input-row";
+        const row = document.createElement("span");
+        row.className = "console-input-row cpp-console-input-row";
 
         const inputElement = document.createElement("input");
         inputElement.type = "text";
@@ -520,6 +530,7 @@
         output.appendChild(row);
         activeConsoleInputRow = row;
         activeConsoleInputElement = inputElement;
+        syncConsoleInputPlacement();
         scrollOutputToBottom();
         window.requestAnimationFrame(function () {
             if (activeConsoleInputElement) {
@@ -626,6 +637,7 @@
             }
             appendOutputText(text);
         });
+        syncConsoleInputPlacement();
         if (appendedProgramOutput && cppInputExpected && isCppRunning && activeCppSessionId && !activeConsoleInputRow) {
             showConsoleInputRow();
         }

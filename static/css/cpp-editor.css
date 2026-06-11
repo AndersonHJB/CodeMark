@@ -16,6 +16,33 @@
     min-height: 0;
 }
 
+.cpp-editor-page .console .cpp-console-input-row,
+.cpp-editor-page #mobile-console-output .cpp-console-input-row {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    margin: 0;
+    max-width: calc(100% - 1em);
+    vertical-align: baseline;
+}
+
+.cpp-editor-page .console .cpp-console-input-row-inline,
+.cpp-editor-page #mobile-console-output .cpp-console-input-row-inline {
+    margin-left: 0.35em;
+}
+
+.cpp-editor-page .console .cpp-console-input-row .console-inline-input,
+.cpp-editor-page #mobile-console-output .cpp-console-input-row .console-inline-input {
+    box-sizing: border-box;
+    flex: 0 1 18ch;
+    width: 18ch;
+    min-width: 6ch;
+    max-width: 100%;
+    height: 1.8em;
+    padding: 1px 6px;
+    font: inherit;
+}
+
 .cpp-editor-page .cpp-run-btn[disabled] {
     cursor: wait;
     opacity: 0.76;
