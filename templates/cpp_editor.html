@@ -324,6 +324,17 @@
     </div>
 </div>
 
+<div id="custom-context-menu">
+    <ul>
+        <li onclick="formatCode()">代码格式化</li>
+        <li onclick="runCppCode()">运行代码</li>
+        <li onclick="screenshotAndDownload()">截图并下载</li>
+        <li onclick="copyAllCode()">复制所有代码</li>
+        <li onclick="pasteCode()">粘贴到编辑器</li>
+        <li onclick="copyShareLinkInMenu()">复制分享链接</li>
+    </ul>
+</div>
+
 <script src="{% static 'js/ace/ace.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/ace/ext-language_tools.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/ace/mode-c_cpp.js' %}" type="text/javascript"></script>

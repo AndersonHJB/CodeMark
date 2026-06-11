@@ -230,6 +230,164 @@
         };
     }
 
+    function getCurrentEditorCodeForAction() {
+        const activeFile = getActiveTextProjectFile();
+        if (activeFile) {
+            return activeFile.content || "";
+        }
+        return window.editor ? window.editor.getValue() : "";
+    }
+
+    function setCurrentEditorCodeFromAction(code) {
+        if (!window.editor) {
+            return;
+        }
+        window.editor.setValue(String(code || ""), -1);
+        const activeFile = getActiveTextProjectFile();
+        if (activeFile) {
+            activeFile.content = window.editor.getValue();
+        }
+        scheduleDraftCacheSave();
+        if (typeof scheduleSharecodeDraftCacheSave === "function") {
+            scheduleSharecodeDraftCacheSave();
+        }
+        if (typeof renderActiveLineHighlights === "function") {
+            renderActiveLineHighlights();
+        }
+    }
+
+    function stripCppStringsAndLineComment(line) {
+        let result = "";
+        let quote = "";
+        let escaped = false;
+        for (let index = 0; index < line.length; index += 1) {
+            const char = line[index];
+            const next = line[index + 1] || "";
+            if (quote) {
+                if (escaped) {
+                    escaped = false;
+                } else if (char === "\\") {
+                    escaped = true;
+                } else if (char === quote) {
+                    quote = "";
+                }
+                result += " ";
+                continue;
+            }
+            if ((char === "\"" || char === "'")) {
+                quote = char;
+                result += " ";
+                continue;
+            }
+            if (char === "/" && next === "/") {
+                break;
+            }
+            result += char;
+        }
+        return result;
+    }
+
+    function formatCppCodeFallback(code) {
+        const indentUnit = "    ";
+        let indentLevel = 0;
+        return String(code || "")
+            .replace(/\r\n?/g, "\n")
+            .split("\n")
+            .map(function (rawLine) {
+                const trimmed = rawLine.trim();
+                if (!trimmed) {
+                    return "";
+                }
+                if (trimmed.charAt(0) === "#") {
+                    return trimmed;
+                }
+
+                const leadingClosers = (trimmed.match(/^\}+/) || [""])[0].length;
+                const caseOutdent = /^(case\b.*:|default\s*:)/.test(trimmed) ? 1 : 0;
+                const lineIndent = Math.max(0, indentLevel - leadingClosers - caseOutdent);
+                const braceSource = stripCppStringsAndLineComment(trimmed);
+                const openCount = (braceSource.match(/\{/g) || []).length;
+                const closeCount = (braceSource.match(/\}/g) || []).length;
+                const formattedLine = indentUnit.repeat(lineIndent) + trimmed;
+                indentLevel = Math.max(0, indentLevel + openCount - closeCount);
+                return formattedLine;
+            })
+            .join("\n")
+            .replace(/[ \t]+$/gm, "")
+            .replace(/\n{3,}/g, "\n\n")
+            .trimEnd() + "\n";
+    }
+
+    function formatCode() {
+        if (!window.editor) {
+            return;
+        }
+        const activeFile = getActiveTextProjectFile();
+        if (activeFile) {
+            const language = normalizeCodeLanguage(
+                activeFile.language || (typeof detectLanguageFromFilename === "function" ? detectLanguageFromFilename(activeFile.path) : ""),
+                "c_cpp"
+            );
+            if (language !== "c_cpp") {
+                alert("当前文件不是 C/C++ 文件，无法使用 C++ 格式化。");
+                return;
+            }
+        }
+        try {
+            setCurrentEditorCodeFromAction(formatCppCodeFallback(getCurrentEditorCodeForAction()));
+        } catch (error) {
+            alert("格式化失败: " + error);
+        }
+    }
+
+    function screenshotAndDownload() {
+        const code = getCurrentEditorCodeForAction();
+        const hiddenContainer = document.createElement("div");
+        hiddenContainer.style.position = "fixed";
+        hiddenContainer.style.top = "-9999px";
+        hiddenContainer.style.left = "0";
+        hiddenContainer.style.padding = "20px";
+        hiddenContainer.style.backgroundColor = "#2f3129";
+        hiddenContainer.style.color = "#fff";
+        hiddenContainer.style.fontFamily = "Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro, monospace";
+        hiddenContainer.style.fontSize = "16px";
+        hiddenContainer.style.lineHeight = "1.5";
+        hiddenContainer.style.whiteSpace = "pre";
+        hiddenContainer.id = "hidden-cpp-screenshot-container";
+        hiddenContainer.textContent = code;
+        document.body.appendChild(hiddenContainer);
+
+        html2canvas(hiddenContainer).then(function (canvas) {
+            canvas.toBlob(function (blob) {
+                if (blob) {
+                    saveAs(blob, "cpp_code_screenshot.png");
+                }
+                if (hiddenContainer.parentNode) {
+                    hiddenContainer.parentNode.removeChild(hiddenContainer);
+                }
+            });
+        }).catch(function (error) {
+            if (hiddenContainer.parentNode) {
+                hiddenContainer.parentNode.removeChild(hiddenContainer);
+            }
+            alert("截图失败: " + error);
+        });
+    }
+
+    function copyAllCode() {
+        copyToClipboard(getCurrentEditorCodeForAction()).then(showCopySuccess);
+    }
+
+    function copyShareLinkInMenu() {
+        const shareInput = document.getElementById("share-link-input");
+        const shareLink = shareInput ? shareInput.value : "";
+        if (!shareLink) {
+            alert("暂无可分享的链接，请先点击分享按钮生成。");
+            return;
+        }
+        copyToClipboard(shareLink).then(showCopySuccess);
+    }
+
     function updateCppRunButtonVisibility() {
         let visible = true;
         if (typeof getActiveProjectFile === "function") {
@@ -701,8 +859,14 @@
         }
         navigator.clipboard.readText().then(function (text) {
             if (text && text.trim() !== "") {
-                window.editor.setValue(text, -1);
+                window.editor.insert(text);
                 scheduleDraftCacheSave();
+                if (typeof syncActiveEditorToProject === "function") {
+                    syncActiveEditorToProject();
+                }
+                if (typeof scheduleSharecodeDraftCacheSave === "function") {
+                    scheduleSharecodeDraftCacheSave();
+                }
             } else {
                 alert("剪贴板为空或不支持读取。");
             }
@@ -924,6 +1088,54 @@
         }
     }
 
+    function hideCustomContextMenu() {
+        const menu = document.getElementById("custom-context-menu");
+        if (menu) {
+            menu.style.display = "none";
+        }
+    }
+
+    function placeCustomContextMenu(menu, event) {
+        menu.style.display = "block";
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const left = Math.min(event.pageX, window.scrollX + viewportWidth - menuRect.width - 8);
+        const top = Math.min(event.pageY, window.scrollY + viewportHeight - menuRect.height - 8);
+        menu.style.left = Math.max(window.scrollX + 4, left) + "px";
+        menu.style.top = Math.max(window.scrollY + 4, top) + "px";
+    }
+
+    function initCustomContextMenu() {
+        const menu = document.getElementById("custom-context-menu");
+        if (!menu) {
+            return;
+        }
+        document.addEventListener("contextmenu", function (event) {
+            const editorArea = document.getElementById("editorArea");
+            if (!editorArea || !editorArea.contains(event.target)) {
+                return;
+            }
+            event.preventDefault();
+            hideProjectTreeContextMenuIfAvailable();
+            placeCustomContextMenu(menu, event);
+        });
+        document.addEventListener("click", hideCustomContextMenu);
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                hideCustomContextMenu();
+            }
+        });
+        window.addEventListener("resize", hideCustomContextMenu);
+        window.addEventListener("scroll", hideCustomContextMenu, true);
+    }
+
+    function hideProjectTreeContextMenuIfAvailable() {
+        if (typeof hideProjectTreeContextMenu === "function") {
+            hideProjectTreeContextMenu();
+        }
+    }
+
     function exposeGlobals() {
         window.runCppCode = runCppCode;
         window.performClick = performClick;
@@ -939,6 +1151,10 @@
         window.toggleConsoleWrap = toggleConsoleWrap;
         window.collapseConsolePanel = collapseConsolePanel;
         window.expandConsolePanel = expandConsolePanel;
+        window.formatCode = formatCode;
+        window.screenshotAndDownload = screenshotAndDownload;
+        window.copyAllCode = copyAllCode;
+        window.copyShareLinkInMenu = copyShareLinkInMenu;
     }
 
     window.addEventListener("beforeunload", saveDraftCache);
@@ -956,6 +1172,7 @@
         initAceEditor();
         initThemeSelector();
         initFileInput();
+        initCustomContextMenu();
         clearOutput();
         appendOutputText("C++ editor ready.\n");
     });

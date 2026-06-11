@@ -65,6 +65,14 @@ class CppEditorUrlPatternTests(SimpleTestCase):
         self.assertContains(response, "C++在线代码编写（移动端）")
         self.assertContains(response, "mobile-console-output")
 
+    def test_desktop_cpp_editor_has_context_menu(self):
+        response = self.client.get(reverse("cpp_editor"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="custom-context-menu"')
+        self.assertContains(response, "代码格式化")
+        self.assertContains(response, "复制分享链接")
+
     def test_shared_cpp_editor_uses_cpp_template(self):
         with tempfile.TemporaryDirectory() as temp_dir, override_settings(CODEMARK_SHARECODE_DIR=temp_dir):
             upload_response = self.client.post(reverse("upload_code"), {
