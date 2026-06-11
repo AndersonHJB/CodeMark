@@ -7,6 +7,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from apps.common.project_payload import normalize_project_relative_path
+
 
 MAX_CODE_BYTES = 100 * 1024
 MAX_STDIN_BYTES = 32 * 1024
@@ -49,6 +51,38 @@ def _compiler_environment():
     env.setdefault("LANG", "C.UTF-8")
     env.setdefault("LC_ALL", "C.UTF-8")
     return env
+
+
+def _materialize_project_payload(workdir, project_payload, active_file):
+    if not isinstance(project_payload, dict):
+        return None, ""
+
+    max_code_bytes = _setting_int("CPP_EDITOR_MAX_CODE_BYTES", MAX_CODE_BYTES)
+    text_files = project_payload.get("text_files", [])
+    if not isinstance(text_files, list):
+        text_files = []
+
+    active_path = normalize_project_relative_path(active_file or project_payload.get("active_file", ""))
+    written_paths = set()
+    for index, file_item in enumerate(text_files):
+        if not isinstance(file_item, dict):
+            continue
+        safe_path = normalize_project_relative_path(
+            file_item.get("path") or file_item.get("name") or f"file_{index + 1}.cpp"
+        )
+        if not safe_path:
+            continue
+        content, truncated = _limit_text(file_item.get("content", ""), max_code_bytes)
+        if truncated:
+            return None, f"项目文件过长，已拒绝运行：{safe_path}"
+        target_path = workdir / safe_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(content, encoding="utf-8")
+        written_paths.add(safe_path)
+
+    if active_path and active_path in written_paths:
+        return workdir / active_path, ""
+    return None, ""
 
 
 def _set_child_limits():
@@ -129,7 +163,7 @@ def _run_executable(executable_path, stdin_text, timeout_seconds, max_output_byt
         }
 
 
-def compile_and_run_cpp(code, stdin_text=""):
+def compile_and_run_cpp(code, stdin_text="", project_payload=None, active_file=""):
     code, code_truncated = _limit_text(
         code,
         _setting_int("CPP_EDITOR_MAX_CODE_BYTES", MAX_CODE_BYTES),
@@ -167,9 +201,21 @@ def compile_and_run_cpp(code, stdin_text=""):
 
     with tempfile.TemporaryDirectory(prefix="codemark_cpp_") as temp_dir:
         workdir = Path(temp_dir)
-        source_path = workdir / "main.cpp"
+        source_path, payload_error = _materialize_project_payload(workdir, project_payload, active_file)
+        if payload_error:
+            return {
+                "ok": False,
+                "stage": "validate",
+                "stdout": "",
+                "stderr": payload_error,
+                "exit_code": None,
+                "timed_out": False,
+                "output_truncated": False,
+            }
+        if source_path is None:
+            source_path = workdir / "main.cpp"
+            source_path.write_text(code, encoding="utf-8")
         executable_path = workdir / ("main.exe" if os.name == "nt" else "main")
-        source_path.write_text(code, encoding="utf-8")
 
         compile_command = [
             compiler,

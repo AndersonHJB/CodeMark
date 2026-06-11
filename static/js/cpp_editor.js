@@ -143,6 +143,129 @@
         return stdinInput ? stdinInput.value : "";
     }
 
+    function normalizeCodeLanguage(language, fallback = "c_cpp") {
+        if (typeof normalizeSharecodeLanguage === "function") {
+            return normalizeSharecodeLanguage(language, fallback);
+        }
+        return String(language || fallback).trim().toLowerCase() || fallback;
+    }
+
+    function getActiveTextProjectFile() {
+        if (typeof createProjectFileFromEditorInput === "function") {
+            createProjectFileFromEditorInput();
+        }
+        if (typeof syncActiveEditorToProject === "function") {
+            syncActiveEditorToProject();
+        }
+        if (typeof getActiveProjectFile !== "function") {
+            return null;
+        }
+        const active = getActiveProjectFile();
+        return active && active.kind === "text" ? active : null;
+    }
+
+    function getProjectPayloadForRequest(payloadOverride) {
+        if (payloadOverride) {
+            return payloadOverride;
+        }
+        if (typeof window.getEditorProjectSharePayload === "function") {
+            return window.getEditorProjectSharePayload();
+        }
+        if (typeof buildSharePayload === "function") {
+            if (typeof createProjectFileFromEditorInput === "function") {
+                createProjectFileFromEditorInput();
+            }
+            if (typeof syncActiveEditorToProject === "function") {
+                syncActiveEditorToProject();
+            }
+            return buildSharePayload();
+        }
+        return null;
+    }
+
+    function getPrimaryTextFileFromPayload(payload) {
+        const textFiles = payload && Array.isArray(payload.text_files) ? payload.text_files : [];
+        const activePath = typeof safeNormalizePath === "function"
+            ? safeNormalizePath(payload && payload.active_file)
+            : String(payload && payload.active_file || "");
+        return textFiles.find(function (file) {
+            const filePath = typeof safeNormalizePath === "function"
+                ? safeNormalizePath(file && file.path)
+                : String(file && file.path || "");
+            return filePath && filePath === activePath;
+        }) || textFiles[0] || null;
+    }
+
+    function buildCppRunRequestData() {
+        let code = window.editor ? window.editor.getValue() : "";
+        let activeFilePath = currentFilename || "main.cpp";
+        let projectPayload = null;
+        const activeFile = getActiveTextProjectFile();
+
+        if (typeof getActiveProjectFile === "function" && !activeFile) {
+            return {
+                error: "当前选中的不是可运行的 C/C++ 文本文件。"
+            };
+        }
+
+        if (activeFile) {
+            const language = normalizeCodeLanguage(
+                activeFile.language || (typeof detectLanguageFromFilename === "function" ? detectLanguageFromFilename(activeFile.path) : ""),
+                "c_cpp"
+            );
+            if (language !== "c_cpp") {
+                return {
+                    error: "当前文件不是 C/C++ 文件，请切换到 .cpp/.cc/.cxx/.c/.h/.hpp 文件后再运行。"
+                };
+            }
+            code = activeFile.content || "";
+            activeFilePath = activeFile.path || activeFilePath;
+            projectPayload = getProjectPayloadForRequest(null);
+        }
+
+        return {
+            code: code,
+            activeFile: activeFilePath,
+            projectPayload: projectPayload
+        };
+    }
+
+    function updateCppRunButtonVisibility() {
+        let visible = true;
+        if (typeof getActiveProjectFile === "function") {
+            const active = getActiveProjectFile();
+            if (active && active.kind === "text") {
+                const language = normalizeCodeLanguage(
+                    active.language || (typeof detectLanguageFromFilename === "function" ? detectLanguageFromFilename(active.path) : ""),
+                    "c_cpp"
+                );
+                visible = language === "c_cpp";
+            } else if (active) {
+                visible = false;
+            }
+        }
+        document.querySelectorAll(".cpp-run-btn").forEach(function (button) {
+            button.style.display = visible ? "" : "none";
+        });
+    }
+
+    function installRunButtonVisibilityHook() {
+        const original = window.updatePythonRunButtonVisibility;
+        if (typeof original !== "function" || original.__cppEditorWrapped) {
+            return;
+        }
+        const wrapped = function () {
+            original();
+            updateCppRunButtonVisibility();
+        };
+        wrapped.__cppEditorWrapped = true;
+        window.updatePythonRunButtonVisibility = wrapped;
+        try {
+            updatePythonRunButtonVisibility = wrapped;
+        } catch (e) {
+        }
+    }
+
     function getDesktopConsoleElement() {
         return document.getElementById("console");
     }
@@ -407,9 +530,19 @@
         appendOutputText("Compiling and running C++...\n");
         setRunningState(true);
         try {
+            const runRequest = buildCppRunRequestData();
+            if (runRequest.error) {
+                clearOutput();
+                appendOutputText(runRequest.error + "\n");
+                return;
+            }
             const formData = new URLSearchParams();
-            formData.set("code", window.editor.getValue());
+            formData.set("code", runRequest.code);
             formData.set("stdin", getStdinValue());
+            formData.set("active_file", runRequest.activeFile || "main.cpp");
+            if (runRequest.projectPayload) {
+                formData.set("project_payload", JSON.stringify(runRequest.projectPayload));
+            }
             const response = await fetch(getConfig().runUrl, {
                 method: "POST",
                 headers: {
@@ -468,7 +601,8 @@
             exec: runCppCode
         });
 
-        window.editor.setValue(resolveInitialCode(DEFAULT_CPP_CODE), -1);
+        const initialCode = resolveInitialCode(DEFAULT_CPP_CODE);
+        window.editor.setValue(initialCode, -1);
         window.editor.session.on("change", scheduleDraftCacheSave);
 
         const stdinInput = document.getElementById("stdin-input");
@@ -477,6 +611,14 @@
             stdinInput.addEventListener("input", scheduleDraftCacheSave);
         }
         saveDraftCache();
+        if (typeof initializeEditorProjectSidebar === "function") {
+            initializeEditorProjectSidebar({
+                initialCode: window.editor.getValue(),
+                initialLanguage: "c_cpp",
+                defaultPath: currentFilename || "main.cpp"
+            });
+            updateCppRunButtonVisibility();
+        }
     }
 
     function initThemeSelector() {
@@ -505,6 +647,9 @@
     }
 
     function initFileInput() {
+        if (typeof window.initializeEditorProjectSidebar === "function") {
+            return;
+        }
         const fileInput = document.getElementById("file-input");
         if (!fileInput) {
             return;
@@ -528,6 +673,9 @@
     }
 
     function performClick(elemId) {
+        if (typeof beginEditorProjectUpload === "function" && beginEditorProjectUpload(elemId)) {
+            return;
+        }
         const elem = document.getElementById(elemId);
         if (elem) {
             elem.click();
@@ -535,6 +683,9 @@
     }
 
     function save() {
+        if (typeof saveEditorActiveProjectFile === "function" && saveEditorActiveProjectFile("main.cpp")) {
+            return;
+        }
         if (!window.editor) {
             return;
         }
@@ -646,12 +797,37 @@
         });
     }
 
-    async function generateShareLink() {
+    function buildCppShareRequestData(payloadOverride) {
+        const payload = getProjectPayloadForRequest(payloadOverride);
+        const primaryFile = payloadOverride
+            ? getPrimaryTextFileFromPayload(payloadOverride)
+            : getActiveTextProjectFile();
+        const code = primaryFile
+            ? (primaryFile.content || "")
+            : (window.editor ? window.editor.getValue() : "");
+        const language = primaryFile
+            ? normalizeCodeLanguage(
+                primaryFile.language || (typeof detectLanguageFromFilename === "function" ? detectLanguageFromFilename(primaryFile.path) : ""),
+                "c_cpp"
+            )
+            : "c_cpp";
+        return {
+            code: code,
+            language: language,
+            payload: payload
+        };
+    }
+
+    async function generateShareLink(options = {}) {
+        const requestData = buildCppShareRequestData(options.projectPayloadOverride || null);
         const formData = new URLSearchParams();
-        formData.set("code", window.editor ? window.editor.getValue() : "");
-        formData.set("language", "c_cpp");
+        formData.set("code", requestData.code);
+        formData.set("language", requestData.language);
         formData.set("template", "cpp_editor");
         formData.set("theme", getCurrentThemeValue());
+        if (requestData.payload) {
+            formData.set("project_payload", JSON.stringify(requestData.payload));
+        }
 
         const response = await fetch(getConfig().uploadUrl, {
             method: "POST",
@@ -696,7 +872,7 @@
         copyToClipboard(shareLink).then(showCopySuccess);
     }
 
-    function share() {
+    function share(options) {
         const qrcode = document.getElementById("qrcode");
         const input = document.getElementById("share-link-input");
         const container = document.getElementById("final-image-container");
@@ -712,7 +888,7 @@
         if (window.$ && typeof $("#share-modal").modal === "function") {
             $("#share-modal").modal("show");
         }
-        generateShareLink().catch(function (error) {
+        generateShareLink(options || {}).catch(function (error) {
             const target = document.getElementById("qrcode");
             if (target) {
                 target.textContent = "分享链接生成失败：" + error;
@@ -775,6 +951,7 @@
 
     window.addEventListener("load", function () {
         exposeGlobals();
+        installRunButtonVisibilityHook();
         initDesktopConsolePanel();
         initAceEditor();
         initThemeSelector();

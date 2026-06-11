@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.test import Client, SimpleTestCase, override_settings
 from django.urls import resolve, reverse
 
+from .services import compile_and_run_cpp
 from . import views
 
 
@@ -80,3 +81,27 @@ class CppEditorUrlPatternTests(SimpleTestCase):
         self.assertEqual(shared_response.status_code, 200)
         self.assertContains(shared_response, "C++在线代码编写")
         self.assertContains(shared_response, "js/cpp_editor.js")
+
+    def test_project_payload_files_are_available_to_compiler(self):
+        payload = {
+            "text_files": [
+                {
+                    "path": "src/main.cpp",
+                    "language": "c_cpp",
+                    "content": '#include "answer.h"\n#include <iostream>\nint main(){std::cout << answer() << "\\n";}\n',
+                },
+                {
+                    "path": "src/answer.h",
+                    "language": "c_cpp",
+                    "content": "int answer(){ return 42; }\n",
+                },
+            ],
+            "assets": [],
+            "folders": ["src"],
+            "active_file": "src/main.cpp",
+        }
+
+        result = compile_and_run_cpp("", project_payload=payload, active_file="src/main.cpp")
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["stdout"], "42\n")

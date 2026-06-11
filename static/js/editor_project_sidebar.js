@@ -1,8 +1,9 @@
 /* Editor page adapter for the sharecode project sidebar. */
 (function () {
     let editorProjectSidebarInitialized = false;
-    const EDITOR_PROJECT_DRAFT_CACHE_KEY = "codemark:editor:project-draft:v1";
-    const EDITOR_SIDEBAR_WIDTH_CACHE_KEY = "codemark:editor:sidebar-width:v1";
+    const editorProjectConfig = window.CODEMARK_EDITOR_PROJECT_CONFIG || {};
+    const EDITOR_PROJECT_DRAFT_CACHE_KEY = editorProjectConfig.draftCacheKey || "codemark:editor:project-draft:v1";
+    const EDITOR_SIDEBAR_WIDTH_CACHE_KEY = editorProjectConfig.sidebarWidthCacheKey || "codemark:editor:sidebar-width:v1";
 
     function readEditorJsonCache(key) {
         try {
