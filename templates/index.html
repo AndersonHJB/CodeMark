@@ -4,87 +4,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeMark 首页</title>
+    <title>CodeMark 工作台</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
           rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <script src="{% static 'js/home.js' %}" defer></script>
 </head>
 <body class="home-page">
-<div class="ambient-orb orb-one" aria-hidden="true"></div>
-<div class="ambient-orb orb-two" aria-hidden="true"></div>
-<div class="ambient-grid" aria-hidden="true"></div>
+<div class="page-grid-bg" aria-hidden="true"></div>
 
-<div class="home-shell">
-    <header class="hero reveal" style="--delay: 40ms;">
-        <p class="hero-tag">CodeMark Knowledge Hub</p>
-        <h1>把学习笔记与练习项目汇成一张可探索的地图</h1>
-        <p class="hero-copy">
-            这里收录了文章专栏、在线编辑器与代码分享入口，适合快速查阅、练习和分发。
-        </p>
-        <div class="hero-actions">
-            <a class="cta cta-primary" href="/editor">进入在线编辑器</a>
-            <a class="cta cta-ghost" href="/algorithms">算法动画实验室</a>
-            <a class="cta cta-ghost" href="/sharecode">打开代码分享</a>
-        </div>
-    </header>
+<header class="app-topbar" aria-label="CodeMark 顶部导航">
+    <a class="brand" href="/" aria-label="CodeMark 首页">
+        <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 28 28" focusable="false">
+                <path d="M10.6 6.2 3.8 13l6.8 6.8" />
+                <path d="m17.4 6.2 6.8 6.8-6.8 6.8" />
+                <path d="m15.8 4.4-3.6 19.2" />
+            </svg>
+        </span>
+        <span class="brand-name">CodeMark</span>
+    </a>
 
-    <section class="content-layout">
-        <aside class="quick-panel reveal" style="--delay: 120ms;">
-            <h2>快速入口</h2>
-            <div class="quick-links">
-                <a href="/" class="quick-link">首页总览</a>
-                <a href="/editor" class="quick-link">在线运行代码</a>
-                <a href="/algorithms" class="quick-link">算法动画演示</a>
-                <a href="/sharecode" class="quick-link">分享代码片段</a>
-            </div>
-            <p class="quick-note">
-                目录中的每个条目都对应实际 Markdown 文档，点击即可进入文章阅读页。
+    <nav class="topnav" aria-label="主导航">
+        <a href="#learning">文档</a>
+        <a href="/editor">编辑器</a>
+        <a href="/algorithms">算法</a>
+        <a href="/sharecode">分享</a>
+    </nav>
+
+    <form class="top-search" role="search" data-home-search-form>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m16.5 16.5 4 4"></path>
+        </svg>
+        <input type="search"
+               placeholder="搜索文档、代码、专栏"
+               aria-label="搜索文档、代码、专栏"
+               autocomplete="off"
+               data-home-search>
+        <kbd>⌘ K</kbd>
+    </form>
+</header>
+
+<main class="home-app">
+    <section class="hero-panel" aria-labelledby="home-title">
+        <div class="hero-copy">
+            <h1 id="home-title">从笔记到运行，<br>把代码学习串成一个工作台</h1>
+            <p>
+                在线编写、运行、整理与分享代码项目，适合课堂演示、作业提交和自学记录。
             </p>
-        </aside>
+            <div class="hero-actions">
+                <a class="button button-primary" href="/editor">
+                    开始写代码
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M5 12h14"></path>
+                        <path d="m13 6 6 6-6 6"></path>
+                    </svg>
+                </a>
+                <a class="button button-secondary" href="#learning">浏览专栏</a>
+            </div>
+            <div class="hero-inline-code" aria-hidden="true">
+                <code>for i in range(3):</code>
+                <code>print(i * i)</code>
+                <span># 输出: 0 1 4</span>
+            </div>
+        </div>
 
-        <main class="catalog-panel">
-            <div class="panel-head reveal" style="--delay: 180ms;">
-                <h2>专栏目录</h2>
-                <p class="panel-hint">支持多层目录，展开即可查看子章节</p>
+        <div class="workbench-preview" aria-label="CodeMark 编辑器预览">
+            <div class="workbench-titlebar">
+                <div class="project-path">
+                    <span class="window-square" aria-hidden="true"></span>
+                    <span>我的项目</span>
+                    <span>/</span>
+                    <strong>hello_python</strong>
+                </div>
+                <div class="workbench-actions">
+                    <span class="save-state"><i aria-hidden="true"></i>已保存</span>
+                    <a href="/sharecode">分享中</a>
+                    <a class="run-action" href="/editor">运行</a>
+                </div>
             </div>
 
-            {% if directory_tree.subdirs %}
-                <div class="category-grid">
-                    {% for subdir in directory_tree.subdirs_list %}
-                        <article class="category-card reveal" style="--delay: {{ subdir.delay_ms }}ms;">
-                            <div class="card-head">
-                                <h3>{{ subdir.dirname }}</h3>
-                                <span class="card-pill">专题</span>
-                            </div>
-                            <ul class="article-list">
-                                {% include "_article_tree_index.html" with tree=subdir.tree %}
-                            </ul>
-                        </article>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state reveal" style="--delay: 220ms;">
-                    <p>暂时还没有检测到文章目录，请先在 <code>articles</code> 文件夹添加 Markdown 文档。</p>
-                </div>
-            {% endif %}
+            <div class="workbench-body">
+                <aside class="workspace-rail" aria-label="文件列表">
+                    <span class="rail-dot is-active"></span>
+                    <span class="rail-dot"></span>
+                    <span class="rail-dot"></span>
+                    <span class="rail-dot"></span>
+                </aside>
 
-            {% if directory_tree.files %}
-                <section class="root-files reveal" style="--delay: 300ms;">
-                    <h3>根目录文章</h3>
-                    <ul class="article-list">
-                        {% for file_info in directory_tree.files %}
-                            <li class="article-item">
-                                <a href="/article/{{ file_info.path }}">{{ file_info.title }}</a>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </section>
-            {% endif %}
-        </main>
+                <aside class="file-list" aria-label="项目文件">
+                    <div class="file-title">文件</div>
+                    <div class="folder-row">hello_python</div>
+                    <div class="file-row is-active">main.py</div>
+                    <div class="file-row">utils.py</div>
+                    <div class="file-row">README.md</div>
+                    <div class="folder-row">assets</div>
+                    <div class="file-row">diagram.png</div>
+                </aside>
+
+                <div class="editor-pane">
+                    <div class="editor-tab">main.py</div>
+                    <ol class="code-lines" aria-label="代码示例">
+                        <li><span class="code-comment"># 计算斐波那契数列前 n 项</span></li>
+                        <li><span class="code-keyword">def</span> fib(n):</li>
+                        <li>    a, b = 0, 1</li>
+                        <li>    result = []</li>
+                        <li>    <span class="code-keyword">for</span> _ <span class="code-keyword">in</span> range(n):</li>
+                        <li>        result.append(a)</li>
+                        <li>        a, b = b, a + b</li>
+                        <li>    <span class="code-keyword">return</span> result</li>
+                        <li></li>
+                        <li>n = int(input(<span class="code-string">"输入 n: "</span>))</li>
+                        <li>print(fib(n))</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="output-panel">
+                <div class="output-tabs">
+                    <strong>输出</strong>
+                    <span>终端</span>
+                    <em>Python 3.11.6</em>
+                </div>
+                <pre>输入 n: 10
+[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]</pre>
+            </div>
+        </div>
     </section>
-</div>
+
+    <section class="quick-dock" aria-label="快速入口">
+        <h2>快速入口</h2>
+        <a class="quick-tile is-active" href="/editor">
+            <span class="quick-icon quick-icon-blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="m9 18-6-6 6-6"></path>
+                    <path d="m15 6 6 6-6 6"></path>
+                </svg>
+            </span>
+            <span>
+                <strong>在线编辑器</strong>
+                <small>打开 Python 编辑器</small>
+            </span>
+        </a>
+        <a class="quick-tile" href="/algorithms">
+            <span class="quick-icon quick-icon-green" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"></path>
+                </svg>
+            </span>
+            <span>
+                <strong>算法动画</strong>
+                <small>可视化算法原理</small>
+            </span>
+        </a>
+        <a class="quick-tile" href="/sharecode">
+            <span class="quick-icon quick-icon-violet" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <path d="m8.6 10.6 6.8-4.2"></path>
+                    <path d="m8.6 13.4 6.8 4.2"></path>
+                </svg>
+            </span>
+            <span>
+                <strong>代码分享</strong>
+                <small>发布与协作项目</small>
+            </span>
+        </a>
+        <a class="quick-tile" href="#learning">
+            <span class="quick-icon quick-icon-amber" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path>
+                    <path d="M4 5.5v16"></path>
+                </svg>
+            </span>
+            <span>
+                <strong>专栏阅读</strong>
+                <small>阅读学习专栏</small>
+            </span>
+        </a>
+    </section>
+
+    <section id="learning" class="learning-section" aria-labelledby="learning-title">
+        <div class="section-head">
+            <div>
+                <h2 id="learning-title">学习专栏</h2>
+                <p data-search-status>搜索文档、代码、专栏</p>
+            </div>
+            <a href="/editor" class="section-link">
+                进入编辑器
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M5 12h14"></path>
+                    <path d="m13 6 6 6-6 6"></path>
+                </svg>
+            </a>
+        </div>
+
+        {% if directory_tree.subdirs %}
+            <div class="learning-board" data-home-catalog>
+                {% for subdir in directory_tree.subdirs_list %}
+                    <article class="learning-column">
+                        <header class="column-head">
+                            <span class="column-index">{{ forloop.counter|stringformat:"02d" }}</span>
+                            <h3>{{ subdir.dirname }}</h3>
+                        </header>
+                        <ul class="article-list">
+                            {% include "_article_tree_index.html" with tree=subdir.tree %}
+                        </ul>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>暂时还没有检测到文章目录，请先在 <code>articles</code> 文件夹添加 Markdown 文档。</p>
+            </div>
+        {% endif %}
+
+        {% if directory_tree.files %}
+            <section class="root-files">
+                <h3>根目录文章</h3>
+                <ul class="article-list">
+                    {% for file_info in directory_tree.files %}
+                        <li class="article-item">
+                            <a href="/article/{{ file_info.path }}">{{ file_info.title }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        <div class="empty-state is-filter-empty" hidden data-empty-results>
+            <p>没有匹配的文章。换一个关键词试试。</p>
+        </div>
+    </section>
+</main>
 </body>
 </html>
