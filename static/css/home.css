@@ -125,36 +125,61 @@ svg {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(1rem, 3vw, 2.4rem);
+    gap: 0.35rem;
 }
 
-.topnav a {
+.topnav-link {
     position: relative;
     display: inline-flex;
     align-items: center;
-    min-height: 2.4rem;
+    gap: 0.45rem;
+    min-height: 40px;
+    padding: 0 0.72rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
     color: var(--ink);
-    font-weight: 700;
-    font-size: 0.98rem;
+    font-weight: 800;
+    font-size: 0.94rem;
     text-decoration: none;
+    transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
 
-.topnav a::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0.28rem;
-    height: 2px;
+.nav-icon {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--primary);
+    background: #f6faff;
+    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.nav-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.topnav-link:hover,
+.topnav-link:focus-visible,
+.topnav-link.is-active {
+    color: var(--primary);
+    border-color: rgba(7, 94, 234, 0.18);
+    background: rgba(237, 245, 255, 0.82);
+}
+
+.topnav-link:hover .nav-icon,
+.topnav-link:focus-visible .nav-icon,
+.topnav-link.is-active .nav-icon {
+    color: #fff;
+    border-color: var(--primary);
     background: var(--primary);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.18s ease;
-}
-
-.topnav a:hover::after,
-.topnav a:focus-visible::after {
-    transform: scaleX(1);
 }
 
 .top-search {
@@ -291,7 +316,7 @@ svg {
 .button:focus-visible,
 .quick-tile:focus-visible,
 .section-link:focus-visible,
-.topnav a:focus-visible {
+.topnav-link:focus-visible {
     outline: 3px solid rgba(7, 94, 234, 0.22);
     outline-offset: 3px;
 }
@@ -318,22 +343,29 @@ svg {
 
 .hero-inline-code {
     display: grid;
-    gap: 0.28rem;
-    width: min(100%, 260px);
+    gap: 0.16rem;
+    width: min(100%, 330px);
     margin-top: 1.65rem;
-    padding-left: 1.2rem;
-    border-left: 2px solid rgba(7, 94, 234, 0.2);
+    padding-left: 1.35rem;
+    border-left: 3px solid rgba(7, 94, 234, 0.18);
     color: #8aa7d2;
     font-family: var(--font-mono);
-    font-size: 0.88rem;
-    line-height: 1.55;
+    font-size: clamp(1rem, 1.5vw, 1.28rem);
+    font-weight: 700;
+    line-height: 1.72;
 }
 
-.hero-inline-code code {
+.mini-code-line {
+    display: block;
     color: #8aa7d2;
+    white-space: nowrap;
 }
 
-.hero-inline-code span {
+.mini-code-line.is-indent {
+    padding-left: 2.15rem;
+}
+
+.mini-code-line.is-comment {
     color: #9bb0cc;
 }
 
@@ -530,7 +562,17 @@ svg {
 }
 
 .code-lines li {
+    min-height: 1.52em;
     padding-left: 0.5rem;
+    white-space: nowrap;
+}
+
+.code-lines li.indent-1 {
+    padding-left: 2.35rem;
+}
+
+.code-lines li.indent-2 {
+    padding-left: 4.25rem;
 }
 
 .code-lines li::marker {
@@ -984,14 +1026,29 @@ svg {
     .topnav {
         order: initial;
         grid-column: auto;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 0.5rem;
         min-height: 0;
         padding-top: 0.85rem;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
 
-    .topnav a {
+    .topnav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .topnav-link {
+        flex: 0 0 auto;
+        justify-content: center;
+        white-space: nowrap;
+        padding: 0 0.4rem;
         font-size: 0.9rem;
+    }
+
+    .nav-icon {
+        width: 24px;
+        height: 24px;
     }
 
     .top-search {
@@ -1057,6 +1114,14 @@ svg {
     .code-lines {
         padding-left: 3rem;
         font-size: 0.78rem;
+    }
+
+    .code-lines li.indent-1 {
+        padding-left: 1.7rem;
+    }
+
+    .code-lines li.indent-2 {
+        padding-left: 3rem;
     }
 
     .output-tabs {

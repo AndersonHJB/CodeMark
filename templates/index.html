@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
           rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <script src="{% static 'js/home.js' %}" defer></script>
 </head>
@@ -29,10 +29,50 @@
     </a>
 
     <nav class="topnav" aria-label="主导航">
-        <a href="#learning">文档</a>
-        <a href="/editor">编辑器</a>
-        <a href="/algorithms">算法</a>
-        <a href="/sharecode">分享</a>
+        <a class="topnav-link is-active" href="#learning">
+            <span class="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path>
+                    <path d="M4 5.5v16"></path>
+                    <path d="M8 7h8"></path>
+                    <path d="M8 11h6"></path>
+                </svg>
+            </span>
+            <span>文档</span>
+        </a>
+        <a class="topnav-link" href="/editor">
+            <span class="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="m9 18-6-6 6-6"></path>
+                    <path d="m15 6 6 6-6 6"></path>
+                    <path d="m14 4-4 16"></path>
+                </svg>
+            </span>
+            <span>编辑器</span>
+        </a>
+        <a class="topnav-link" href="/algorithms">
+            <span class="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M6 17.5 10 14l3 2 5-6.5"></path>
+                    <path d="M5 7h4v4H5z"></path>
+                    <path d="M15 4h4v4h-4z"></path>
+                    <path d="M15 16h4v4h-4z"></path>
+                </svg>
+            </span>
+            <span>算法</span>
+        </a>
+        <a class="topnav-link" href="/sharecode">
+            <span class="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <path d="m8.6 10.6 6.8-4.2"></path>
+                    <path d="m8.6 13.4 6.8 4.2"></path>
+                </svg>
+            </span>
+            <span>分享</span>
+        </a>
     </nav>
 
     <form class="top-search" role="search" data-home-search-form>
@@ -67,9 +107,9 @@
                 <a class="button button-secondary" href="#learning">浏览专栏</a>
             </div>
             <div class="hero-inline-code" aria-hidden="true">
-                <code>for i in range(3):</code>
-                <code>print(i * i)</code>
-                <span># 输出: 0 1 4</span>
+                <span class="mini-code-line">for i in range(3):</span>
+                <span class="mini-code-line is-indent">print(i * i)</span>
+                <span class="mini-code-line is-comment"># 输出: 0 1 4</span>
             </div>
         </div>
 
@@ -111,12 +151,12 @@
                     <ol class="code-lines" aria-label="代码示例">
                         <li><span class="code-comment"># 计算斐波那契数列前 n 项</span></li>
                         <li><span class="code-keyword">def</span> fib(n):</li>
-                        <li>    a, b = 0, 1</li>
-                        <li>    result = []</li>
-                        <li>    <span class="code-keyword">for</span> _ <span class="code-keyword">in</span> range(n):</li>
-                        <li>        result.append(a)</li>
-                        <li>        a, b = b, a + b</li>
-                        <li>    <span class="code-keyword">return</span> result</li>
+                        <li class="indent-1">a, b = 0, 1</li>
+                        <li class="indent-1">result = []</li>
+                        <li class="indent-1"><span class="code-keyword">for</span> _ <span class="code-keyword">in</span> range(n):</li>
+                        <li class="indent-2">result.append(a)</li>
+                        <li class="indent-2">a, b = b, a + b</li>
+                        <li class="indent-1"><span class="code-keyword">return</span> result</li>
                         <li></li>
                         <li>n = int(input(<span class="code-string">"输入 n: "</span>))</li>
                         <li>print(fib(n))</li>
