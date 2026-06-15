@@ -10,23 +10,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
           rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/algorithms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/site-topbar.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
 </head>
 <body class="algorithm-page">
-<div class="algorithm-shell">
-    <header class="app-topbar">
-        <a class="brand-mark" href="/algorithms" aria-label="算法动画实验室">
-            <span class="brand-symbol" aria-hidden="true">A</span>
-            <span>算法动画实验室</span>
-        </a>
-        <nav class="top-links" aria-label="主导航">
-            <a href="/">首页</a>
-            <a href="/editor">Python 编辑器</a>
-            <a href="/cpp-editor">C++ 编辑器</a>
-            <a href="/sharecode">代码分享</a>
-        </nav>
-    </header>
+{% include "_site_topbar.html" with active_nav="algorithms" %}
 
+<div class="algorithm-shell">
     <main class="workbench" data-algorithm-app>
         <aside class="library-panel" aria-label="算法库">
             <div class="library-heading">

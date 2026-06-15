@@ -118,12 +118,12 @@ button {
 }
 
 .workbench {
-    margin-top: 14px;
+    margin-top: 0;
     display: grid;
     grid-template-columns: minmax(220px, 270px) minmax(0, 1fr) minmax(300px, 360px);
     gap: 14px;
     align-items: stretch;
-    height: calc(100vh - 108px);
+    height: calc(100vh - 102px);
     min-height: 680px;
 }
 

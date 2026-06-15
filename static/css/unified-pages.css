@@ -282,7 +282,13 @@
 
 .article-page .page-container {
     max-width: 1420px;
-    padding: 78px 1rem 50px;
+    padding: 18px 1rem 50px;
+    gap: 1rem;
+}
+
+.article-page .content {
+    min-width: 0;
+    flex: 1 1 auto;
     gap: 1rem;
 }
 
@@ -292,6 +298,8 @@
     background: var(--panel);
     box-shadow: var(--shadow-md);
     padding: 18px 16px;
+    top: 82px;
+    height: calc(100vh - 100px);
 }
 
 .article-page .sidebar h3 {
@@ -327,6 +335,10 @@
 }
 
 .article-page .main-article {
+    width: min(100%, 800px) !important;
+    max-width: 800px !important;
+    min-width: 0 !important;
+    flex: 1 1 620px !important;
     border: 1px solid var(--line);
     background: var(--panel-solid);
     border-radius: var(--radius-xl);
@@ -352,14 +364,16 @@
 }
 
 .article-page .toc-container {
+    width: clamp(220px, 20vw, 280px);
+    flex: 0 0 clamp(220px, 20vw, 280px);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     background: var(--panel);
     box-shadow: var(--shadow-md);
     padding: 0 0 8px;
-    top: 76px;
-    max-height: calc(100vh - 120px);
-    height: calc(100vh - 120px);
+    top: 82px;
+    max-height: calc(100vh - 100px);
+    height: calc(100vh - 100px);
 }
 
 .article-page .toc-title {
@@ -444,23 +458,70 @@
 
 .article-page .code-block-container,
 .article-page .code-block {
+    min-width: 0;
+    max-width: 100%;
     border-radius: var(--radius-md);
+}
+
+.article-page .CodeMirror,
+.article-page .CodeMirror-scroll,
+.article-page .CodeMirror textarea {
+    max-width: 100%;
 }
 
 @media (max-width: 1024px) {
     .article-page .page-container {
-        padding: 72px 0.8rem 40px;
+        padding: 14px 0.8rem 40px;
         gap: 0.8rem;
+    }
+
+    .article-page .content {
+        width: 100%;
+        min-width: 0;
+        flex-direction: column;
+    }
+
+    .article-page .main-article {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
     }
 
     .article-page .sidebar,
     .article-page .toc-container {
         border-radius: var(--radius-md);
+        height: auto;
+        top: 0;
     }
 
     .article-page .toc-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex-basis: auto;
         max-height: none;
         height: auto;
         top: 0;
+    }
+
+    .article-page .toc,
+    .article-page .toc ul,
+    .article-page .toc li,
+    .article-page .CodeMirror,
+    .article-page .CodeMirror-scroll {
+        max-width: 100%;
+    }
+}
+
+@media (min-width: 1400px) {
+    .article-page .main-article {
+        width: min(100%, 900px) !important;
+        max-width: 900px !important;
+    }
+
+    .article-page .toc-container {
+        width: 300px;
+        flex-basis: 300px;
     }
 }

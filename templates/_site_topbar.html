@@ -1,0 +1,76 @@
+<header class="site-topbar-shell" aria-label="CodeMark 顶部导航">
+    <a class="site-brand" href="/" aria-label="CodeMark 首页">
+        <span class="site-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 28 28" focusable="false">
+                <path d="M10.6 6.2 3.8 13l6.8 6.8"></path>
+                <path d="m17.4 6.2 6.8 6.8-6.8 6.8"></path>
+                <path d="m15.8 4.4-3.6 19.2"></path>
+            </svg>
+        </span>
+        <span class="site-brand-name">CodeMark</span>
+    </a>
+
+    <nav class="site-topnav" aria-label="主导航">
+        <a class="site-nav-link{% if active_nav == 'articles' %} is-active{% endif %}" href="/#learning">
+            <span class="site-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path>
+                    <path d="M4 5.5v16"></path>
+                    <path d="M8 7h8"></path>
+                    <path d="M8 11h6"></path>
+                </svg>
+            </span>
+            <span>文档</span>
+        </a>
+        <a class="site-nav-link{% if active_nav == 'editor' %} is-active{% endif %}" href="/editor">
+            <span class="site-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="m9 18-6-6 6-6"></path>
+                    <path d="m15 6 6 6-6 6"></path>
+                    <path d="m14 4-4 16"></path>
+                </svg>
+            </span>
+            <span>编辑器</span>
+        </a>
+        <a class="site-nav-link{% if active_nav == 'algorithms' %} is-active{% endif %}" href="/algorithms">
+            <span class="site-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M6 17.5 10 14l3 2 5-6.5"></path>
+                    <path d="M5 7h4v4H5z"></path>
+                    <path d="M15 4h4v4h-4z"></path>
+                    <path d="M15 16h4v4h-4z"></path>
+                </svg>
+            </span>
+            <span>算法</span>
+        </a>
+        <a class="site-nav-link{% if active_nav == 'sharecode' %} is-active{% endif %}" href="/sharecode">
+            <span class="site-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <path d="m8.6 10.6 6.8-4.2"></path>
+                    <path d="m8.6 13.4 6.8 4.2"></path>
+                </svg>
+            </span>
+            <span>分享</span>
+        </a>
+    </nav>
+
+    {% if show_search %}
+        <form class="site-top-search" role="search" data-home-search-form>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m16.5 16.5 4 4"></path>
+            </svg>
+            <input type="search"
+                   placeholder="搜索文档、代码、专栏"
+                   aria-label="搜索文档、代码、专栏"
+                   autocomplete="off"
+                   data-home-search>
+            <kbd>⌘ K</kbd>
+        </form>
+    {% else %}
+        <div class="site-topbar-spacer" aria-hidden="true"></div>
+    {% endif %}
+</header>

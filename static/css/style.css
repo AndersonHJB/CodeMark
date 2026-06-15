@@ -1,0 +1,7 @@
+/*
+ * Compatibility entrypoint.
+ *
+ * New homepage work uses css/home.css directly. Keep this file available so
+ * older static references to css/style.css do not become 404s.
+ */
+@import url("./home.css");
