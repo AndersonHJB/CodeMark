@@ -1,11 +1,16 @@
+{% load static %}
 <header class="site-topbar-shell" aria-label="CodeMark 顶部导航">
     <a class="site-brand" href="/" aria-label="CodeMark 首页">
-        <span class="site-brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 28 28" focusable="false">
-                <path d="M10.6 6.2 3.8 13l6.8 6.8"></path>
-                <path d="m17.4 6.2 6.8 6.8-6.8 6.8"></path>
-                <path d="m15.8 4.4-3.6 19.2"></path>
-            </svg>
+        <span class="site-brand-mark{% if brand_logo %} site-brand-mark-image{% endif %}" aria-hidden="true">
+            {% if brand_logo %}
+                <img class="site-brand-logo" src="{% static brand_logo %}" alt="">
+            {% else %}
+                <svg viewBox="0 0 28 28" focusable="false">
+                    <path d="M10.6 6.2 3.8 13l6.8 6.8"></path>
+                    <path d="m17.4 6.2 6.8 6.8-6.8 6.8"></path>
+                    <path d="m15.8 4.4-3.6 19.2"></path>
+                </svg>
+            {% endif %}
         </span>
         <span class="site-brand-name">CodeMark</span>
     </a>

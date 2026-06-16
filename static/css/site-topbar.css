@@ -55,7 +55,19 @@
     place-items: center;
     width: 36px;
     height: 36px;
+    flex: 0 0 auto;
     color: var(--site-primary);
+}
+
+.site-brand-mark-image {
+    width: 64px;
+    height: 38px;
+}
+
+.site-brand-logo {
+    display: block;
+    width: 64px;
+    height: auto;
 }
 
 .site-brand-mark svg,
@@ -232,6 +244,15 @@
 
     .site-brand-name {
         font-size: 1.42rem;
+    }
+
+    .site-brand-mark-image,
+    .site-brand-logo {
+        width: 58px;
+    }
+
+    .site-brand-mark-image {
+        height: 34px;
     }
 
     .site-topnav {

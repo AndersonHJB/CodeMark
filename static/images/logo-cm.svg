@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="116" viewBox="0 0 200 116" role="img" aria-label="CM logo">
+  <defs>
+    <linearGradient id="cm-c-gradient" x1="84" y1="58" x2="11" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#468DC6"/>
+      <stop offset="1" stop-color="#F7931E"/>
+    </linearGradient>
+    <linearGradient id="cm-m-gradient" x1="108" y1="58" x2="184" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#468DC6"/>
+      <stop offset="1" stop-color="#17417F"/>
+    </linearGradient>
+  </defs>
+  <path d="M76.5 29.5A39 39 0 1 0 76.5 86.5"
+        fill="none"
+        stroke="url(#cm-c-gradient)"
+        stroke-width="15"
+        stroke-linecap="round"/>
+  <path d="M112 91V25L141 67L170 25V91"
+        fill="none"
+        stroke="url(#cm-m-gradient)"
+        stroke-width="14"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
