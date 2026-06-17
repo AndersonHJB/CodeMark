@@ -1,0 +1,52 @@
+<div class="account-sidebar-slot" data-account-sidebar>
+    <button class="account-sidebar-trigger" type="button" aria-haspopup="menu" aria-expanded="false" data-account-trigger>
+        <span class="account-avatar-shell" aria-hidden="true">
+            <img class="account-avatar-img" src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
+        </span>
+        <span class="account-sidebar-copy">
+            <span class="account-sidebar-name" data-account-name>{{ codemark_account.display_name }}</span>
+            <span class="account-sidebar-status" data-account-subtitle>
+                {% if codemark_account.is_authenticated %}
+                    {{ codemark_account.email|default:"已登录" }}
+                {% else %}
+                    登录 / 注册
+                {% endif %}
+            </span>
+        </span>
+        <span class="account-sidebar-more" aria-hidden="true">
+            <i class="bi bi-three-dots"></i>
+        </span>
+    </button>
+
+    <div class="account-menu" role="menu" hidden data-account-menu>
+        <div class="account-menu-user">
+            <img class="account-menu-avatar" src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
+            <div>
+                <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
+                <div class="account-menu-email" data-account-subtitle>
+                    {% if codemark_account.is_authenticated %}
+                        {{ codemark_account.email|default:"已登录" }}
+                    {% else %}
+                        使用邮箱验证码注册
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-login data-account-guest-only>
+            <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+            <span>登录</span>
+        </button>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-register data-account-guest-only>
+            <i class="bi bi-person-plus" aria-hidden="true"></i>
+            <span>注册</span>
+        </button>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-profile data-account-auth-only>
+            <i class="bi bi-person-gear" aria-hidden="true"></i>
+            <span>个人资料</span>
+        </button>
+        <button class="account-menu-item danger" type="button" role="menuitem" data-account-logout data-account-auth-only>
+            <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+            <span>退出登录</span>
+        </button>
+    </div>
+</div>

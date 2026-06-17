@@ -1,0 +1,101 @@
+<script>
+    window.CODEMARK_ACCOUNT_CONFIG = {
+        sessionUrl: "{% url 'account_session' %}",
+        sendCodeUrl: "{% url 'account_send_code' %}",
+        registerUrl: "{% url 'account_register' %}",
+        loginUrl: "{% url 'account_login' %}",
+        logoutUrl: "{% url 'account_logout' %}",
+        profileUrl: "{% url 'account_profile' %}",
+        csrfToken: "{{ csrf_token|escapejs }}",
+        defaultAvatarUrl: "{{ codemark_account.default_avatar_url|escapejs }}"
+    };
+    window.CODEMARK_ACCOUNT_INITIAL = {
+        isAuthenticated: {{ codemark_account.is_authenticated|yesno:"true,false" }},
+        displayName: "{{ codemark_account.display_name|default_if_none:''|escapejs }}",
+        email: "{{ codemark_account.email|default_if_none:''|escapejs }}",
+        username: "{{ codemark_account.username|default_if_none:''|escapejs }}",
+        avatarUrl: "{{ codemark_account.avatar_url|escapejs }}"
+    };
+</script>
+
+<div class="account-toast" hidden data-account-toast></div>
+
+<div class="account-dialog-backdrop" hidden data-account-dialog>
+    <div class="account-dialog" role="dialog" aria-modal="true" aria-labelledby="accountDialogTitle">
+        <div class="account-dialog-header">
+            <div>
+                <h2 id="accountDialogTitle">CodeMark 账号</h2>
+                <p data-account-dialog-subtitle>登录后可逐步解锁个人功能</p>
+            </div>
+            <button class="account-dialog-close" type="button" aria-label="关闭" data-account-close>
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <div class="account-tabs" role="tablist" aria-label="账号操作">
+            <button class="account-tab is-active" type="button" data-account-tab="login">登录</button>
+            <button class="account-tab" type="button" data-account-tab="register">注册</button>
+            <button class="account-tab" type="button" data-account-tab="profile">资料</button>
+        </div>
+
+        <form class="account-panel is-active" data-account-panel="login" data-account-login-form>
+            <label class="account-field">
+                <span>邮箱或用户名</span>
+                <input name="identifier" type="text" autocomplete="username" required>
+            </label>
+            <label class="account-field">
+                <span>密码</span>
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <button class="account-primary-btn" type="submit">登录</button>
+            <p class="account-inline-hint">还没有账号？<button type="button" data-account-switch-register>创建账号</button></p>
+        </form>
+
+        <form class="account-panel" data-account-panel="register" data-account-register-form>
+            <label class="account-field">
+                <span>邮箱</span>
+                <input name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="account-field">
+                <span>昵称</span>
+                <input name="display_name" type="text" maxlength="40" autocomplete="nickname" placeholder="可选">
+            </label>
+            <label class="account-field">
+                <span>密码</span>
+                <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+            </label>
+            <label class="account-field">
+                <span>邮箱验证码</span>
+                <span class="account-code-row">
+                    <input name="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+                    <button class="account-secondary-btn" type="button" data-account-send-code>发送验证码</button>
+                </span>
+            </label>
+            <button class="account-primary-btn" type="submit">注册并登录</button>
+            <p class="account-inline-hint">已经有账号？<button type="button" data-account-switch-login>去登录</button></p>
+        </form>
+
+        <form class="account-panel" data-account-panel="profile" data-account-profile-form enctype="multipart/form-data">
+            <div class="account-profile-preview">
+                <img src="{{ codemark_account.avatar_url }}" alt="当前头像" data-account-profile-avatar>
+                <div>
+                    <strong data-account-name>{{ codemark_account.display_name }}</strong>
+                    <span data-account-subtitle>{{ codemark_account.email|default:"未登录" }}</span>
+                </div>
+            </div>
+            <label class="account-field">
+                <span>头像</span>
+                <input name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <label class="account-field">
+                <span>昵称</span>
+                <input name="display_name" type="text" maxlength="40" value="{{ codemark_account.display_name }}">
+            </label>
+            <label class="account-field">
+                <span>个人简介</span>
+                <textarea name="bio" maxlength="160" rows="3"></textarea>
+            </label>
+            <button class="account-primary-btn" type="submit">保存资料</button>
+        </form>
+    </div>
+</div>

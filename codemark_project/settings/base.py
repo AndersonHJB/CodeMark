@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "apps.accounts.apps.AccountsConfig",
     "apps.articles.apps.ArticlesConfig",
     "apps.editor.apps.EditorConfig",
     "apps.cpp_editor.apps.CppEditorConfig",
@@ -80,6 +81,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.accounts.context_processors.account_context",
             ],
         },
     },
@@ -92,6 +94,8 @@ USE_I18N = True
 USE_TZ = True
 LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/admin/share-files/"
+EMAIL_BACKEND = os.getenv("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "CodeMark <no-reply@codemark.local>")
 
 LOGGING = {
     "version": 1,

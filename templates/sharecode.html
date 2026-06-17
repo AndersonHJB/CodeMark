@@ -22,6 +22,7 @@
     <script>let server_share_project_id = {{ share_project_id_json|safe }};</script>
 
     <link href="{% static 'css/sharecode.css' %}" rel="stylesheet">
+    <link href="{% static 'css/accounts.css' %}" rel="stylesheet">
 </head>
 <body>
 <div id="appRoot" class="sidebar-collapsed">
@@ -107,6 +108,7 @@
         </div>
         <div id="projectTreeEmpty" class="sidebar-empty">No files yet.</div>
         <div id="projectFileTree"></div>
+        {% include "_account_sidebar.html" %}
         <div id="sidebarResizeHandle" role="separator" aria-orientation="vertical" aria-label="调整侧边栏宽度"></div>
     </aside>
 
@@ -422,6 +424,8 @@
     </div>
 </div>
 
+{% include "_account_dialogs.html" %}
+
 <!-- About Modal -->
 <div class="modal fade" id="about-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog">
@@ -508,5 +512,6 @@
 <script src="{% static 'js/sharecode_page/initial-state.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/sharecode_page/ui-actions.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/sharecode_page/app-init.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/accounts.js' %}" type="text/javascript"></script>
 </body>
 </html>

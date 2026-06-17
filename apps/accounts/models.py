@@ -1,0 +1,58 @@
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="codemark_profile",
+    )
+    display_name = models.CharField("昵称", max_length=40, blank=True)
+    bio = models.CharField("个人简介", max_length=160, blank=True)
+    avatar = models.ImageField("头像", upload_to="accounts/avatars/", blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        verbose_name = "用户资料"
+        verbose_name_plural = "用户资料"
+
+    def __str__(self):
+        return self.display_name or self.user.get_username()
+
+
+class EmailVerificationCode(models.Model):
+    PURPOSE_REGISTER = "register"
+    PURPOSE_CHOICES = (
+        (PURPOSE_REGISTER, "注册"),
+    )
+
+    email = models.EmailField("邮箱", db_index=True)
+    purpose = models.CharField("用途", max_length=20, choices=PURPOSE_CHOICES, default=PURPOSE_REGISTER)
+    code_hash = models.CharField("验证码哈希", max_length=128)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    expires_at = models.DateTimeField("过期时间")
+    used_at = models.DateTimeField("使用时间", null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField("验证次数", default=0)
+    request_ip = models.GenericIPAddressField("请求 IP", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "邮箱验证码"
+        verbose_name_plural = "邮箱验证码"
+        indexes = [
+            models.Index(fields=["email", "purpose", "created_at"]),
+            models.Index(fields=["expires_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.email} / {self.purpose}"
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_used(self):
+        return self.used_at is not None

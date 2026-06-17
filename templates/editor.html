@@ -21,6 +21,7 @@
           rel="stylesheet">
     <link href="{% static 'css/sharecode.css' %}" rel="stylesheet" media="screen">
     <link href="{% static 'css/editor-mobile.css' %}" rel="stylesheet" media="screen">
+    <link href="{% static 'css/accounts.css' %}" rel="stylesheet" media="screen">
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
     <script>
@@ -73,6 +74,7 @@
 </div>
 
 {% include "_project_sidebar_support.html" %}
+{% include "_account_dialogs.html" %}
 
 <!-- 底部弹出的控制台 -->
 <div class="mobile-console-container" id="mobileConsole">
@@ -145,6 +147,7 @@
     <script src="{% static 'js/sharecode_page/ui-actions.js' %}" type="text/javascript"></script>
     <script src="{% static 'js/editor_project_sidebar.js' %}" type="text/javascript"></script>
     <script src="{% static 'js/editor_pyodide_project.js' %}" type="text/javascript"></script>
+    <script src="{% static 'js/accounts.js' %}" type="text/javascript"></script>
 
 <script type="text/javascript">
     // 全局 pyodide 对象
@@ -811,6 +814,7 @@ except KeyboardInterrupt as _codemark_interrupt:
           rel="stylesheet">
     <link href="{% static 'css/sharecode.css' %}" rel="stylesheet" media="screen">
     <link href="{% static 'css/editor-desktop.css' %}" rel="stylesheet" media="screen">
+    <link href="{% static 'css/accounts.css' %}" rel="stylesheet" media="screen">
 
     <!-- 如果后端传来了 pre_code，就用它来设置编辑器初始值。否则为空串 -->
     <script>
@@ -902,6 +906,7 @@ except KeyboardInterrupt as _codemark_interrupt:
 </div>
 
 {% include "_project_sidebar_support.html" %}
+{% include "_account_dialogs.html" %}
 
 <!-- Share Modal -->
 <div class="modal fade" id="share-modal" tabindex="-1" role="dialog">
@@ -1013,6 +1018,7 @@ except KeyboardInterrupt as _codemark_interrupt:
     <script src="{% static 'js/sharecode_page/ui-actions.js' %}" type="text/javascript"></script>
     <script src="{% static 'js/editor_project_sidebar.js' %}" type="text/javascript"></script>
     <script src="{% static 'js/editor_pyodide_project.js' %}" type="text/javascript"></script>
+    <script src="{% static 'js/accounts.js' %}" type="text/javascript"></script>
 
 <script type="text/javascript">
     // 防止浏览器前进/后退的缓存
