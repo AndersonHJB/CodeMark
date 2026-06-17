@@ -55,7 +55,7 @@ class AccountApiTests(TestCase):
         profile = UserProfile.objects.get(user=user)
         self.assertEqual(profile.display_name, "新用户")
         self.assertIn(profile.default_avatar, DEFAULT_AVATAR_STATIC_PATHS)
-        self.assertIn("/static/images/default-avatars/avatar-", payload["user"]["avatar_url"])
+        self.assertTrue(payload["user"]["avatar_url"].endswith(f"/static/{profile.default_avatar}"))
         self.assertIsNotNone(EmailVerificationCode.objects.get(email="newuser@example.com").used_at)
 
         session_response = self.client.get(reverse("account_session"))
@@ -149,7 +149,7 @@ class AccountTemplateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-account-trigger', html=False)
-        self.assertContains(response, 'static/images/default-avatars/avatar-01.png', html=False)
+        self.assertContains(response, 'static/images/default-avatars/generated-avatar-01.png', html=False)
 
     def test_sharecode_sidebar_includes_account_entry(self):
         response = self.client.get(reverse("sharecode"))
