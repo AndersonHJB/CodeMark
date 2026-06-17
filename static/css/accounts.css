@@ -386,6 +386,19 @@
     font-size: 15px;
 }
 
+.account-avatar-actions {
+    display: flex;
+    margin: -4px 0 14px;
+}
+
+.account-random-avatar-btn {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
 .account-toast {
     position: fixed;
     left: 50%;
@@ -429,5 +442,9 @@
 
     .account-secondary-btn {
         min-height: 40px;
+    }
+
+    .account-random-avatar-btn {
+        width: 100%;
     }
 }

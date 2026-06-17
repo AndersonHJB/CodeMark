@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.db import transaction
 from django.http import JsonResponse
+from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.views.decorators.http import require_GET, require_POST
@@ -64,7 +65,7 @@ def _client_ip(request):
 
 
 def _absolute_static_url(request, static_path):
-    return request.build_absolute_uri(settings.STATIC_URL + static_path)
+    return request.build_absolute_uri(static(static_path))
 
 
 def _avatar_url_for_profile(profile, request):
@@ -288,6 +289,7 @@ def profile_view(request):
     display_name = (request.POST.get("display_name") or "").strip()
     bio = (request.POST.get("bio") or "").strip()
     avatar_file = request.FILES.get("avatar")
+    use_random_default_avatar = request.POST.get("use_random_default_avatar") in {"1", "true", "on"}
 
     if display_name:
         profile.display_name = display_name[:40]
@@ -295,7 +297,12 @@ def profile_view(request):
         request.user.save(update_fields=["first_name"])
     profile.bio = bio[:160]
 
-    if avatar_file:
+    if use_random_default_avatar:
+        profile.default_avatar = random_default_avatar_path()
+        if profile.avatar:
+            profile.avatar.delete(save=False)
+        profile.avatar = ""
+    elif avatar_file:
         if avatar_file.size > MAX_AVATAR_BYTES:
             return _json_error("头像不能超过 2MB", field="avatar")
         content_type = getattr(avatar_file, "content_type", "")
@@ -309,4 +316,5 @@ def profile_view(request):
         profile.avatar = avatar_file
 
     profile.save()
-    return JsonResponse({"ok": True, "message": "资料已更新", "user": _user_payload(request.user, request)})
+    message = "已使用随机默认头像" if use_random_default_avatar else "资料已更新"
+    return JsonResponse({"ok": True, "message": message, "user": _user_payload(request.user, request)})

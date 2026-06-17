@@ -14,6 +14,7 @@
     const registerForm = document.querySelector("[data-account-register-form]");
     const profileForm = document.querySelector("[data-account-profile-form]");
     const sendCodeButton = document.querySelector("[data-account-send-code]");
+    const randomDefaultAvatarButton = document.querySelector("[data-account-use-random-default]");
     let toastTimer = null;
     let sendCodeTimer = null;
 
@@ -79,14 +80,14 @@
         if (!button) {
             return function () {};
         }
-        const originalText = button.textContent;
+        const originalHtml = button.innerHTML;
         button.disabled = true;
         if (loadingText) {
             button.textContent = loadingText;
         }
         return function () {
             button.disabled = false;
-            button.textContent = originalText;
+            button.innerHTML = originalHtml;
         };
     }
 
@@ -355,6 +356,33 @@
                 .then(function (data) {
                     updateAccountUi(data.user);
                     showToast(data.message || "资料已更新");
+                })
+                .catch(function (error) {
+                    showToast(error.message, true);
+                })
+                .finally(restore);
+        });
+    }
+
+    if (randomDefaultAvatarButton && profileForm) {
+        randomDefaultAvatarButton.addEventListener("click", function () {
+            if (!accountState.isAuthenticated) {
+                showToast("请先登录", true);
+                return;
+            }
+            const avatarInput = profileForm.querySelector("input[name='avatar']");
+            const formData = new FormData(profileForm);
+            formData.delete("avatar");
+            formData.set("use_random_default_avatar", "1");
+
+            const restore = setButtonLoading(randomDefaultAvatarButton, "抽取中");
+            formRequest(config.profileUrl, formData)
+                .then(function (data) {
+                    if (avatarInput) {
+                        avatarInput.value = "";
+                    }
+                    updateAccountUi(data.user);
+                    showToast(data.message || "已使用随机默认头像");
                 })
                 .catch(function (error) {
                     showToast(error.message, true);

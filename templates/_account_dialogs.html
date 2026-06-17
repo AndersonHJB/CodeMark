@@ -87,6 +87,12 @@
                 <span>头像</span>
                 <input name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
             </label>
+            <div class="account-avatar-actions">
+                <button class="account-secondary-btn account-random-avatar-btn" type="button" data-account-use-random-default>
+                    <i class="bi bi-shuffle" aria-hidden="true"></i>
+                    <span>使用随机默认头像</span>
+                </button>
+            </div>
             <label class="account-field">
                 <span>昵称</span>
                 <input name="display_name" type="text" maxlength="40" value="{{ codemark_account.display_name }}">
