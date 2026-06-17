@@ -13,7 +13,11 @@ from django.utils.crypto import constant_time_compare, salted_hmac
 from django.views.decorators.http import require_GET, require_POST
 from PIL import Image, UnidentifiedImageError
 
-from .context_processors import DEFAULT_AVATAR_STATIC_PATH
+from .avatars import (
+    DEFAULT_AVATAR_STATIC_PATH,
+    normalize_default_avatar_path,
+    random_default_avatar_path,
+)
 from .models import EmailVerificationCode, UserProfile
 
 
@@ -59,19 +63,26 @@ def _client_ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
-def _user_payload(user, request):
-    default_avatar_url = settings.STATIC_URL + DEFAULT_AVATAR_STATIC_PATH
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    avatar_url = request.build_absolute_uri(default_avatar_url)
+def _absolute_static_url(request, static_path):
+    return request.build_absolute_uri(settings.STATIC_URL + static_path)
+
+
+def _avatar_url_for_profile(profile, request):
     if profile.avatar:
-        avatar_url = request.build_absolute_uri(profile.avatar.url)
+        return request.build_absolute_uri(profile.avatar.url)
+    return _absolute_static_url(request, normalize_default_avatar_path(profile.default_avatar))
+
+
+def _user_payload(user, request):
+    profile, _ = UserProfile.objects.get_or_create(user=user)
     return {
         "is_authenticated": True,
         "username": user.get_username(),
         "email": user.email,
         "display_name": profile.display_name or user.get_full_name() or user.get_username(),
         "bio": profile.bio,
-        "avatar_url": avatar_url,
+        "avatar_url": _avatar_url_for_profile(profile, request),
+        "default_avatar": normalize_default_avatar_path(profile.default_avatar),
     }
 
 
@@ -138,7 +149,7 @@ def session_view(request):
                     "display_name": "登录 CodeMark",
                     "email": "",
                     "username": "",
-                    "avatar_url": request.build_absolute_uri(settings.STATIC_URL + DEFAULT_AVATAR_STATIC_PATH),
+                    "avatar_url": _absolute_static_url(request, DEFAULT_AVATAR_STATIC_PATH),
                 },
             }
         )
@@ -221,7 +232,11 @@ def register_view(request):
         password=password,
         first_name=display_name[:150],
     )
-    UserProfile.objects.create(user=user, display_name=display_name[:40])
+    UserProfile.objects.create(
+        user=user,
+        display_name=display_name[:40],
+        default_avatar=random_default_avatar_path(),
+    )
     auth_login(request, user)
     return JsonResponse({"ok": True, "message": "注册成功", "user": _user_payload(user, request)})
 
@@ -258,7 +273,7 @@ def logout_view(request):
                 "display_name": "登录 CodeMark",
                 "email": "",
                 "username": "",
-                "avatar_url": request.build_absolute_uri(settings.STATIC_URL + DEFAULT_AVATAR_STATIC_PATH),
+                "avatar_url": _absolute_static_url(request, DEFAULT_AVATAR_STATIC_PATH),
             },
         }
     )

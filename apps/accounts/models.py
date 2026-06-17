@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from .avatars import DEFAULT_AVATAR_CHOICES, DEFAULT_AVATAR_STATIC_PATH
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(
@@ -11,6 +13,12 @@ class UserProfile(models.Model):
     )
     display_name = models.CharField("昵称", max_length=40, blank=True)
     bio = models.CharField("个人简介", max_length=160, blank=True)
+    default_avatar = models.CharField(
+        "默认头像",
+        max_length=128,
+        choices=DEFAULT_AVATAR_CHOICES,
+        default=DEFAULT_AVATAR_STATIC_PATH,
+    )
     avatar = models.ImageField("头像", upload_to="accounts/avatars/", blank=True)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)

@@ -1,9 +1,7 @@
 from django.templatetags.static import static
 
+from .avatars import DEFAULT_AVATAR_STATIC_PATH, normalize_default_avatar_path
 from .models import UserProfile
-
-
-DEFAULT_AVATAR_STATIC_PATH = "images/default-avatar.png"
 
 
 def _profile_for_user(user):
@@ -35,6 +33,8 @@ def account_context(request):
         avatar_url = default_avatar_url
         if profile and profile.avatar:
             avatar_url = profile.avatar.url
+        elif profile:
+            avatar_url = static(normalize_default_avatar_path(profile.default_avatar))
         payload.update(
             {
                 "is_authenticated": True,

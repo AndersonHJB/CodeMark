@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
+from .avatars import DEFAULT_AVATAR_STATIC_PATHS
 from .models import EmailVerificationCode, UserProfile
 
 
@@ -51,7 +52,10 @@ class AccountApiTests(TestCase):
 
         User = get_user_model()
         user = User.objects.get(email="newuser@example.com")
-        self.assertTrue(UserProfile.objects.filter(user=user, display_name="新用户").exists())
+        profile = UserProfile.objects.get(user=user)
+        self.assertEqual(profile.display_name, "新用户")
+        self.assertIn(profile.default_avatar, DEFAULT_AVATAR_STATIC_PATHS)
+        self.assertIn("/static/images/default-avatars/avatar-", payload["user"]["avatar_url"])
         self.assertIsNotNone(EmailVerificationCode.objects.get(email="newuser@example.com").used_at)
 
         session_response = self.client.get(reverse("account_session"))
@@ -145,7 +149,7 @@ class AccountTemplateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-account-trigger', html=False)
-        self.assertContains(response, 'static/images/default-avatar.png', html=False)
+        self.assertContains(response, 'static/images/default-avatars/avatar-01.png', html=False)
 
     def test_sharecode_sidebar_includes_account_entry(self):
         response = self.client.get(reverse("sharecode"))
