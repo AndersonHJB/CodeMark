@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}博客社区 - CodeMark{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/site-topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/blog.css' %}">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="blog-page" data-blog-login-prompt="{% if request.GET.login %}1{% else %}0{% endif %}">
+{% include "_site_topbar.html" with active_nav="blog" show_account=True brand_logo="images/logo-cm.svg" %}
+
+<main class="blog-shell">
+    {% if messages %}
+        <div class="blog-messages" aria-live="polite">
+            {% for message in messages %}
+                <div class="blog-message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+
+{% include "_account_dialogs.html" %}
+<script src="{% static 'js/accounts.js' %}"></script>
+<script src="{% static 'js/blog.js' %}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

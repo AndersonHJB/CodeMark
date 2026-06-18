@@ -26,6 +26,7 @@ class SiteNavigationTests(SimpleTestCase):
             reverse("editor"),
             reverse("cpp_editor"),
             reverse("algorithms"),
+            reverse("blog_list"),
             reverse("sharecode"),
         ]
         html = response.content.decode()
@@ -34,6 +35,6 @@ class SiteNavigationTests(SimpleTestCase):
             with self.subTest(href=href):
                 self.assertIn(f'href="{href}"', html)
 
-        self.assertIn(f'<a class="site-nav-link" href="{reverse("cpp_editor")}">', html)
+        self.assertIn(f'href="{reverse("cpp_editor")}" role="menuitem"', html)
         self.assertIn(f'<a class="quick-tile" href="{reverse("cpp_editor")}">', html)
         self.assertContains(response, "C++ 编辑器")

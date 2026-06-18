@@ -1,0 +1,172 @@
+{% extends "blog/base.html" %}
+
+{% block title %}博客社区 - CodeMark{% endblock %}
+
+{% block content %}
+<section class="blog-command" aria-labelledby="blogHomeTitle">
+    <div class="blog-command-copy">
+        <h1 id="blogHomeTitle">博客社区</h1>
+        <p>发布学习笔记、项目复盘和代码文章，支持 Markdown、富文本和粘贴图片上传。</p>
+    </div>
+    <div class="blog-command-actions">
+        {% if request.user.is_authenticated %}
+            <a class="blog-btn blog-btn-ghost" href="{% url 'blog_mine' %}">我的博客</a>
+            <a class="blog-btn blog-btn-primary" href="{% url 'blog_write' %}">写文章</a>
+        {% else %}
+            <button class="blog-btn blog-btn-ghost" type="button" data-account-open-login>登录</button>
+            <button class="blog-btn blog-btn-primary" type="button" data-account-open-register>注册写文章</button>
+        {% endif %}
+    </div>
+</section>
+
+<section class="blog-search-panel" aria-label="博客检索">
+    <form class="blog-search-form" method="get" action="{% url 'blog_list' %}">
+        <label>
+            <span>搜索文章</span>
+            <input name="q" type="search" value="{{ query }}" placeholder="标题、摘要、正文、标签">
+        </label>
+        <label>
+            <span>分类</span>
+            <input name="category" type="search" value="{{ category }}" placeholder="全部分类">
+        </label>
+        <button class="blog-btn blog-btn-primary" type="submit">筛选</button>
+        {% if query or category or active_tag or active_author %}
+            <a class="blog-btn blog-btn-ghost" href="{% url 'blog_list' %}">清空</a>
+        {% endif %}
+    </form>
+    <div class="blog-stats" aria-label="社区统计">
+        <span><strong>{{ stats.post_count }}</strong> 篇文章</span>
+        <span><strong>{{ stats.author_count }}</strong> 位作者</span>
+        <span><strong>{{ stats.tag_count }}</strong> 个标签</span>
+    </div>
+</section>
+
+{% if my_drafts %}
+    <section class="blog-draft-strip" aria-label="我的草稿">
+        <div>
+            <strong>我的草稿</strong>
+            <span>继续上次未发布的内容</span>
+        </div>
+        <div class="blog-draft-list">
+            {% for draft in my_drafts %}
+                <a href="{% url 'blog_edit' draft.slug %}">{{ draft.title }}</a>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+<div class="blog-layout">
+    <section class="blog-feed" aria-label="文章列表">
+        {% if active_tag or active_author or query or category %}
+            <div class="blog-feed-heading">
+                <h2>
+                    {% if active_tag %}#{{ active_tag.name }}
+                    {% elif active_author %}{{ active_author.get_full_name|default:active_author.username }} 的文章
+                    {% elif query %}搜索：{{ query }}
+                    {% elif category %}分类：{{ category }}
+                    {% endif %}
+                </h2>
+                <span>{{ page_obj.paginator.count }} 篇结果</span>
+            </div>
+        {% endif %}
+
+        {% for post in posts %}
+            <article class="blog-card">
+                <a class="blog-card-cover" href="{{ post.get_absolute_url }}" aria-label="{{ post.title }}">
+                    {% if post.cover_image %}
+                        <img src="{{ post.cover_image.url }}" alt="">
+                    {% else %}
+                        <span>{{ post.title|slice:":1" }}</span>
+                    {% endif %}
+                </a>
+                <div class="blog-card-body">
+                    <div class="blog-card-meta">
+                        {% if post.category %}
+                            <a href="{% url 'blog_list' %}?category={{ post.category|urlencode }}">{{ post.category }}</a>
+                        {% endif %}
+                        <span>{{ post.published_at|date:"Y-m-d" }}</span>
+                        <span>{{ post.read_minutes }} 分钟阅读</span>
+                    </div>
+                    <h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2>
+                    <p>{{ post.auto_summary }}</p>
+                    <div class="blog-card-footer">
+                        <a class="blog-author" href="{% url 'blog_author' post.author.username %}">
+                            {{ post.author.get_full_name|default:post.author.username }}
+                        </a>
+                        <span>{{ post.view_count }} 浏览</span>
+                        <span>{{ post.like_total }} 点赞</span>
+                        <span>{{ post.comment_total }} 评论</span>
+                    </div>
+                    {% if post.tags.all %}
+                        <div class="blog-tag-row">
+                            {% for tag in post.tags.all %}
+                                <a href="{% url 'blog_tag' tag.slug %}">#{{ tag.name }}</a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="blog-empty">
+                <h2>暂时没有匹配的文章</h2>
+                <p>换一个关键词，或者发布第一篇内容。</p>
+                {% if request.user.is_authenticated %}
+                    <a class="blog-btn blog-btn-primary" href="{% url 'blog_write' %}">写文章</a>
+                {% else %}
+                    <button class="blog-btn blog-btn-primary" type="button" data-account-open-login>登录后发布</button>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        {% if page_obj.has_other_pages %}
+            <nav class="blog-pagination" aria-label="分页">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if category %}&category={{ category|urlencode }}{% endif %}">上一页</a>
+                {% endif %}
+                <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if category %}&category={{ category|urlencode }}{% endif %}">下一页</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </section>
+
+    <aside class="blog-side" aria-label="博客侧栏">
+        <section>
+            <h2>热门标签</h2>
+            <div class="blog-chip-grid">
+                {% for tag in popular_tags %}
+                    <a href="{% url 'blog_tag' tag.slug %}">#{{ tag.name }} <span>{{ tag.post_count }}</span></a>
+                {% empty %}
+                    <p>发布文章后会自动生成标签。</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section>
+            <h2>分类</h2>
+            <div class="blog-category-list">
+                {% for item in categories %}
+                    <a href="{% url 'blog_list' %}?category={{ item.category|urlencode }}">
+                        <span>{{ item.category }}</span>
+                        <strong>{{ item.post_count }}</strong>
+                    </a>
+                {% empty %}
+                    <p>还没有分类。</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section>
+            <h2>热读</h2>
+            <ol class="blog-rank-list">
+                {% for item in trending_posts %}
+                    <li><a href="{{ item.get_absolute_url }}">{{ item.title }}</a><span>{{ item.view_count }}</span></li>
+                {% empty %}
+                    <li>暂无热读文章</li>
+                {% endfor %}
+            </ol>
+        </section>
+    </aside>
+</div>
+{% endblock %}

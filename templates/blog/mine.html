@@ -1,0 +1,57 @@
+{% extends "blog/base.html" %}
+
+{% block title %}我的博客 - CodeMark{% endblock %}
+
+{% block content %}
+<section class="blog-command">
+    <div class="blog-command-copy">
+        <h1>我的博客</h1>
+        <p>管理已发布文章、草稿和收藏。</p>
+    </div>
+    <div class="blog-command-actions">
+        <a class="blog-btn blog-btn-ghost" href="{% url 'blog_list' %}">博客首页</a>
+        <a class="blog-btn blog-btn-primary" href="{% url 'blog_write' %}">写文章</a>
+    </div>
+</section>
+
+<div class="blog-manage-grid">
+    <section class="blog-manage-list">
+        <div class="blog-section-head">
+            <h2>我的文章</h2>
+            <span>{{ posts|length }} 篇</span>
+        </div>
+        {% for post in posts %}
+            <article class="blog-manage-row">
+                <div>
+                    <strong>{{ post.title }}</strong>
+                    <span>{{ post.display_status }} · {{ post.updated_at|date:"Y-m-d H:i" }} · {{ post.view_count }} 浏览</span>
+                </div>
+                <div>
+                    <a class="blog-btn blog-btn-ghost" href="{{ post.get_absolute_url }}">查看</a>
+                    <a class="blog-btn blog-btn-primary" href="{% url 'blog_edit' post.slug %}">编辑</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="blog-empty">
+                <h2>还没有文章</h2>
+                <p>从一篇草稿开始。</p>
+                <a class="blog-btn blog-btn-primary" href="{% url 'blog_write' %}">写文章</a>
+            </div>
+        {% endfor %}
+    </section>
+
+    <aside class="blog-manage-list">
+        <div class="blog-section-head">
+            <h2>我的收藏</h2>
+        </div>
+        {% for post in bookmarked_posts %}
+            <a class="blog-bookmark-row" href="{{ post.get_absolute_url }}">
+                <strong>{{ post.title }}</strong>
+                <span>{{ post.author.get_full_name|default:post.author.username }} · {{ post.published_at|date:"Y-m-d" }}</span>
+            </a>
+        {% empty %}
+            <p class="blog-muted">暂时没有收藏。</p>
+        {% endfor %}
+    </aside>
+</div>
+{% endblock %}

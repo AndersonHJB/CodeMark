@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.accounts.apps.AccountsConfig",
     "apps.articles.apps.ArticlesConfig",
+    "apps.blog.apps.BlogConfig",
     "apps.editor.apps.EditorConfig",
     "apps.cpp_editor.apps.CppEditorConfig",
     "apps.sharing.apps.SharingConfig",

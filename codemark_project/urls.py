@@ -9,6 +9,7 @@ from apps.accounts import views as account_views
 
 urlpatterns = [
     path("accounts/", include("apps.accounts.urls")),
+    path("", include("apps.blog.urls")),
     path("", include("apps.articles.urls")),
     path("", include("apps.editor.urls")),
     path("", include("apps.cpp_editor.urls")),

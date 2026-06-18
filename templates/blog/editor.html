@@ -1,0 +1,117 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{% if is_edit %}编辑文章{% else %}写文章{% endif %} - CodeMark 博客{% endblock %}
+
+{% block content %}
+<form class="blog-editor" method="post" enctype="multipart/form-data" data-blog-editor data-upload-url="{{ editor_upload_url }}">
+    {% csrf_token %}
+    <input id="blogContentFormat" name="content_format" type="hidden" value="{{ form.content_format.value|default:'markdown' }}">
+
+    <header class="blog-editor-head">
+        <div>
+            <a class="blog-back-link" href="{% if post %}{{ post.get_absolute_url }}{% else %}{% url 'blog_list' %}{% endif %}">返回</a>
+            <h1>{% if is_edit %}编辑文章{% else %}写文章{% endif %}</h1>
+            <p>Markdown 和富文本都支持直接粘贴图片上传。</p>
+        </div>
+        <div class="blog-editor-actions">
+            <button class="blog-btn blog-btn-ghost" name="action" value="draft" type="submit">保存草稿</button>
+            <button class="blog-btn blog-btn-primary" name="action" value="publish" type="submit">发布文章</button>
+        </div>
+    </header>
+
+    {% if form.non_field_errors %}
+        <div class="blog-form-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <section class="blog-editor-grid">
+        <div class="blog-editor-main">
+            <label class="blog-field blog-title-field">
+                <span>标题</span>
+                <input name="title" type="text" maxlength="120" value="{{ form.title.value|default_if_none:'' }}" placeholder="写一个具体、可搜索的标题" required>
+                {{ form.title.errors }}
+            </label>
+
+            <div class="blog-editor-toolbar" aria-label="编辑器工具栏">
+                <div class="blog-mode-toggle" role="tablist" aria-label="编辑模式">
+                    <button class="is-active" type="button" data-blog-mode="markdown">Markdown</button>
+                    <button type="button" data-blog-mode="richtext">富文本</button>
+                </div>
+                <div class="blog-toolbar-buttons" data-markdown-tools>
+                    <button type="button" data-blog-insert="bold">B</button>
+                    <button type="button" data-blog-insert="italic">I</button>
+                    <button type="button" data-blog-insert="code">Code</button>
+                    <button type="button" data-blog-insert="quote">引用</button>
+                    <button type="button" data-blog-insert="list">列表</button>
+                    <button type="button" data-blog-insert="link">链接</button>
+                </div>
+                <div class="blog-toolbar-buttons" data-rich-tools hidden>
+                    <button type="button" data-rich-command="bold">B</button>
+                    <button type="button" data-rich-command="italic">I</button>
+                    <button type="button" data-rich-command="formatBlock" data-rich-value="h2">H2</button>
+                    <button type="button" data-rich-command="insertUnorderedList">列表</button>
+                    <button type="button" data-rich-command="formatBlock" data-rich-value="blockquote">引用</button>
+                    <button type="button" data-rich-link>链接</button>
+                </div>
+                <label class="blog-upload-btn">
+                    <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-blog-image-input>
+                    上传图片
+                </label>
+            </div>
+
+            <div class="blog-editor-status" data-blog-editor-status hidden></div>
+            <textarea id="blogContent" class="blog-md-editor" name="content" spellcheck="false">{{ form.content.value|default_if_none:'' }}</textarea>
+            <div class="blog-rich-editor" contenteditable="true" data-rich-editor hidden>{{ rich_initial|safe }}</div>
+            {{ form.content.errors }}
+
+            <div class="blog-preview-panel" data-blog-preview hidden></div>
+        </div>
+
+        <aside class="blog-editor-side">
+            <section class="blog-side-card">
+                <h2>发布设置</h2>
+                <label class="blog-field">
+                    <span>摘要</span>
+                    <textarea name="summary" rows="4" maxlength="360" placeholder="可选，留空时自动截取正文">{{ form.summary.value|default_if_none:'' }}</textarea>
+                    {{ form.summary.errors }}
+                </label>
+                <label class="blog-field">
+                    <span>分类</span>
+                    <input name="category" type="text" maxlength="40" value="{{ form.category.value|default_if_none:'' }}" placeholder="例如：Python、Django">
+                    {{ form.category.errors }}
+                </label>
+                <label class="blog-field">
+                    <span>标签</span>
+                    <input name="tags_text" type="text" maxlength="180" value="{{ form.tags_text.value|default_if_none:'' }}" placeholder="Django，Markdown，项目复盘">
+                    {{ form.tags_text.errors }}
+                </label>
+                <label class="blog-check">
+                    <input name="allow_comments" type="checkbox" {% if form.allow_comments.value %}checked{% endif %}>
+                    <span>允许评论</span>
+                </label>
+            </section>
+
+            <section class="blog-side-card">
+                <h2>封面图</h2>
+                {% if post and post.cover_image %}
+                    <img class="blog-current-cover" src="{{ post.cover_image.url }}" alt="">
+                {% endif %}
+                <label class="blog-file-field">
+                    <input name="cover_image" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+                    <span>选择封面图</span>
+                    <small>JPG、PNG、WebP、GIF，最大 8MB</small>
+                </label>
+                {{ form.cover_image.errors }}
+            </section>
+
+            <section class="blog-side-card">
+                <h2>写作提示</h2>
+                <ul class="blog-editor-tips">
+                    <li>粘贴截图时会自动上传并插入到光标位置。</li>
+                    <li>Markdown 模式适合代码和长文，富文本模式适合快速排版。</li>
+                    <li>发布前可先保存草稿，草稿只对作者可见。</li>
+                </ul>
+            </section>
+        </aside>
+    </section>
+</form>
+{% endblock %}
