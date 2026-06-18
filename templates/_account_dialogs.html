@@ -122,21 +122,50 @@
                     <span data-account-subtitle>{{ codemark_account.email|default:"未登录" }}</span>
                 </div>
             </div>
-            <label class="account-field">
-                <span>头像</span>
-                <input name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
-            </label>
-            <div class="account-avatar-actions">
-                <button class="account-secondary-btn account-random-avatar-btn" type="button" data-account-use-random-default>
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M16 3h5v5"></path>
-                        <path d="M4 20 21 3"></path>
-                        <path d="M21 16v5h-5"></path>
-                        <path d="M15 15 21 21"></path>
-                        <path d="M4 4l5 5"></path>
-                    </svg>
-                    <span>使用随机默认头像</span>
-                </button>
+            <div class="account-field account-avatar-field">
+                <div class="account-field-heading">
+                    <label for="accountProfileAvatar">头像</label>
+                    <span class="account-avatar-limit">最大 2MB</span>
+                </div>
+                <div class="account-avatar-picker">
+                    <label class="account-avatar-upload" for="accountProfileAvatar" role="button" tabindex="0" data-account-avatar-upload>
+                        <span class="account-avatar-upload-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 15V4"></path>
+                                <path d="m7 9 5-5 5 5"></path>
+                                <path d="M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3"></path>
+                            </svg>
+                        </span>
+                        <span class="account-avatar-upload-copy">
+                            <strong data-account-avatar-upload-title>上传图片</strong>
+                            <span data-account-avatar-file-name aria-live="polite">JPG、PNG、WebP、GIF</span>
+                        </span>
+                    </label>
+                    <input id="accountProfileAvatar" class="account-avatar-file-input" name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-account-avatar-input>
+                    <button class="account-secondary-btn account-random-avatar-btn" type="button" data-account-use-random-default>
+                        <span class="account-random-avatar-stack" aria-hidden="true">
+                            {% for avatar_url in codemark_account.default_avatar_preview_urls|slice:":3" %}
+                                <img src="{{ avatar_url }}" alt="" loading="lazy" decoding="async">
+                            {% endfor %}
+                        </span>
+                        <span class="account-random-avatar-copy">
+                            <strong>随机头像</strong>
+                            <small>默认头像库</small>
+                        </span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M16 3h5v5"></path>
+                            <path d="M4 20 21 3"></path>
+                            <path d="M21 16v5h-5"></path>
+                            <path d="M15 15 21 21"></path>
+                            <path d="M4 4l5 5"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="account-default-avatar-strip" aria-label="随机默认头像预览" data-account-default-avatar-strip>
+                    {% for avatar_url in codemark_account.default_avatar_preview_urls %}
+                        <img src="{{ avatar_url }}" alt="" loading="lazy" decoding="async">
+                    {% endfor %}
+                </div>
             </div>
             <div class="account-field">
                 <div class="account-field-heading">

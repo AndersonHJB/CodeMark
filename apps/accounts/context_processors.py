@@ -1,6 +1,6 @@
 from django.templatetags.static import static
 
-from .avatars import DEFAULT_AVATAR_STATIC_PATH, normalize_default_avatar_path
+from .avatars import DEFAULT_AVATAR_STATIC_PATH, ORIGINAL_AVATAR_STATIC_PATHS, normalize_default_avatar_path
 from .models import UserProfile
 
 
@@ -13,6 +13,10 @@ def _profile_for_user(user):
 
 def account_context(request):
     default_avatar_url = static(DEFAULT_AVATAR_STATIC_PATH)
+    default_avatar_preview_urls = [
+        static(avatar_path)
+        for avatar_path in ORIGINAL_AVATAR_STATIC_PATHS[:8]
+    ]
     payload = {
         "is_authenticated": False,
         "display_name": "登录 CodeMark",
@@ -21,6 +25,7 @@ def account_context(request):
         "bio": "",
         "avatar_url": default_avatar_url,
         "default_avatar_url": default_avatar_url,
+        "default_avatar_preview_urls": default_avatar_preview_urls,
     }
 
     user = getattr(request, "user", None)

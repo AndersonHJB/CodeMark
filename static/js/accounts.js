@@ -19,6 +19,7 @@
     const randomProfileButtons = document.querySelectorAll("[data-account-random-profile]");
     let toastTimer = null;
     let sendCodeTimer = null;
+    let pendingAvatarPreviewUrl = "";
 
     function readCookie(name) {
         const cookies = document.cookie ? document.cookie.split("; ") : [];
@@ -297,6 +298,80 @@
         }
     }
 
+    function formatFileSize(bytes) {
+        if (!bytes && bytes !== 0) {
+            return "";
+        }
+        if (bytes < 1024 * 1024) {
+            return Math.max(1, Math.round(bytes / 1024)) + " KB";
+        }
+        return (bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, "") + " MB";
+    }
+
+    function setProfileAvatarPreview(src) {
+        document.querySelectorAll("[data-account-profile-avatar]").forEach(function (img) {
+            img.src = src || config.defaultAvatarUrl || "";
+        });
+    }
+
+    function clearPendingAvatarPreview() {
+        if (pendingAvatarPreviewUrl) {
+            URL.revokeObjectURL(pendingAvatarPreviewUrl);
+            pendingAvatarPreviewUrl = "";
+        }
+    }
+
+    function setAvatarUploadState(file, detailText) {
+        if (!profileForm) {
+            return;
+        }
+        const upload = profileForm.querySelector("[data-account-avatar-upload]");
+        const title = profileForm.querySelector("[data-account-avatar-upload-title]");
+        const fileName = profileForm.querySelector("[data-account-avatar-file-name]");
+        if (upload) {
+            upload.classList.toggle("has-file", !!file);
+        }
+        if (title) {
+            title.textContent = file ? "已选择头像" : "上传图片";
+        }
+        if (fileName) {
+            fileName.textContent = file
+                ? file.name + " · " + formatFileSize(file.size)
+                : (detailText || "JPG、PNG、WebP、GIF");
+        }
+    }
+
+    function resetAvatarInput(detailText) {
+        if (!profileForm) {
+            return;
+        }
+        const avatarInput = profileForm.querySelector("[data-account-avatar-input]");
+        if (avatarInput) {
+            avatarInput.value = "";
+        }
+        clearPendingAvatarPreview();
+        setAvatarUploadState(null, detailText);
+    }
+
+    function pulseDefaultAvatarStrip(avatarUrl) {
+        if (!profileForm) {
+            return;
+        }
+        const strip = profileForm.querySelector("[data-account-default-avatar-strip]");
+        if (!strip) {
+            return;
+        }
+        strip.querySelectorAll("img").forEach(function (img) {
+            const rawSrc = img.getAttribute("src") || "";
+            const isCurrent = !!avatarUrl && (avatarUrl === img.src || avatarUrl.endsWith(rawSrc));
+            img.classList.toggle("is-current", isCurrent);
+        });
+        strip.classList.add("is-pulsing");
+        window.setTimeout(function () {
+            strip.classList.remove("is-pulsing");
+        }, 900);
+    }
+
     document.addEventListener("click", function (event) {
         const trigger = event.target.closest("[data-account-trigger]");
         if (trigger) {
@@ -464,16 +539,41 @@
     }
 
     if (profileForm) {
-        const avatarInput = profileForm.querySelector("input[name='avatar']");
+        const avatarInput = profileForm.querySelector("[data-account-avatar-input]");
+        const avatarUpload = profileForm.querySelector("[data-account-avatar-upload]");
         if (avatarInput) {
             avatarInput.addEventListener("change", function () {
                 const file = avatarInput.files && avatarInput.files[0];
                 if (!file) {
+                    resetAvatarInput();
+                    setProfileAvatarPreview(accountState.avatarUrl || config.defaultAvatarUrl || "");
                     return;
                 }
-                document.querySelectorAll("[data-account-profile-avatar]").forEach(function (img) {
-                    img.src = URL.createObjectURL(file);
-                });
+                const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+                if (file.type && allowedTypes.indexOf(file.type) === -1) {
+                    resetAvatarInput("请选择 JPG、PNG、WebP 或 GIF");
+                    setProfileAvatarPreview(accountState.avatarUrl || config.defaultAvatarUrl || "");
+                    showToast("头像仅支持 JPG、PNG、WebP 或 GIF", true);
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024) {
+                    resetAvatarInput("请选择 2MB 以内的图片");
+                    setProfileAvatarPreview(accountState.avatarUrl || config.defaultAvatarUrl || "");
+                    showToast("头像不能超过 2MB", true);
+                    return;
+                }
+                clearPendingAvatarPreview();
+                pendingAvatarPreviewUrl = URL.createObjectURL(file);
+                setProfileAvatarPreview(pendingAvatarPreviewUrl);
+                setAvatarUploadState(file);
+            });
+        }
+        if (avatarUpload && avatarInput) {
+            avatarUpload.addEventListener("keydown", function (event) {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    avatarInput.click();
+                }
             });
         }
 
@@ -484,6 +584,7 @@
             formRequest(config.profileUrl, new FormData(profileForm))
                 .then(function (data) {
                     updateAccountUi(data.user);
+                    resetAvatarInput("已同步最新头像");
                     showToast(data.message || "资料已更新");
                 })
                 .catch(function (error) {
@@ -499,7 +600,7 @@
                 showToast("请先登录", true);
                 return;
             }
-            const avatarInput = profileForm.querySelector("input[name='avatar']");
+            const avatarInput = profileForm.querySelector("[data-account-avatar-input]");
             const formData = new FormData(profileForm);
             formData.delete("avatar");
             formData.set("use_random_default_avatar", "1");
@@ -511,6 +612,8 @@
                         avatarInput.value = "";
                     }
                     updateAccountUi(data.user);
+                    resetAvatarInput("已切换为随机默认头像");
+                    pulseDefaultAvatarStrip(data.user && data.user.avatar_url);
                     showToast(data.message || "已使用随机默认头像");
                 })
                 .catch(function (error) {
