@@ -136,27 +136,36 @@
 .site-nav-icon {
     display: grid;
     place-items: center;
-    width: 25px;
-    height: 25px;
-    border: 1px solid var(--site-line);
-    border-radius: 7px;
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
+    border-radius: 9px;
     color: var(--site-primary);
-    background: #f6faff;
-    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+    background: transparent;
+    box-shadow: none;
+    transition:
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        background-color 0.16s ease,
+        box-shadow 0.16s ease,
+        color 0.16s ease;
 }
 
 .site-nav-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke-width: 2;
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.25;
+    vector-effect: non-scaling-stroke;
 }
 
 .site-nav-link:hover .site-nav-icon,
 .site-nav-link:focus .site-nav-icon,
 .site-nav-link.is-active .site-nav-icon {
-    color: #fff;
-    border-color: var(--site-primary);
-    background: var(--site-primary);
+    color: var(--site-primary);
+    border-color: rgba(7, 94, 234, 0.1);
+    background: rgba(7, 94, 234, 0.08);
+    box-shadow: none;
+    transform: translateY(-1px);
 }
 
 .site-top-actions {
@@ -338,5 +347,5 @@
 .site-topbar-shell .site-nav-link:hover .site-nav-icon,
 .site-topbar-shell .site-nav-link:focus .site-nav-icon,
 .site-topbar-shell .site-nav-link.is-active .site-nav-icon {
-    color: #fff;
+    color: var(--site-primary);
 }
