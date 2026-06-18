@@ -635,7 +635,7 @@ svg {
 
 .quick-dock {
     display: grid;
-    grid-template-columns: 128px repeat(4, minmax(0, 1fr));
+    grid-template-columns: 128px repeat(5, minmax(0, 1fr));
     gap: 0.85rem;
     align-items: stretch;
     padding: 1rem 2rem;
@@ -704,6 +704,10 @@ svg {
 
 .quick-icon-amber {
     color: var(--amber);
+}
+
+.quick-icon-slate {
+    color: var(--ink-soft);
 }
 
 .quick-tile strong,
