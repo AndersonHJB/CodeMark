@@ -27,31 +27,59 @@
             </span>
             <span>文档</span>
         </a>
-        <a class="site-nav-link{% if active_nav == 'editor' %} is-active{% endif %}" href="/editor">
-            <span class="site-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="m9 18-6-6 6-6"></path>
-                    <path d="m15 6 6 6-6 6"></path>
-                    <path d="m14 4-4 16"></path>
-                </svg>
-            </span>
-            <span>编辑器</span>
-        </a>
-        <a class="site-nav-link{% if active_nav == 'cpp_editor' %} is-active{% endif %}" href="/cpp-editor">
-            <span class="site-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M8.5 7 3.5 12l5 5"></path>
-                    <path d="M12.5 17 17.5 12l-5-5"></path>
-                    <path d="M18 6.5v4"></path>
-                    <path d="M16 8.5h4"></path>
-                    <path d="M20.5 13.5v4"></path>
-                    <path d="M18.5 15.5h4"></path>
-                </svg>
-            </span>
-            <span>C++</span>
-        </a>
+        <div class="site-nav-group{% if active_nav == 'editor' or active_nav == 'cpp_editor' %} is-active{% endif %}">
+            <a class="site-nav-link site-nav-group-trigger{% if active_nav == 'editor' or active_nav == 'cpp_editor' %} is-active{% endif %}"
+               href="/editor"
+               aria-haspopup="true">
+                <span class="site-nav-icon site-nav-icon-blue" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="m9 18-6-6 6-6"></path>
+                        <path d="m15 6 6 6-6 6"></path>
+                        <path d="m14 4-4 16"></path>
+                    </svg>
+                </span>
+                <span>编辑器</span>
+                <span class="site-nav-caret" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                </span>
+            </a>
+            <div class="site-nav-dropdown" role="menu" aria-label="编辑器">
+                <span class="site-nav-dropdown-label">在线编辑器</span>
+                <a class="site-nav-dropdown-link{% if active_nav == 'editor' %} is-active{% endif %}" href="/editor" role="menuitem">
+                    <span class="site-nav-dropdown-icon site-nav-dropdown-icon-blue" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="m9 18-6-6 6-6"></path>
+                            <path d="m15 6 6 6-6 6"></path>
+                            <path d="m14 4-4 16"></path>
+                        </svg>
+                    </span>
+                    <span>
+                        <strong>Python 编辑器</strong>
+                        <small>editor.html</small>
+                    </span>
+                </a>
+                <a class="site-nav-dropdown-link{% if active_nav == 'cpp_editor' %} is-active{% endif %}" href="/cpp-editor" role="menuitem">
+                    <span class="site-nav-dropdown-icon site-nav-dropdown-icon-violet" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M8.5 7 3.5 12l5 5"></path>
+                            <path d="M12.5 17 17.5 12l-5-5"></path>
+                            <path d="M18 6.5v4"></path>
+                            <path d="M16 8.5h4"></path>
+                            <path d="M20.5 13.5v4"></path>
+                            <path d="M18.5 15.5h4"></path>
+                        </svg>
+                    </span>
+                    <span>
+                        <strong>C++ 编辑器</strong>
+                        <small>cpp_editor.html</small>
+                    </span>
+                </a>
+            </div>
+        </div>
         <a class="site-nav-link{% if active_nav == 'algorithms' %} is-active{% endif %}" href="/algorithms">
-            <span class="site-nav-icon" aria-hidden="true">
+            <span class="site-nav-icon site-nav-icon-green" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M6 17.5 10 14l3 2 5-6.5"></path>
                     <path d="M5 7h4v4H5z"></path>
@@ -62,7 +90,7 @@
             <span>算法</span>
         </a>
         <a class="site-nav-link{% if active_nav == 'sharecode' %} is-active{% endif %}" href="/sharecode">
-            <span class="site-nav-icon" aria-hidden="true">
+            <span class="site-nav-icon site-nav-icon-warm" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                     <circle cx="18" cy="5" r="3"></circle>
                     <circle cx="6" cy="12" r="3"></circle>
