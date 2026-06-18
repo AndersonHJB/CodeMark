@@ -11,13 +11,14 @@
           rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link rel="stylesheet" href="{% static 'css/site-topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <script src="{% static 'js/home.js' %}" defer></script>
 </head>
 <body class="home-page">
 <div class="page-grid-bg" aria-hidden="true"></div>
 
-{% include "_site_topbar.html" with active_nav="articles" show_search=True brand_logo="images/logo-cm.svg" %}
+{% include "_site_topbar.html" with active_nav="articles" show_search=True show_account=True brand_logo="images/logo-cm.svg" %}
 
 <main class="home-app">
     <section class="hero-panel" aria-labelledby="home-title">
@@ -213,5 +214,7 @@
         </div>
     </section>
 </main>
+{% include "_account_dialogs.html" %}
+<script src="{% static 'js/accounts.js' %}"></script>
 </body>
 </html>

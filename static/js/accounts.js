@@ -171,6 +171,9 @@
         document.querySelectorAll("[data-account-name]").forEach(function (node) {
             node.textContent = displayName;
         });
+        document.querySelectorAll("[data-account-topbar-name]").forEach(function (node) {
+            node.textContent = accountState.isAuthenticated ? displayName : "登录";
+        });
         document.querySelectorAll("[data-account-subtitle]").forEach(function (node) {
             node.textContent = accountState.isAuthenticated ? subtitle : "使用邮箱验证码注册";
         });

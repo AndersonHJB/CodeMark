@@ -62,19 +62,29 @@
         </a>
     </nav>
 
-    {% if show_search %}
-        <form class="site-top-search" role="search" data-home-search-form>
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="m16.5 16.5 4 4"></path>
-            </svg>
-            <input type="search"
-                   placeholder="搜索文档、代码、专栏"
-                   aria-label="搜索文档、代码、专栏"
-                   autocomplete="off"
-                   data-home-search>
-            <kbd>⌘ K</kbd>
-        </form>
+    {% if show_search or show_account %}
+        <div class="site-top-actions">
+            {% if show_search %}
+                <form class="site-top-search" role="search" data-home-search-form>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="m16.5 16.5 4 4"></path>
+                    </svg>
+                    <input type="search"
+                           placeholder="搜索文档、代码、专栏"
+                           aria-label="搜索文档、代码、专栏"
+                           autocomplete="off"
+                           data-home-search>
+                    <kbd>⌘ K</kbd>
+                </form>
+            {% else %}
+                <div class="site-topbar-spacer" aria-hidden="true"></div>
+            {% endif %}
+
+            {% if show_account %}
+                {% include "_account_topbar.html" %}
+            {% endif %}
+        </div>
     {% else %}
         <div class="site-topbar-spacer" aria-hidden="true"></div>
     {% endif %}

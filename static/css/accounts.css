@@ -179,6 +179,135 @@
     right: auto;
 }
 
+.site-account-slot {
+    --text-main: var(--site-ink, #07162f);
+    --text-muted: var(--site-muted, #72809a);
+    --panel-border: var(--site-line, #d9e3f1);
+    position: relative;
+    flex: 0 0 auto;
+    min-width: 0;
+    font-family: var(--site-font-body, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif);
+}
+
+.site-account-trigger {
+    min-height: 42px;
+    max-width: 210px;
+    border: 1px solid var(--site-line, #d9e3f1);
+    border-radius: var(--site-radius, 8px);
+    padding: 0 0.62rem 0 0.48rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--site-ink, #07162f);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 14px rgba(26, 55, 98, 0.05);
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.site-account-trigger:hover,
+.site-account-trigger:focus,
+.site-account-trigger[aria-expanded="true"] {
+    color: var(--site-primary, #075eea);
+    border-color: rgba(7, 94, 234, 0.22);
+    background: rgba(237, 245, 255, 0.86);
+}
+
+.site-account-trigger:focus-visible {
+    outline: 3px solid rgba(7, 94, 234, 0.22);
+    outline-offset: 3px;
+}
+
+.site-account-avatar {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    overflow: hidden;
+    border: 1px solid rgba(7, 94, 234, 0.18);
+    border-radius: 999px;
+    background: #f8e45c;
+}
+
+.site-account-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.site-account-copy {
+    min-width: 0;
+    display: grid;
+}
+
+.site-account-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: currentColor;
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.site-account-caret {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.72;
+}
+
+.site-account-slot .account-menu {
+    top: calc(100% + 10px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: 260px;
+    border-color: var(--site-line, #d9e3f1);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--site-ink, #07162f);
+    box-shadow: 0 20px 42px rgba(26, 55, 98, 0.16);
+}
+
+.site-account-slot .account-menu-user {
+    border-bottom-color: var(--site-line, #d9e3f1);
+}
+
+.site-account-slot .account-menu-item {
+    color: var(--site-ink, #07162f);
+}
+
+.site-account-slot .account-menu-item:hover {
+    background: rgba(237, 245, 255, 0.92);
+}
+
+.site-account-slot .account-menu-item.danger {
+    color: #c83e35;
+}
+
+.site-account-slot .account-menu-item.danger:hover {
+    color: #a8322b;
+    background: rgba(216, 75, 66, 0.1);
+}
+
+.site-account-slot .account-menu-item svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .account-dialog-backdrop {
     position: fixed;
     inset: 0;
@@ -242,6 +371,18 @@
 
 .account-dialog-close:hover {
     background: rgba(255, 255, 255, 0.12);
+}
+
+.account-dialog-close svg,
+.account-mini-action svg,
+.account-random-avatar-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .account-tabs {
@@ -471,6 +612,15 @@
 }
 
 @media (max-width: 640px) {
+    .site-account-trigger {
+        max-width: 210px;
+    }
+
+    .site-account-slot .account-menu {
+        right: 0;
+        width: min(260px, calc(100vw - 28px));
+    }
+
     .account-dialog-backdrop {
         align-items: flex-end;
         padding: 12px;

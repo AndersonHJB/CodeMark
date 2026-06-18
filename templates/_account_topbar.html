@@ -1,0 +1,61 @@
+<div class="site-account-slot" data-account-sidebar>
+    <button class="site-account-trigger" type="button" aria-haspopup="menu" aria-expanded="false" data-account-trigger>
+        <span class="site-account-avatar" aria-hidden="true">
+            <img src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
+        </span>
+        <span class="site-account-copy">
+            <span class="site-account-name" data-account-topbar-name>{% if codemark_account.is_authenticated %}{{ codemark_account.display_name }}{% else %}登录{% endif %}</span>
+        </span>
+        <svg class="site-account-caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m7 10 5 5 5-5"></path>
+        </svg>
+    </button>
+
+    <div class="account-menu site-account-menu" role="menu" hidden data-account-menu>
+        <div class="account-menu-user">
+            <img class="account-menu-avatar" src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
+            <div>
+                <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
+                <div class="account-menu-email" data-account-subtitle>
+                    {% if codemark_account.is_authenticated %}
+                        {{ codemark_account.email|default:"已登录" }}
+                    {% else %}
+                        使用邮箱验证码注册
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-login data-account-guest-only{% if codemark_account.is_authenticated %} hidden{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <path d="m10 17 5-5-5-5"></path>
+                <path d="M15 12H3"></path>
+            </svg>
+            <span>登录</span>
+        </button>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-register data-account-guest-only{% if codemark_account.is_authenticated %} hidden{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M19 8v6"></path>
+                <path d="M22 11h-6"></path>
+            </svg>
+            <span>注册</span>
+        </button>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-profile data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>个人资料</span>
+        </button>
+        <button class="account-menu-item danger" type="button" role="menuitem" data-account-logout data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <path d="m16 17 5-5-5-5"></path>
+                <path d="M21 12H9"></path>
+            </svg>
+            <span>退出登录</span>
+        </button>
+    </div>
+</div>

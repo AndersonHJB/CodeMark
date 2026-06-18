@@ -313,6 +313,24 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, 'data-account-trigger', html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
 
+    def test_home_topbar_includes_account_entry(self):
+        response = self.client.get(reverse("index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "site-account-trigger", html=False)
+        self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
+        self.assertContains(response, 'data-account-tab="login"', html=False)
+        self.assertContains(response, 'js/accounts.js', html=False)
+
+    def test_algorithms_topbar_includes_account_entry(self):
+        response = self.client.get(reverse("algorithms"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "site-account-trigger", html=False)
+        self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
+        self.assertContains(response, 'data-account-tab="login"', html=False)
+        self.assertContains(response, 'js/accounts.js', html=False)
+
     def test_authenticated_editor_hides_guest_account_actions(self):
         user = get_user_model().objects.create_user(
             username="template-user",
