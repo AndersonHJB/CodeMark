@@ -6,12 +6,13 @@ from smtplib import SMTPException
 from datetime import timedelta
 
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 from django.http import JsonResponse
+from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
@@ -155,6 +156,24 @@ def _verify_code(email, purpose, code):
     return True, ""
 
 
+def _send_registration_code_email(email, code):
+    context = {
+        "code": code,
+        "expire_minutes": CODE_EXPIRE_MINUTES,
+        "support_email": getattr(settings, "CODEMARK_SUPPORT_EMAIL", ""),
+    }
+    text_body = render_to_string("emails/register_verification.txt", context)
+    html_body = render_to_string("emails/register_verification.html", context)
+    message = EmailMultiAlternatives(
+        subject="CodeMark 注册验证码",
+        body=text_body,
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        to=[email],
+    )
+    message.attach_alternative(html_body, "text/html")
+    message.send(fail_silently=False)
+
+
 @require_GET
 def session_view(request):
     if not request.user.is_authenticated:
@@ -218,13 +237,7 @@ def send_code_view(request):
     )
 
     try:
-        send_mail(
-            subject="CodeMark 注册验证码",
-            message=f"你的 CodeMark 注册验证码是：{code}\n验证码 {CODE_EXPIRE_MINUTES} 分钟内有效。如非本人操作，请忽略此邮件。",
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        _send_registration_code_email(email, code)
     except (SMTPException, OSError) as exc:
         verification.used_at = timezone.now()
         verification.save(update_fields=["used_at"])

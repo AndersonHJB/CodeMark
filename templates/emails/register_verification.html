@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>CodeMark 注册验证码</title>
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#f3f5f8; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#f3f5f8;">
+        你的 CodeMark 注册验证码是 {{ code }}，{{ expire_minutes }} 分钟内有效。
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; background-color:#f3f5f8;">
+        <tr>
+            <td align="center" style="padding:28px 12px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; border-collapse:collapse;">
+                    <tr>
+                        <td style="padding:0 0 12px 0; font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:18px; line-height:26px; font-weight:bold; color:#111827;">
+                            CodeMark
+                        </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#ffffff" style="background-color:#ffffff; border:1px solid #dce3ec; border-radius:8px; padding:34px 32px; font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse;">
+                                <tr>
+                                    <td style="font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:22px; line-height:30px; font-weight:bold; color:#111827; padding:0 0 12px 0;">
+                                        注册验证码
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:15px; line-height:24px; color:#4b5563; padding:0 0 22px 0;">
+                                        你正在注册 CodeMark 账号，请在页面中输入以下验证码完成验证。
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center" bgcolor="#f8fafc" style="background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:20px 12px; font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif;">
+                                        <span style="display:inline-block; font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:32px; line-height:40px; font-weight:bold; letter-spacing:8px; color:#111827;">{{ code }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:14px; line-height:22px; color:#6b7280; padding:22px 0 0 0;">
+                                        验证码 {{ expire_minutes }} 分钟内有效。为了保障账号安全，请不要将验证码告诉他人。
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:14px; line-height:22px; color:#6b7280; padding:10px 0 0 0;">
+                                        如果这不是你本人操作，请忽略此邮件。
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:16px 0 0 0; font-family:Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size:12px; line-height:20px; color:#8a94a6;">
+                            此邮件由系统自动发送，请勿直接回复。{% if support_email %}如需帮助，请联系 {{ support_email }}。{% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

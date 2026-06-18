@@ -66,6 +66,24 @@ class AccountApiTests(TestCase):
         session_response = self.client.get(reverse("account_session"))
         self.assertEqual(session_response.json()["user"]["email"], "newuser@example.com")
 
+    def test_register_code_email_includes_client_friendly_html_alternative(self):
+        response = post_json(self.client, "account_send_code", {"email": "html-mail@example.com"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        code = re.search(r"(\d{6})", message.body).group(1)
+        self.assertIn(f"你的 CodeMark 注册验证码是：{code}", message.body)
+        self.assertEqual(len(message.alternatives), 1)
+        html_body, mime_type = message.alternatives[0]
+        self.assertEqual(mime_type, "text/html")
+        self.assertIn("<table", html_body)
+        self.assertIn('role="presentation"', html_body)
+        self.assertIn("style=", html_body)
+        self.assertIn(code, html_body)
+        self.assertNotIn("<script", html_body.lower())
+        self.assertNotIn("<style", html_body.lower())
+
     def test_random_profile_endpoint_returns_builtin_defaults(self):
         self.assertEqual(len(DEFAULT_NICKNAMES), 10000)
         self.assertEqual(len(DEFAULT_BIOS), 10000)

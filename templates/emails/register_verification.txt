@@ -1,0 +1,11 @@
+CodeMark 注册验证码
+
+你的 CodeMark 注册验证码是：{{ code }}
+
+验证码 {{ expire_minutes }} 分钟内有效。为了保障账号安全，请不要将验证码告诉他人。
+
+如果这不是你本人操作，请忽略此邮件。
+{% if support_email %}
+
+如需帮助，请联系：{{ support_email }}
+{% endif %}
