@@ -14,6 +14,7 @@
         displayName: "{{ codemark_account.display_name|default_if_none:''|escapejs }}",
         email: "{{ codemark_account.email|default_if_none:''|escapejs }}",
         username: "{{ codemark_account.username|default_if_none:''|escapejs }}",
+        bio: "{{ codemark_account.bio|default_if_none:''|escapejs }}",
         avatarUrl: "{{ codemark_account.avatar_url|escapejs }}"
     };
 </script>
@@ -25,7 +26,13 @@
         <div class="account-dialog-header">
             <div>
                 <h2 id="accountDialogTitle">CodeMark 账号</h2>
-                <p data-account-dialog-subtitle>登录后可逐步解锁个人功能</p>
+                <p data-account-dialog-subtitle>
+                    {% if codemark_account.is_authenticated %}
+                        管理头像、昵称和个人简介
+                    {% else %}
+                        登录或注册后可逐步解锁个人功能
+                    {% endif %}
+                </p>
             </div>
             <button class="account-dialog-close" type="button" aria-label="关闭" data-account-close>
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -33,12 +40,12 @@
         </div>
 
         <div class="account-tabs" role="tablist" aria-label="账号操作">
-            <button class="account-tab is-active" type="button" data-account-tab="login">登录</button>
-            <button class="account-tab" type="button" data-account-tab="register">注册</button>
-            <button class="account-tab" type="button" data-account-tab="profile">资料</button>
+            <button class="account-tab{% if not codemark_account.is_authenticated %} is-active{% endif %}" type="button" data-account-tab="login"{% if codemark_account.is_authenticated %} hidden{% endif %}>登录</button>
+            <button class="account-tab" type="button" data-account-tab="register"{% if codemark_account.is_authenticated %} hidden{% endif %}>注册</button>
+            <button class="account-tab{% if codemark_account.is_authenticated %} is-active{% endif %}" type="button" data-account-tab="profile"{% if not codemark_account.is_authenticated %} hidden{% endif %}>资料</button>
         </div>
 
-        <form class="account-panel is-active" data-account-panel="login" data-account-login-form>
+        <form class="account-panel{% if not codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="login" data-account-login-form{% if codemark_account.is_authenticated %} hidden{% endif %}>
             <label class="account-field">
                 <span>邮箱或用户名</span>
                 <input name="identifier" type="text" autocomplete="username" required>
@@ -51,7 +58,7 @@
             <p class="account-inline-hint">还没有账号？<button type="button" data-account-switch-register>创建账号</button></p>
         </form>
 
-        <form class="account-panel" data-account-panel="register" data-account-register-form>
+        <form class="account-panel" data-account-panel="register" data-account-register-form{% if codemark_account.is_authenticated %} hidden{% endif %}>
             <label class="account-field">
                 <span>邮箱</span>
                 <input name="email" type="email" autocomplete="email" required>
@@ -75,7 +82,7 @@
             <p class="account-inline-hint">已经有账号？<button type="button" data-account-switch-login>去登录</button></p>
         </form>
 
-        <form class="account-panel" data-account-panel="profile" data-account-profile-form enctype="multipart/form-data">
+        <form class="account-panel{% if codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="profile" data-account-profile-form enctype="multipart/form-data"{% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <div class="account-profile-preview">
                 <img src="{{ codemark_account.avatar_url }}" alt="当前头像" data-account-profile-avatar>
                 <div>
@@ -99,7 +106,7 @@
             </label>
             <label class="account-field">
                 <span>个人简介</span>
-                <textarea name="bio" maxlength="160" rows="3"></textarea>
+                <textarea name="bio" maxlength="160" rows="3">{{ codemark_account.bio|default_if_none:'' }}</textarea>
             </label>
             <button class="account-primary-btn" type="submit">保存资料</button>
         </form>

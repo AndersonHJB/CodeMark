@@ -267,6 +267,11 @@
     background: #f8e45c;
 }
 
+.account-tab[hidden],
+.account-panel[hidden] {
+    display: none !important;
+}
+
 .account-panel {
     display: none;
     padding: 0 20px 20px;

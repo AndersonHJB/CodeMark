@@ -142,6 +142,7 @@ class AccountApiTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 payload = response.json()
                 self.assertEqual(payload["user"]["display_name"], "头像用户")
+                self.assertEqual(payload["user"]["bio"], "学习 Python")
                 self.assertIn("/media/accounts/avatars/", payload["user"]["avatar_url"])
 
     def test_profile_can_switch_to_random_default_avatar(self):
@@ -178,6 +179,53 @@ class AccountApiTests(TestCase):
                 avatar_path = unquote(urlparse(payload["user"]["avatar_url"]).path)
                 self.assertTrue(avatar_path.endswith(f"/static/{profile.default_avatar}"))
 
+    def test_profile_avatar_upload_accepts_rotated_csrf_after_login(self):
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                User = get_user_model()
+                User.objects.create_user(
+                    username="csrf-avatar-user",
+                    email="csrf-avatar@example.com",
+                    password="test-password",
+                )
+                csrf_client = Client(enforce_csrf_checks=True)
+                csrf_client.get(reverse("editor"))
+                old_csrf_token = csrf_client.cookies["csrftoken"].value
+
+                login_response = csrf_client.post(
+                    reverse("account_login"),
+                    data=json.dumps(
+                        {
+                            "identifier": "csrf-avatar-user",
+                            "password": "test-password",
+                        }
+                    ),
+                    content_type="application/json",
+                    HTTP_X_CSRFTOKEN=old_csrf_token,
+                )
+
+                self.assertEqual(login_response.status_code, 200)
+                new_csrf_token = csrf_client.cookies["csrftoken"].value
+                self.assertNotEqual(old_csrf_token, new_csrf_token)
+
+                avatar = SimpleUploadedFile(
+                    "avatar.png",
+                    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+                    b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01"
+                    b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82",
+                    content_type="image/png",
+                )
+                profile_response = csrf_client.post(
+                    reverse("account_profile"),
+                    data={"display_name": "CSRF 头像", "bio": "上传成功", "avatar": avatar},
+                    HTTP_X_CSRFTOKEN=new_csrf_token,
+                )
+
+                self.assertEqual(profile_response.status_code, 200)
+                payload = profile_response.json()
+                self.assertEqual(payload["user"]["display_name"], "CSRF 头像")
+                self.assertIn("/media/accounts/avatars/", payload["user"]["avatar_url"])
+
 
 class AccountTemplateTests(TestCase):
     def test_editor_sidebar_includes_account_entry(self):
@@ -186,6 +234,13 @@ class AccountTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-account-trigger', html=False)
         self.assertContains(response, 'data-account-use-random-default', html=False)
+        html = response.content.decode()
+        self.assertIn('data-account-tab="login"', html)
+        self.assertIn('data-account-tab="register"', html)
+        self.assertIn('data-account-tab="profile" hidden', html)
+        self.assertIn("data-account-open-login data-account-guest-only", html)
+        self.assertIn("data-account-open-register data-account-guest-only", html)
+        self.assertIn("data-account-open-profile data-account-auth-only hidden", html)
 
     def test_sharecode_sidebar_includes_account_entry(self):
         response = self.client.get(reverse("sharecode"))
@@ -193,6 +248,27 @@ class AccountTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-account-trigger', html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
+
+    def test_authenticated_editor_hides_guest_account_actions(self):
+        user = get_user_model().objects.create_user(
+            username="template-user",
+            email="template@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="模板用户", bio="已登录简介")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("editor"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('data-account-tab="login" hidden', html)
+        self.assertIn('data-account-tab="register" hidden', html)
+        self.assertIn('data-account-tab="profile"', html)
+        self.assertIn("data-account-open-login data-account-guest-only hidden", html)
+        self.assertIn("data-account-open-register data-account-guest-only hidden", html)
+        self.assertIn("data-account-open-profile data-account-auth-only", html)
+        self.assertIn("已登录简介", html)
 
     def test_accounts_api_requires_csrf_when_enforced(self):
         csrf_client = Client(enforce_csrf_checks=True)

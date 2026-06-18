@@ -150,6 +150,7 @@ def session_view(request):
                     "display_name": "登录 CodeMark",
                     "email": "",
                     "username": "",
+                    "bio": "",
                     "avatar_url": _absolute_static_url(request, DEFAULT_AVATAR_STATIC_PATH),
                 },
             }
@@ -274,6 +275,7 @@ def logout_view(request):
                 "display_name": "登录 CodeMark",
                 "email": "",
                 "username": "",
+                "bio": "",
                 "avatar_url": _absolute_static_url(request, DEFAULT_AVATAR_STATIC_PATH),
             },
         }

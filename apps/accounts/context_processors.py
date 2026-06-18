@@ -18,6 +18,7 @@ def account_context(request):
         "display_name": "登录 CodeMark",
         "email": "",
         "username": "",
+        "bio": "",
         "avatar_url": default_avatar_url,
         "default_avatar_url": default_avatar_url,
     }
@@ -41,6 +42,7 @@ def account_context(request):
                 "display_name": display_name,
                 "email": user.email,
                 "username": user.get_username(),
+                "bio": profile.bio if profile else "",
                 "avatar_url": avatar_url,
             }
         )

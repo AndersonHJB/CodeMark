@@ -5,6 +5,7 @@
         displayName: "登录 CodeMark",
         email: "",
         username: "",
+        bio: "",
         avatarUrl: config.defaultAvatarUrl || ""
     }, window.CODEMARK_ACCOUNT_INITIAL || {});
 
@@ -18,12 +19,26 @@
     let toastTimer = null;
     let sendCodeTimer = null;
 
+    function readCookie(name) {
+        const cookies = document.cookie ? document.cookie.split("; ") : [];
+        for (let i = 0; i < cookies.length; i += 1) {
+            const parts = cookies[i].split("=");
+            if (parts.shift() === name) {
+                return decodeURIComponent(parts.join("="));
+            }
+        }
+        return "";
+    }
+
     function csrfToken() {
+        const cookieToken = readCookie("csrftoken");
+        if (cookieToken) {
+            return cookieToken;
+        }
         if (config.csrfToken && config.csrfToken !== "NOTPROVIDED") {
             return config.csrfToken;
         }
-        const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
-        return match ? decodeURIComponent(match[1]) : "";
+        return "";
     }
 
     function showToast(message, isError) {
@@ -39,6 +54,36 @@
         }, 2800);
     }
 
+    function apiErrorMessage(response) {
+        if (response.status === 401) {
+            return "请先登录";
+        }
+        if (response.status === 403) {
+            return "请求校验失败，请刷新页面后重试";
+        }
+        if (response.status >= 500) {
+            return "服务器暂时无法处理，请稍后重试";
+        }
+        return "请求失败";
+    }
+
+    function parseApiResponse(response) {
+        return response.text().then(function (text) {
+            let data = {};
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (error) {
+                    data = {};
+                }
+            }
+            if (!response.ok || !data.ok) {
+                throw new Error(data.message || apiErrorMessage(response));
+            }
+            return data;
+        });
+    }
+
     function jsonRequest(url, payload) {
         return fetch(url, {
             method: "POST",
@@ -48,14 +93,7 @@
                 "X-CSRFToken": csrfToken()
             },
             body: JSON.stringify(payload || {})
-        }).then(function (response) {
-            return response.json().then(function (data) {
-                if (!response.ok || !data.ok) {
-                    throw new Error(data.message || "请求失败");
-                }
-                return data;
-            });
-        });
+        }).then(parseApiResponse);
     }
 
     function formRequest(url, formData) {
@@ -66,14 +104,25 @@
                 "X-CSRFToken": csrfToken()
             },
             body: formData
-        }).then(function (response) {
-            return response.json().then(function (data) {
-                if (!response.ok || !data.ok) {
-                    throw new Error(data.message || "请求失败");
-                }
-                return data;
-            });
-        });
+        }).then(parseApiResponse);
+    }
+
+    function refreshSession() {
+        if (!config.sessionUrl) {
+            return;
+        }
+        fetch(config.sessionUrl, {
+            method: "GET",
+            credentials: "same-origin",
+            headers: {
+                "Accept": "application/json"
+            }
+        })
+            .then(parseApiResponse)
+            .then(function (data) {
+                updateAccountUi(data.user);
+            })
+            .catch(function () {});
     }
 
     function setButtonLoading(button, loadingText) {
@@ -98,6 +147,7 @@
                 displayName: user.display_name || (user.is_authenticated ? user.username : "登录 CodeMark"),
                 email: user.email || "",
                 username: user.username || "",
+                bio: user.bio || "",
                 avatarUrl: user.avatar_url || config.defaultAvatarUrl || accountState.avatarUrl
             });
         }
@@ -125,6 +175,15 @@
         document.querySelectorAll("[data-account-profile-form] input[name='display_name']").forEach(function (node) {
             node.value = accountState.isAuthenticated ? displayName : "";
         });
+        document.querySelectorAll("[data-account-profile-form] textarea[name='bio']").forEach(function (node) {
+            node.value = accountState.isAuthenticated ? accountState.bio : "";
+        });
+        document.querySelectorAll("[data-account-dialog-subtitle]").forEach(function (node) {
+            node.textContent = accountState.isAuthenticated
+                ? "管理头像、昵称和个人简介"
+                : "登录或注册后可逐步解锁个人功能";
+        });
+        switchPanel(accountState.isAuthenticated ? "profile" : "login");
     }
 
     function closeMenus() {
@@ -155,16 +214,19 @@
     }
 
     function switchPanel(mode) {
-        if (mode === "profile" && !accountState.isAuthenticated) {
-            mode = "login";
-        }
+        mode = accountState.isAuthenticated ? "profile" : (mode === "register" ? "register" : "login");
         document.querySelectorAll("[data-account-tab]").forEach(function (tab) {
             const active = tab.dataset.accountTab === mode;
+            const visible = accountState.isAuthenticated
+                ? tab.dataset.accountTab === "profile"
+                : tab.dataset.accountTab !== "profile";
             tab.classList.toggle("is-active", active);
-            tab.hidden = tab.dataset.accountTab === "profile" && !accountState.isAuthenticated;
+            tab.hidden = !visible;
         });
         document.querySelectorAll("[data-account-panel]").forEach(function (panel) {
-            panel.classList.toggle("is-active", panel.dataset.accountPanel === mode);
+            const active = panel.dataset.accountPanel === mode;
+            panel.classList.toggle("is-active", active);
+            panel.hidden = !active;
         });
     }
 
@@ -399,4 +461,5 @@
     });
 
     updateAccountUi(accountState);
+    refreshSession();
 })();

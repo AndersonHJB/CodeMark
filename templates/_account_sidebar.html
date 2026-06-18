@@ -32,19 +32,19 @@
                 </div>
             </div>
         </div>
-        <button class="account-menu-item" type="button" role="menuitem" data-account-open-login data-account-guest-only>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-login data-account-guest-only{% if codemark_account.is_authenticated %} hidden{% endif %}>
             <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
             <span>登录</span>
         </button>
-        <button class="account-menu-item" type="button" role="menuitem" data-account-open-register data-account-guest-only>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-register data-account-guest-only{% if codemark_account.is_authenticated %} hidden{% endif %}>
             <i class="bi bi-person-plus" aria-hidden="true"></i>
             <span>注册</span>
         </button>
-        <button class="account-menu-item" type="button" role="menuitem" data-account-open-profile data-account-auth-only>
+        <button class="account-menu-item" type="button" role="menuitem" data-account-open-profile data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <i class="bi bi-person-gear" aria-hidden="true"></i>
             <span>个人资料</span>
         </button>
-        <button class="account-menu-item danger" type="button" role="menuitem" data-account-logout data-account-auth-only>
+        <button class="account-menu-item danger" type="button" role="menuitem" data-account-logout data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
             <span>退出登录</span>
         </button>
