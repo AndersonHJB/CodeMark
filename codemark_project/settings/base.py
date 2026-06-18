@@ -1,8 +1,12 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / ".env")
+
 CONTENT_DIR = BASE_DIR / "content"
 LOGS_DIR = BASE_DIR / "logs"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "codemark-local-development-key")
@@ -14,6 +18,13 @@ def env_int(name, default):
         return int(os.getenv(name, default))
     except (TypeError, ValueError):
         return default
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "*")
@@ -96,6 +107,13 @@ LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/admin/share-files/"
 EMAIL_BACKEND = os.getenv("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "CodeMark <no-reply@codemark.local>")
+EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "")
+EMAIL_PORT = env_int("DJANGO_EMAIL_PORT", 25)
+EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("DJANGO_EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = env_bool("DJANGO_EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = env_int("DJANGO_EMAIL_TIMEOUT", 10)
 
 LOGGING = {
     "version": 1,

@@ -123,6 +123,21 @@ python manage.py create_admin_account \
   --reset-password
 ```
 
+注册验证码邮件默认输出到控制台，适合本地调试。需要真实发送邮件时，在项目根目录创建 `.env` 并配置 SMTP：
+
+```dotenv
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+DJANGO_EMAIL_HOST=smtp.exmail.qq.com
+DJANGO_EMAIL_PORT=465
+DJANGO_EMAIL_USE_SSL=1
+DJANGO_EMAIL_USE_TLS=0
+DJANGO_EMAIL_HOST_USER=your-email@example.com
+DJANGO_EMAIL_HOST_PASSWORD=your-smtp-password
+DJANGO_DEFAULT_FROM_EMAIL=CodeMark <your-email@example.com>
+```
+
+`DJANGO_EMAIL_HOST_PASSWORD` 应使用邮箱服务商提供的客户端专用密码或授权码，不要提交到 Git。
+
 常用迁移命令：
 
 ```bash

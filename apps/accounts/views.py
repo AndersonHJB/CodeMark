@@ -1,11 +1,15 @@
 import json
+import logging
 import re
 import secrets
+from smtplib import SMTPException
 from datetime import timedelta
 
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.http import JsonResponse
 from django.templatetags.static import static
@@ -26,6 +30,7 @@ CODE_EXPIRE_MINUTES = 10
 MAX_CODE_ATTEMPTS = 5
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
 ALLOWED_AVATAR_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+logger = logging.getLogger(__name__)
 
 
 def _json_error(message, status=400, field=None):
@@ -47,6 +52,16 @@ def _load_payload(request):
 
 def _normalize_email(email):
     return (email or "").strip().lower()
+
+
+def _email_error(email):
+    if not email:
+        return "请输入有效邮箱地址"
+    try:
+        validate_email(email)
+    except ValidationError:
+        return "请输入有效邮箱地址"
+    return ""
 
 
 def _hash_code(email, code):
@@ -166,8 +181,9 @@ def send_code_view(request):
 
     if purpose != EmailVerificationCode.PURPOSE_REGISTER:
         return _json_error("不支持的验证码用途", field="purpose")
-    if not email or "@" not in email:
-        return _json_error("请输入有效邮箱地址", field="email")
+    email_error = _email_error(email)
+    if email_error:
+        return _json_error(email_error, field="email")
 
     User = get_user_model()
     if User.objects.filter(email__iexact=email).exists():
@@ -187,7 +203,7 @@ def send_code_view(request):
         purpose=purpose,
         used_at__isnull=True,
     ).update(used_at=timezone.now())
-    EmailVerificationCode.objects.create(
+    verification = EmailVerificationCode.objects.create(
         email=email,
         purpose=purpose,
         code_hash=_hash_code(email, code),
@@ -195,13 +211,19 @@ def send_code_view(request):
         request_ip=_client_ip(request),
     )
 
-    send_mail(
-        subject="CodeMark 注册验证码",
-        message=f"你的 CodeMark 注册验证码是：{code}\n验证码 {CODE_EXPIRE_MINUTES} 分钟内有效。如非本人操作，请忽略此邮件。",
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-        recipient_list=[email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject="CodeMark 注册验证码",
+            message=f"你的 CodeMark 注册验证码是：{code}\n验证码 {CODE_EXPIRE_MINUTES} 分钟内有效。如非本人操作，请忽略此邮件。",
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except (SMTPException, OSError) as exc:
+        verification.used_at = timezone.now()
+        verification.save(update_fields=["used_at"])
+        logger.exception("Failed to send registration code to %s: %s", email, exc)
+        return _json_error("验证码邮件发送失败，请检查邮箱服务配置", status=502)
     return JsonResponse({"ok": True, "message": "验证码已发送，请查看邮箱"})
 
 
@@ -214,8 +236,9 @@ def register_view(request):
     code = payload.get("code") or ""
     display_name = (payload.get("display_name") or "").strip()
 
-    if not email or "@" not in email:
-        return _json_error("请输入有效邮箱地址", field="email")
+    email_error = _email_error(email)
+    if email_error:
+        return _json_error(email_error, field="email")
     if len(password) < 8:
         return _json_error("密码至少需要 8 位", field="password")
 

@@ -63,6 +63,29 @@ class AccountApiTests(TestCase):
         session_response = self.client.get(reverse("account_session"))
         self.assertEqual(session_response.json()["user"]["email"], "newuser@example.com")
 
+    def test_send_code_rejects_invalid_email(self):
+        response = post_json(self.client, "account_send_code", {"email": "not-an-email"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field"], "email")
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertFalse(EmailVerificationCode.objects.exists())
+
+    def test_register_rejects_invalid_email(self):
+        response = post_json(
+            self.client,
+            "account_register",
+            {
+                "email": "bad@",
+                "password": "test-password",
+                "code": "123456",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field"], "email")
+        self.assertFalse(get_user_model().objects.filter(email="bad@").exists())
+
     def test_register_rejects_wrong_code(self):
         post_json(self.client, "account_send_code", {"email": "wrong@example.com"})
 
