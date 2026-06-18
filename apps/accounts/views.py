@@ -7,6 +7,8 @@ from datetime import timedelta
 from pathlib import Path
 from smtplib import SMTPException
 
+from django.contrib import admin
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMultiAlternatives
@@ -14,7 +16,9 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils import timezone
@@ -184,6 +188,44 @@ def _validate_avatar_bytes(original_bytes):
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
         return False
     return True
+
+
+def _admin_image_file_payload(file_field):
+    payload = {
+        "name": "",
+        "url": "",
+        "size": None,
+        "width": None,
+        "height": None,
+    }
+    if not file_field or not file_field.name:
+        return payload
+
+    payload["name"] = file_field.name
+    try:
+        payload["url"] = file_field.url
+    except ValueError:
+        payload["url"] = ""
+    try:
+        payload["size"] = file_field.size
+    except (OSError, ValueError):
+        payload["size"] = None
+    try:
+        with file_field.open("rb") as image_file:
+            with Image.open(image_file) as image:
+                payload["width"], payload["height"] = image.size
+    except (UnidentifiedImageError, OSError, ValueError):
+        pass
+    return payload
+
+
+def _admin_avatar_gallery_item(profile):
+    return {
+        "profile": profile,
+        "avatar": _admin_image_file_payload(profile.avatar),
+        "original_avatar": _admin_image_file_payload(profile.original_avatar),
+        "display_name": profile.display_name or profile.user.get_full_name() or profile.user.get_username(),
+    }
 
 
 def _unique_username_from_email(email):
@@ -459,3 +501,42 @@ def profile_view(request):
     profile.save()
     message = "已使用随机默认头像" if use_random_default_avatar else "资料已更新"
     return JsonResponse({"ok": True, "message": message, "user": _user_payload(request.user, request)})
+
+
+@staff_member_required
+def admin_avatar_gallery(request):
+    query = (request.GET.get("q") or "").strip()
+    profiles = UserProfile.objects.select_related("user").exclude(avatar="")
+    if query:
+        profiles = profiles.filter(
+            Q(display_name__icontains=query)
+            | Q(user__username__icontains=query)
+            | Q(user__email__icontains=query)
+            | Q(avatar__icontains=query)
+            | Q(original_avatar__icontains=query)
+        )
+    profiles = profiles.order_by("-updated_at", "-created_at")
+    items = [_admin_avatar_gallery_item(profile) for profile in profiles]
+
+    context = admin.site.each_context(request)
+    context.update({
+        "title": "头像画册",
+        "items": items,
+        "item_count": len(items),
+        "query": query,
+    })
+    return render(request, "admin/avatar_gallery.html", context)
+
+
+@staff_member_required
+def admin_avatar_gallery_detail(request, profile_id):
+    profile = get_object_or_404(
+        UserProfile.objects.select_related("user").exclude(avatar=""),
+        pk=profile_id,
+    )
+    context = admin.site.each_context(request)
+    context.update({
+        "title": f"头像详情 - {profile.display_name or profile.user.get_username()}",
+        "item": _admin_avatar_gallery_item(profile),
+    })
+    return render(request, "admin/avatar_gallery_detail.html", context)

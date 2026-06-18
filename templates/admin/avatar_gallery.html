@@ -1,0 +1,133 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .avatar-gallery-shell {
+        display: grid;
+        gap: 18px;
+    }
+    .avatar-gallery-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    .avatar-gallery-search {
+        display: flex;
+        flex: 1 1 320px;
+        gap: 8px;
+    }
+    .avatar-gallery-search input {
+        min-width: 240px;
+        width: min(520px, 100%);
+    }
+    .avatar-gallery-summary {
+        color: var(--body-quiet-color);
+        white-space: nowrap;
+    }
+    .avatar-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 14px;
+    }
+    .avatar-gallery-card {
+        overflow: hidden;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    .avatar-gallery-thumb-link {
+        display: block;
+        aspect-ratio: 1;
+        background: var(--darkened-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+    .avatar-gallery-thumb {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .avatar-gallery-meta {
+        display: grid;
+        gap: 5px;
+        padding: 11px;
+        font-size: 12px;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+    .avatar-gallery-meta strong {
+        color: var(--body-fg);
+        font-size: 13px;
+    }
+    .avatar-gallery-quiet {
+        color: var(--body-quiet-color);
+    }
+    .avatar-gallery-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-top: 4px;
+    }
+    .avatar-gallery-empty {
+        padding: 24px;
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--body-quiet-color);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">首页</a>
+    &rsaquo; 头像画册
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="avatar-gallery-shell">
+    <div class="avatar-gallery-toolbar">
+        <form class="avatar-gallery-search" action="{% url 'admin_avatar_gallery' %}" method="get">
+            <input type="search" name="q" value="{{ query }}" placeholder="搜索昵称、用户名、邮箱或文件名">
+            <button type="submit" class="button">搜索</button>
+            {% if query %}
+                <a class="button" href="{% url 'admin_avatar_gallery' %}">清除</a>
+            {% endif %}
+        </form>
+        <div class="avatar-gallery-summary">共 {{ item_count }} 张压缩头像</div>
+    </div>
+
+    {% if items %}
+        <div class="avatar-gallery-grid">
+            {% for item in items %}
+                <article class="avatar-gallery-card">
+                    <a class="avatar-gallery-thumb-link" href="{% url 'admin_avatar_gallery_detail' item.profile.id %}">
+                        <img class="avatar-gallery-thumb" src="{{ item.avatar.url }}" alt="{{ item.display_name }}">
+                    </a>
+                    <div class="avatar-gallery-meta">
+                        <strong>{{ item.display_name }}</strong>
+                        <span class="avatar-gallery-quiet">{{ item.profile.user.email|default:item.profile.user.username }}</span>
+                        <span>{{ item.avatar.width|default:"?" }} x {{ item.avatar.height|default:"?" }} · {% if item.avatar.size %}{{ item.avatar.size|filesizeformat }}{% else %}未知大小{% endif %}</span>
+                        <span class="avatar-gallery-quiet">{{ item.avatar.name }}</span>
+                        <div class="avatar-gallery-actions">
+                            <a class="button" href="{% url 'admin_avatar_gallery_detail' item.profile.id %}">查看详情</a>
+                            {% if item.original_avatar.url %}
+                                <a class="button" href="{{ item.original_avatar.url }}" target="_blank" rel="noopener">查看原图</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="avatar-gallery-empty">暂无压缩头像。</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -32,6 +32,13 @@ class UserProfile(models.Model):
         return self.display_name or self.user.get_username()
 
 
+class AvatarGalleryAdminEntry(models.Model):
+    class Meta:
+        managed = False
+        verbose_name = "头像画册"
+        verbose_name_plural = "头像画册"
+
+
 class EmailVerificationCode(models.Model):
     PURPOSE_REGISTER = "register"
     PURPOSE_CHOICES = (

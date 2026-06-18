@@ -1,0 +1,153 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .avatar-detail-shell {
+        display: grid;
+        gap: 18px;
+    }
+    .avatar-detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .avatar-detail-layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 520px) minmax(260px, 1fr);
+        gap: 18px;
+        align-items: start;
+    }
+    .avatar-detail-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 360px;
+        padding: 18px;
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    .avatar-detail-preview img {
+        display: block;
+        max-width: 100%;
+        max-height: 620px;
+        border-radius: 8px;
+    }
+    .avatar-detail-panel {
+        padding: 14px;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    .avatar-detail-panel h2 {
+        margin: 0 0 10px;
+        font-size: 15px;
+    }
+    .avatar-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .avatar-detail-table th,
+    .avatar-detail-table td {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+        vertical-align: top;
+        word-break: break-word;
+    }
+    .avatar-detail-table th {
+        width: 96px;
+        color: var(--body-quiet-color);
+        font-weight: 500;
+    }
+    .avatar-detail-original {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+    }
+    @media (max-width: 860px) {
+        .avatar-detail-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">首页</a>
+    &rsaquo; <a href="{% url 'admin_avatar_gallery' %}">头像画册</a>
+    &rsaquo; {{ item.display_name }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="avatar-detail-shell">
+    <div class="avatar-detail-actions">
+        <a class="button" href="{% url 'admin_avatar_gallery' %}">返回画册</a>
+        <a class="button" href="{{ item.avatar.url }}" target="_blank" rel="noopener">打开压缩图</a>
+        {% if item.original_avatar.url %}
+            <a class="button" href="{{ item.original_avatar.url }}" target="_blank" rel="noopener">查看原图</a>
+        {% endif %}
+    </div>
+
+    <div class="avatar-detail-layout">
+        <a class="avatar-detail-preview" href="{{ item.avatar.url }}" target="_blank" rel="noopener" title="打开压缩图">
+            <img src="{{ item.avatar.url }}" alt="{{ item.display_name }}">
+        </a>
+
+        <section class="avatar-detail-panel">
+            <h2>头像信息</h2>
+            <table class="avatar-detail-table">
+                <tbody>
+                <tr>
+                    <th>用户</th>
+                    <td>{{ item.display_name }}<br>{{ item.profile.user.email|default:item.profile.user.username }}</td>
+                </tr>
+                <tr>
+                    <th>压缩图</th>
+                    <td>{{ item.avatar.name }}</td>
+                </tr>
+                <tr>
+                    <th>尺寸</th>
+                    <td>{{ item.avatar.width|default:"?" }} x {{ item.avatar.height|default:"?" }}</td>
+                </tr>
+                <tr>
+                    <th>大小</th>
+                    <td>{% if item.avatar.size %}{{ item.avatar.size|filesizeformat }}{% else %}未知大小{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>更新时间</th>
+                    <td>{{ item.profile.updated_at|date:"Y-m-d H:i:s" }}</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="avatar-detail-original">
+                <h2>原图</h2>
+                {% if item.original_avatar.url %}
+                    <table class="avatar-detail-table">
+                        <tbody>
+                        <tr>
+                            <th>文件</th>
+                            <td>{{ item.original_avatar.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>尺寸</th>
+                            <td>{{ item.original_avatar.width|default:"?" }} x {{ item.original_avatar.height|default:"?" }}</td>
+                        </tr>
+                        <tr>
+                            <th>大小</th>
+                            <td>{% if item.original_avatar.size %}{{ item.original_avatar.size|filesizeformat }}{% else %}未知大小{% endif %}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <p><a class="button" href="{{ item.original_avatar.url }}" target="_blank" rel="noopener">点击查看原图</a></p>
+                {% else %}
+                    <p>这个头像没有保存原图。</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

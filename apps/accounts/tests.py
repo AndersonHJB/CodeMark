@@ -18,6 +18,13 @@ from .random_profiles import DEFAULT_BIOS, DEFAULT_NICKNAMES
 from .views import MAX_AVATAR_BYTES
 
 
+TINY_PNG_BYTES = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01"
+    b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
 def post_json(client, url_name, payload):
     return client.post(
         reverse(url_name),
@@ -31,6 +38,10 @@ def noisy_png_upload(name="large-avatar.png", size=(1200, 1200)):
     output = io.BytesIO()
     image.save(output, format="PNG")
     return SimpleUploadedFile(name, output.getvalue(), content_type="image/png")
+
+
+def tiny_png_upload(name="avatar.png"):
+    return SimpleUploadedFile(name, TINY_PNG_BYTES, content_type="image/png")
 
 
 @override_settings(
@@ -353,6 +364,91 @@ class AccountApiTests(TestCase):
                 payload = profile_response.json()
                 self.assertEqual(payload["user"]["display_name"], "CSRF 头像")
                 self.assertIn("/media/accounts/avatars/", payload["user"]["avatar_url"])
+
+
+class AdminAvatarGalleryViewTests(TestCase):
+    def test_avatar_gallery_requires_staff_login(self):
+        response = self.client.get(reverse("admin_avatar_gallery"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response["Location"])
+
+    def test_staff_user_can_view_avatar_gallery_and_detail(self):
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                User = get_user_model()
+                staff_user = User.objects.create_user(
+                    username="avatar-admin",
+                    password="test-password",
+                    is_staff=True,
+                    is_superuser=True,
+                )
+                avatar_user = User.objects.create_user(
+                    username="gallery-user",
+                    email="gallery@example.com",
+                    password="test-password",
+                )
+                profile = UserProfile.objects.create(
+                    user=avatar_user,
+                    display_name="画册用户",
+                    avatar=tiny_png_upload("compressed.png"),
+                    original_avatar=tiny_png_upload("original.png"),
+                )
+                client = Client()
+                client.force_login(staff_user)
+
+                gallery_response = client.get(reverse("admin_avatar_gallery"))
+
+                self.assertEqual(gallery_response.status_code, 200)
+                self.assertContains(gallery_response, "头像画册")
+                self.assertContains(gallery_response, "画册用户")
+                self.assertContains(gallery_response, "<img", html=False)
+                self.assertContains(
+                    gallery_response,
+                    reverse("admin_avatar_gallery_detail", kwargs={"profile_id": profile.id}),
+                )
+
+                detail_response = client.get(
+                    reverse("admin_avatar_gallery_detail", kwargs={"profile_id": profile.id})
+                )
+
+                self.assertEqual(detail_response.status_code, 200)
+                self.assertContains(detail_response, "点击查看原图")
+                self.assertContains(detail_response, profile.avatar.url)
+                self.assertContains(detail_response, profile.original_avatar.url)
+
+    def test_admin_index_has_avatar_gallery_entry(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="gallery-admin-index",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "头像画册")
+        self.assertContains(response, reverse("admin:accounts_avatargalleryadminentry_changelist"))
+
+    def test_avatar_gallery_admin_entry_redirects_to_gallery(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="gallery-admin-entry",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(reverse("admin:accounts_avatargalleryadminentry_changelist"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("admin_avatar_gallery"))
 
 
 class AccountTemplateTests(TestCase):

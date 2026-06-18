@@ -4,6 +4,8 @@ from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 
+from apps.accounts import views as account_views
+
 
 urlpatterns = [
     path("accounts/", include("apps.accounts.urls")),
@@ -12,6 +14,12 @@ urlpatterns = [
     path("", include("apps.cpp_editor.urls")),
     path("", include("apps.sharing.urls")),
     path("", include("apps.algorithms.urls")),
+    path("admin/avatar-gallery/", account_views.admin_avatar_gallery, name="admin_avatar_gallery"),
+    path(
+        "admin/avatar-gallery/<int:profile_id>/",
+        account_views.admin_avatar_gallery_detail,
+        name="admin_avatar_gallery_detail",
+    ),
     path("admin/", admin.site.urls),
 ]
 
