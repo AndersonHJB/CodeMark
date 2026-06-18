@@ -4,10 +4,11 @@ import markdown
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Prefetch, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import escape
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
@@ -17,6 +18,9 @@ from PIL import Image
 from .forms import validate_blog_image, BlogPostForm
 from .models import BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 from .sanitizer import sanitize_rich_text
+
+
+MAX_PINNED_COMMENTS = 10
 
 
 def _display_name(user):
@@ -66,6 +70,10 @@ def _post_queryset():
 
 def _public_posts():
     return _post_queryset().filter(status=BlogPost.STATUS_PUBLISHED)
+
+
+def _can_moderate_post(user, post):
+    return bool(user and user.is_authenticated and (post.author_id == user.id or user.is_staff))
 
 
 def _render_markdown(content):
@@ -174,10 +182,21 @@ def blog_detail(request, slug):
         BlogPost.objects.filter(pk=post.pk).update(view_count=F("view_count") + 1)
         post.view_count += 1
 
-    comments = (
-        post.comments.filter(is_deleted=False)
+    reply_queryset = (
+        BlogComment.objects.filter(is_deleted=False)
         .select_related("author", "author__codemark_profile")
         .order_by("created_at")
+    )
+    comments = (
+        post.comments.filter(is_deleted=False, parent__isnull=True)
+        .select_related("author", "author__codemark_profile")
+        .prefetch_related(Prefetch("replies", queryset=reply_queryset, to_attr="visible_replies"))
+        .order_by("created_at")
+    )
+    pinned_comments = (
+        post.comments.filter(is_deleted=False, parent__isnull=True, is_pinned=True)
+        .select_related("author", "author__codemark_profile")
+        .order_by("-pinned_at", "-created_at")[:MAX_PINNED_COMMENTS]
     )
     related_posts = (
         _public_posts()
@@ -199,6 +218,10 @@ def blog_detail(request, slug):
             "post": post,
             "body_html": render_post_body(post),
             "comments": comments,
+            "pinned_comments": pinned_comments,
+            "comment_count": post.comment_total,
+            "max_pinned_comments": MAX_PINNED_COMMENTS,
+            "can_moderate_comments": _can_moderate_post(request.user, post),
             "related_posts": related_posts,
             "user_liked": user_liked,
             "user_bookmarked": user_bookmarked,
@@ -309,14 +332,49 @@ def blog_add_comment(request, slug):
     if not post.visible_to(request.user) or not post.allow_comments:
         raise Http404("文章不存在")
     content = strip_tags((request.POST.get("content") or "").strip())
+    parent = None
+    parent_id = request.POST.get("parent_id")
+    if parent_id:
+        parent = get_object_or_404(BlogComment, pk=parent_id, post=post, is_deleted=False, parent__isnull=True)
     if len(content) < 2:
         messages.error(request, "评论至少需要 2 个字符")
     elif len(content) > 1200:
         messages.error(request, "评论不能超过 1200 个字符")
     else:
-        BlogComment.objects.create(post=post, author=request.user, content=content)
-        messages.success(request, "评论已发布")
+        comment = BlogComment.objects.create(post=post, parent=parent, author=request.user, content=content)
+        messages.success(request, "回复已发布" if parent else "评论已发布")
+        return redirect(f"{post.get_absolute_url()}#comment-{comment.id}")
     return redirect(f"{post.get_absolute_url()}#comments")
+
+
+@require_POST
+@blog_login_required
+def blog_toggle_comment_pin(request, slug, comment_id):
+    post = get_object_or_404(BlogPost, slug=slug)
+    if not _can_moderate_post(request.user, post):
+        raise Http404("文章不存在")
+    comment = get_object_or_404(BlogComment, pk=comment_id, post=post, is_deleted=False)
+    if comment.parent_id:
+        messages.error(request, "目前仅支持置顶主评论")
+        return redirect(f"{post.get_absolute_url()}#comment-{comment.id}")
+
+    if comment.is_pinned:
+        comment.is_pinned = False
+        comment.pinned_at = None
+        comment.save(update_fields=["is_pinned", "pinned_at", "updated_at"])
+        messages.success(request, "已取消置顶")
+        return redirect(f"{post.get_absolute_url()}#comment-{comment.id}")
+
+    pinned_count = post.comments.filter(is_deleted=False, parent__isnull=True, is_pinned=True).count()
+    if pinned_count >= MAX_PINNED_COMMENTS:
+        messages.error(request, f"最多只能置顶 {MAX_PINNED_COMMENTS} 条评论")
+        return redirect(f"{post.get_absolute_url()}#comments")
+
+    comment.is_pinned = True
+    comment.pinned_at = timezone.now()
+    comment.save(update_fields=["is_pinned", "pinned_at", "updated_at"])
+    messages.success(request, "评论已置顶")
+    return redirect(f"{post.get_absolute_url()}#comment-{comment.id}")
 
 
 @require_POST

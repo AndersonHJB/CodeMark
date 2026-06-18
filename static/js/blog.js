@@ -105,6 +105,39 @@
         }
     }
 
+    function initCommentReplies() {
+        document.querySelectorAll("[data-comment-reply-target]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const targetId = button.dataset.commentReplyTarget;
+                const form = document.querySelector("[data-comment-reply-form='" + targetId + "']");
+                if (!form) {
+                    return;
+                }
+                document.querySelectorAll("[data-comment-reply-form]").forEach(function (replyForm) {
+                    if (replyForm !== form) {
+                        replyForm.hidden = true;
+                    }
+                });
+                form.hidden = !form.hidden;
+                if (!form.hidden) {
+                    const textarea = form.querySelector("textarea");
+                    if (textarea) {
+                        textarea.focus();
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll("[data-comment-reply-cancel]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const form = button.closest("[data-comment-reply-form]");
+                if (form) {
+                    form.hidden = true;
+                }
+            });
+        });
+    }
+
     function initEditor() {
         const editor = document.querySelector("[data-blog-editor]");
         if (!editor) {
@@ -334,5 +367,6 @@
 
     initLoginPrompt();
     initPostActions();
+    initCommentReplies();
     initEditor();
 })();

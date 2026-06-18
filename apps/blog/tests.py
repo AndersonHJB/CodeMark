@@ -4,9 +4,10 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
+from django.utils import timezone
 
 from . import views
-from .models import BlogBookmark, BlogPost, BlogReaction, BlogTag
+from .models import BlogBookmark, BlogComment, BlogPost, BlogReaction, BlogTag
 
 
 TINY_PNG_BYTES = (
@@ -28,6 +29,10 @@ class BlogUrlPatternTests(SimpleTestCase):
             "blog_mine": (reverse("blog_mine"), views.blog_mine),
             "blog_detail": (reverse("blog_detail", kwargs={"slug": "demo"}), views.blog_detail),
             "blog_upload_image": (reverse("blog_upload_image"), views.blog_upload_image),
+            "blog_toggle_comment_pin": (
+                reverse("blog_toggle_comment_pin", kwargs={"slug": "demo", "comment_id": 1}),
+                views.blog_toggle_comment_pin,
+            ),
         }
 
         for route_name, (path, view_func) in expected_routes.items():
@@ -151,3 +156,96 @@ class BlogPostFlowTests(TestCase):
 
         self.assertIn(published, list(response.context["posts"]))
         self.assertNotIn(other, list(response.context["posts"]))
+
+    def test_comment_reply_threads_render_on_detail_page(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="支持评论回复的文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        parent = BlogComment.objects.create(post=post, author=self.user, content="主评论")
+
+        response = self.client.post(
+            reverse("blog_add_comment", kwargs={"slug": post.slug}),
+            {"parent_id": str(parent.id), "content": "这是一条回复"},
+        )
+
+        reply = BlogComment.objects.get(parent=parent)
+        self.assertRedirects(response, f"{post.get_absolute_url()}#comment-{reply.id}")
+        detail_response = self.client.get(post.get_absolute_url())
+        self.assertContains(detail_response, "主评论")
+        self.assertContains(detail_response, "这是一条回复")
+        self.assertContains(detail_response, f'data-comment-reply-form="{parent.id}"', html=False)
+
+    def test_only_author_can_pin_top_level_comments_up_to_ten(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="支持置顶评论的文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        outsider = get_user_model().objects.create_user(
+            username="outsider",
+            email="outsider@example.com",
+            password="test-password",
+        )
+        normal_comment = BlogComment.objects.create(post=post, author=outsider, content="值得置顶的评论")
+        reply = BlogComment.objects.create(post=post, parent=normal_comment, author=self.user, content="回复不能置顶")
+
+        outsider_client = Client()
+        outsider_client.force_login(outsider)
+        outsider_response = outsider_client.post(
+            reverse("blog_toggle_comment_pin", kwargs={"slug": post.slug, "comment_id": normal_comment.id})
+        )
+        self.assertEqual(outsider_response.status_code, 404)
+
+        reply_response = self.client.post(
+            reverse("blog_toggle_comment_pin", kwargs={"slug": post.slug, "comment_id": reply.id})
+        )
+        reply.refresh_from_db()
+        self.assertRedirects(reply_response, f"{post.get_absolute_url()}#comment-{reply.id}")
+        self.assertFalse(reply.is_pinned)
+
+        pin_response = self.client.post(
+            reverse("blog_toggle_comment_pin", kwargs={"slug": post.slug, "comment_id": normal_comment.id})
+        )
+        normal_comment.refresh_from_db()
+        self.assertRedirects(pin_response, f"{post.get_absolute_url()}#comment-{normal_comment.id}")
+        self.assertTrue(normal_comment.is_pinned)
+        self.assertIsNotNone(normal_comment.pinned_at)
+
+        unpin_response = self.client.post(
+            reverse("blog_toggle_comment_pin", kwargs={"slug": post.slug, "comment_id": normal_comment.id})
+        )
+        normal_comment.refresh_from_db()
+        self.assertRedirects(unpin_response, f"{post.get_absolute_url()}#comment-{normal_comment.id}")
+        self.assertFalse(normal_comment.is_pinned)
+        self.assertIsNone(normal_comment.pinned_at)
+
+    def test_comment_pin_limit_is_ten(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="置顶数量限制文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        pinned_at = timezone.now()
+        for index in range(10):
+            BlogComment.objects.create(
+                post=post,
+                author=self.user,
+                content=f"已置顶评论 {index}",
+                is_pinned=True,
+                pinned_at=pinned_at,
+            )
+        eleventh = BlogComment.objects.create(post=post, author=self.user, content="第十一条评论")
+
+        response = self.client.post(
+            reverse("blog_toggle_comment_pin", kwargs={"slug": post.slug, "comment_id": eleventh.id})
+        )
+
+        eleventh.refresh_from_db()
+        self.assertRedirects(response, f"{post.get_absolute_url()}#comments")
+        self.assertFalse(eleventh.is_pinned)
+        self.assertEqual(post.comments.filter(is_pinned=True).count(), 10)

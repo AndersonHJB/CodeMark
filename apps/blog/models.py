@@ -183,8 +183,18 @@ class BlogImage(models.Model):
 
 class BlogComment(models.Model):
     post = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name="comments", verbose_name="文章")
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="replies",
+        verbose_name="父评论",
+    )
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="blog_comments", verbose_name="作者")
     content = models.TextField("评论内容", max_length=1200)
+    is_pinned = models.BooleanField("已置顶", default=False)
+    pinned_at = models.DateTimeField("置顶时间", null=True, blank=True)
     is_deleted = models.BooleanField("已删除", default=False)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
@@ -195,10 +205,16 @@ class BlogComment(models.Model):
         verbose_name_plural = "博客评论"
         indexes = [
             models.Index(fields=["post", "is_deleted", "created_at"]),
+            models.Index(fields=["post", "parent", "is_deleted", "created_at"]),
+            models.Index(fields=["post", "is_pinned", "-pinned_at"]),
         ]
 
     def __str__(self):
         return f"{self.author} @ {self.post}"
+
+    @property
+    def is_reply(self):
+        return self.parent_id is not None
 
 
 class BlogReaction(models.Model):

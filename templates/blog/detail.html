@@ -6,7 +6,6 @@
 <article class="blog-detail" data-blog-post data-like-url="{% url 'blog_toggle_reaction' post.slug %}" data-bookmark-url="{% url 'blog_toggle_bookmark' post.slug %}">
     <header class="blog-detail-head">
         <div class="blog-detail-meta">
-            {% if post.category %}<a href="{% url 'blog_list' %}?category={{ post.category|urlencode }}">{{ post.category }}</a>{% endif %}
             <span>{{ post.display_status }}</span>
             <span>{{ post.published_at|default:post.updated_at|date:"Y-m-d H:i" }}</span>
             <span>{{ post.read_minutes }} 分钟阅读</span>
@@ -31,13 +30,28 @@
                 <a class="blog-btn blog-btn-danger" href="{% url 'blog_delete' post.slug %}">删除</a>
             {% endif %}
         </div>
-        {% if post.tags.all %}
-            <div class="blog-tag-row">
-                {% for tag in post.tags.all %}
-                    <a href="{% url 'blog_tag' tag.slug %}">#{{ tag.name }}</a>
-                {% endfor %}
+        <div class="blog-detail-taxonomy" aria-label="文章分类和标签">
+            <div>
+                <span>分类</span>
+                {% if post.category %}
+                    <a href="{% url 'blog_list' %}?category={{ post.category|urlencode }}">{{ post.category }}</a>
+                {% else %}
+                    <em>未分类</em>
+                {% endif %}
             </div>
-        {% endif %}
+            <div>
+                <span>标签</span>
+                {% if post.tags.all %}
+                    <div class="blog-tag-row">
+                        {% for tag in post.tags.all %}
+                            <a href="{% url 'blog_tag' tag.slug %}">#{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <em>暂无标签</em>
+                {% endif %}
+            </div>
+        </div>
     </header>
 
     {% if post.cover_image %}
@@ -54,7 +68,7 @@
 <section class="blog-comments" id="comments" aria-labelledby="commentsTitle">
     <div class="blog-section-head">
         <h2 id="commentsTitle">评论</h2>
-        <span>{{ comments|length }} 条</span>
+        <span>{{ comment_count }} 条 · 最多置顶 {{ max_pinned_comments }} 条</span>
     </div>
     {% if post.allow_comments %}
         {% if request.user.is_authenticated %}
@@ -76,14 +90,78 @@
         <div class="blog-login-note">作者已关闭评论。</div>
     {% endif %}
 
+    {% if pinned_comments %}
+        <section class="blog-pinned-comments" aria-label="置顶评论">
+            <div class="blog-mini-head">
+                <h3>作者置顶</h3>
+                <span>{{ pinned_comments|length }}/{{ max_pinned_comments }}</span>
+            </div>
+            <div class="blog-pinned-list">
+                {% for comment in pinned_comments %}
+                    <a class="blog-pinned-comment" href="#comment-{{ comment.id }}">
+                        <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                        <span>{{ comment.content|truncatechars:96 }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
     <div class="blog-comment-list">
         {% for comment in comments %}
-            <article class="blog-comment">
-                <div>
-                    <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
-                    <span>{{ comment.created_at|date:"Y-m-d H:i" }}</span>
-                </div>
+            <article id="comment-{{ comment.id }}" class="blog-comment{% if comment.is_pinned %} is-pinned{% endif %}">
+                <header class="blog-comment-head">
+                    <div>
+                        <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                        {% if comment.is_pinned %}<em>作者置顶</em>{% endif %}
+                        <span>{{ comment.created_at|date:"Y-m-d H:i" }}</span>
+                    </div>
+                    <div class="blog-comment-actions">
+                        {% if request.user.is_authenticated and post.allow_comments %}
+                            <button type="button"
+                                    data-comment-reply-target="{{ comment.id }}"
+                                    data-comment-author="{{ comment.author.get_full_name|default:comment.author.username }}">
+                                回复
+                            </button>
+                        {% endif %}
+                        {% if can_moderate_comments %}
+                            <form method="post" action="{% url 'blog_toggle_comment_pin' post.slug comment.id %}">
+                                {% csrf_token %}
+                                <button type="submit">{% if comment.is_pinned %}取消置顶{% else %}置顶{% endif %}</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </header>
                 <p>{{ comment.content|linebreaksbr }}</p>
+
+                {% if request.user.is_authenticated and post.allow_comments %}
+                    <form class="blog-comment-form blog-reply-form" method="post" action="{% url 'blog_add_comment' post.slug %}" hidden data-comment-reply-form="{{ comment.id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                        <label>
+                            <span>回复 {{ comment.author.get_full_name|default:comment.author.username }}</span>
+                            <textarea name="content" rows="3" maxlength="1200" required></textarea>
+                        </label>
+                        <div class="blog-reply-actions">
+                            <button class="blog-btn blog-btn-primary" type="submit">发布回复</button>
+                            <button class="blog-btn blog-btn-ghost" type="button" data-comment-reply-cancel>取消</button>
+                        </div>
+                    </form>
+                {% endif %}
+
+                {% if comment.visible_replies %}
+                    <div class="blog-reply-list" aria-label="评论回复">
+                        {% for reply in comment.visible_replies %}
+                            <article id="comment-{{ reply.id }}" class="blog-reply">
+                                <div>
+                                    <strong>{{ reply.author.get_full_name|default:reply.author.username }}</strong>
+                                    <span>{{ reply.created_at|date:"Y-m-d H:i" }}</span>
+                                </div>
+                                <p>{{ reply.content|linebreaksbr }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </article>
         {% empty %}
             <p class="blog-muted">还没有评论。</p>

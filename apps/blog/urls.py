@@ -13,6 +13,7 @@ urlpatterns = [
     path("blog/<str:slug>/edit/", views.blog_edit, name="blog_edit"),
     path("blog/<str:slug>/delete/", views.blog_delete, name="blog_delete"),
     path("blog/<str:slug>/comments/", views.blog_add_comment, name="blog_add_comment"),
+    path("blog/<str:slug>/comments/<int:comment_id>/pin/", views.blog_toggle_comment_pin, name="blog_toggle_comment_pin"),
     path("blog/<str:slug>/reaction/", views.blog_toggle_reaction, name="blog_toggle_reaction"),
     path("blog/<str:slug>/bookmark/", views.blog_toggle_bookmark, name="blog_toggle_bookmark"),
     path("blog/<str:slug>/", views.blog_detail, name="blog_detail"),

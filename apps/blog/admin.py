@@ -30,10 +30,10 @@ class BlogImageAdmin(admin.ModelAdmin):
 
 @admin.register(BlogComment)
 class BlogCommentAdmin(admin.ModelAdmin):
-    list_display = ("post", "author", "is_deleted", "created_at")
-    list_filter = ("is_deleted", "created_at")
+    list_display = ("post", "author", "parent", "is_pinned", "is_deleted", "created_at")
+    list_filter = ("is_pinned", "is_deleted", "created_at")
     search_fields = ("content", "post__title", "author__username", "author__email")
-    autocomplete_fields = ("post", "author")
+    autocomplete_fields = ("post", "parent", "author")
 
 
 @admin.register(BlogReaction)
