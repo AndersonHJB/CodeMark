@@ -16,6 +16,7 @@
     const profileForm = document.querySelector("[data-account-profile-form]");
     const sendCodeButton = document.querySelector("[data-account-send-code]");
     const randomDefaultAvatarButton = document.querySelector("[data-account-use-random-default]");
+    const randomProfileButtons = document.querySelectorAll("[data-account-random-profile]");
     let toastTimer = null;
     let sendCodeTimer = null;
 
@@ -93,6 +94,16 @@
                 "X-CSRFToken": csrfToken()
             },
             body: JSON.stringify(payload || {})
+        }).then(parseApiResponse);
+    }
+
+    function getRequest(url) {
+        return fetch(url, {
+            method: "GET",
+            credentials: "same-origin",
+            headers: {
+                "Accept": "application/json"
+            }
         }).then(parseApiResponse);
     }
 
@@ -255,6 +266,34 @@
         }, 1000);
     }
 
+    function setFormField(form, fieldName, value) {
+        const field = form && form.querySelector("[name='" + fieldName + "']");
+        if (!field) {
+            return;
+        }
+        field.value = value || "";
+        field.dispatchEvent(new Event("input", {bubbles: true}));
+    }
+
+    function applyRandomProfile(form, fieldName, profile) {
+        if (!profile) {
+            return;
+        }
+        if (fieldName === "display_name") {
+            setFormField(form, "display_name", profile.display_name);
+            if (form === profileForm) {
+                const previewName = form.querySelector("[data-account-name]");
+                if (previewName) {
+                    previewName.textContent = profile.display_name || "CodeMark 用户";
+                }
+            }
+            return;
+        }
+        if (fieldName === "bio") {
+            setFormField(form, "bio", profile.bio);
+        }
+    }
+
     document.addEventListener("click", function (event) {
         const trigger = event.target.closest("[data-account-trigger]");
         if (trigger) {
@@ -356,6 +395,31 @@
                 });
         });
     }
+
+    randomProfileButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            const form = button.closest("form");
+            const fieldName = button.dataset.accountRandomProfile;
+            if (!form || !fieldName) {
+                return;
+            }
+            if (!config.randomProfileUrl) {
+                showToast("随机资料接口未配置", true);
+                return;
+            }
+
+            const restore = setButtonLoading(button, "抽取中");
+            getRequest(config.randomProfileUrl)
+                .then(function (data) {
+                    applyRandomProfile(form, fieldName, data.profile);
+                    showToast(fieldName === "bio" ? "已随机生成个人简介" : "已随机生成昵称");
+                })
+                .catch(function (error) {
+                    showToast(error.message, true);
+                })
+                .finally(restore);
+        });
+    });
 
     if (loginForm) {
         loginForm.addEventListener("submit", function (event) {

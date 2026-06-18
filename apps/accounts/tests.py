@@ -11,6 +11,7 @@ from django.urls import reverse
 
 from .avatars import DEFAULT_AVATAR_STATIC_PATHS
 from .models import EmailVerificationCode, UserProfile
+from .random_profiles import DEFAULT_BIOS, DEFAULT_NICKNAMES
 
 
 def post_json(client, url_name, payload):
@@ -40,6 +41,7 @@ class AccountApiTests(TestCase):
             {
                 "email": "newuser@example.com",
                 "display_name": "新用户",
+                "bio": "正在学习编程",
                 "password": "test-password",
                 "code": code,
             },
@@ -55,6 +57,7 @@ class AccountApiTests(TestCase):
         user = User.objects.get(email="newuser@example.com")
         profile = UserProfile.objects.get(user=user)
         self.assertEqual(profile.display_name, "新用户")
+        self.assertEqual(profile.bio, "正在学习编程")
         self.assertIn(profile.default_avatar, DEFAULT_AVATAR_STATIC_PATHS)
         avatar_path = unquote(urlparse(payload["user"]["avatar_url"]).path)
         self.assertTrue(avatar_path.endswith(f"/static/{profile.default_avatar}"))
@@ -62,6 +65,41 @@ class AccountApiTests(TestCase):
 
         session_response = self.client.get(reverse("account_session"))
         self.assertEqual(session_response.json()["user"]["email"], "newuser@example.com")
+
+    def test_random_profile_endpoint_returns_builtin_defaults(self):
+        self.assertEqual(len(DEFAULT_NICKNAMES), 10000)
+        self.assertEqual(len(DEFAULT_BIOS), 10000)
+
+        response = self.client.get(reverse("account_random_profile"))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["ok"], True)
+        self.assertIn(payload["profile"]["display_name"], DEFAULT_NICKNAMES)
+        self.assertIn(payload["profile"]["bio"], DEFAULT_BIOS)
+        self.assertLessEqual(len(payload["profile"]["display_name"]), 40)
+        self.assertLessEqual(len(payload["profile"]["bio"]), 160)
+
+    def test_register_uses_random_default_nickname_when_blank(self):
+        post_json(self.client, "account_send_code", {"email": "blank-name@example.com"})
+        code = re.search(r"(\d{6})", mail.outbox[-1].body).group(1)
+
+        response = post_json(
+            self.client,
+            "account_register",
+            {
+                "email": "blank-name@example.com",
+                "display_name": "   ",
+                "password": "test-password",
+                "code": code,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        display_name = response.json()["user"]["display_name"]
+        self.assertIn(display_name, DEFAULT_NICKNAMES)
+        profile = UserProfile.objects.get(user__email="blank-name@example.com")
+        self.assertEqual(profile.display_name, display_name)
 
     def test_send_code_rejects_invalid_email(self):
         response = post_json(self.client, "account_send_code", {"email": "not-an-email"})
@@ -257,6 +295,9 @@ class AccountTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-account-trigger', html=False)
         self.assertContains(response, 'data-account-use-random-default', html=False)
+        self.assertContains(response, 'data-account-random-profile="display_name"', html=False)
+        self.assertContains(response, 'data-account-random-profile="bio"', html=False)
+        self.assertContains(response, "randomProfileUrl", html=False)
         html = response.content.decode()
         self.assertIn('data-account-tab="login"', html)
         self.assertIn('data-account-tab="register"', html)

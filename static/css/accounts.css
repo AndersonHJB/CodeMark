@@ -294,6 +294,46 @@
     font-weight: 750;
 }
 
+.account-field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+    color: #dce2cf;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.account-field-heading label {
+    margin: 0;
+}
+
+.account-mini-action {
+    min-height: 28px;
+    border: 0;
+    border-radius: 9px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: #6dddf2;
+    background: rgba(109, 221, 242, 0.12);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.account-mini-action:hover {
+    background: rgba(109, 221, 242, 0.2);
+}
+
+.account-mini-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+}
+
 .account-field input,
 .account-field textarea {
     width: 100%;

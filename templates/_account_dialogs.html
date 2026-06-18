@@ -1,6 +1,7 @@
 <script>
     window.CODEMARK_ACCOUNT_CONFIG = {
         sessionUrl: "{% url 'account_session' %}",
+        randomProfileUrl: "{% url 'account_random_profile' %}",
         sendCodeUrl: "{% url 'account_send_code' %}",
         registerUrl: "{% url 'account_register' %}",
         loginUrl: "{% url 'account_login' %}",
@@ -63,10 +64,26 @@
                 <span>邮箱</span>
                 <input name="email" type="email" autocomplete="email" required>
             </label>
-            <label class="account-field">
-                <span>昵称</span>
-                <input name="display_name" type="text" maxlength="40" autocomplete="nickname" placeholder="可选">
-            </label>
+            <div class="account-field">
+                <div class="account-field-heading">
+                    <label for="accountRegisterDisplayName">昵称</label>
+                    <button class="account-mini-action" type="button" data-account-random-profile="display_name" title="随机昵称">
+                        <i class="bi bi-shuffle" aria-hidden="true"></i>
+                        <span>随机</span>
+                    </button>
+                </div>
+                <input id="accountRegisterDisplayName" name="display_name" type="text" maxlength="40" autocomplete="nickname" placeholder="可选">
+            </div>
+            <div class="account-field">
+                <div class="account-field-heading">
+                    <label for="accountRegisterBio">个人简介</label>
+                    <button class="account-mini-action" type="button" data-account-random-profile="bio" title="随机个人简介">
+                        <i class="bi bi-shuffle" aria-hidden="true"></i>
+                        <span>随机</span>
+                    </button>
+                </div>
+                <textarea id="accountRegisterBio" name="bio" maxlength="160" rows="3" placeholder="可选"></textarea>
+            </div>
             <label class="account-field">
                 <span>密码</span>
                 <input name="password" type="password" autocomplete="new-password" minlength="8" required>
@@ -100,14 +117,26 @@
                     <span>使用随机默认头像</span>
                 </button>
             </div>
-            <label class="account-field">
-                <span>昵称</span>
-                <input name="display_name" type="text" maxlength="40" value="{{ codemark_account.display_name }}">
-            </label>
-            <label class="account-field">
-                <span>个人简介</span>
-                <textarea name="bio" maxlength="160" rows="3">{{ codemark_account.bio|default_if_none:'' }}</textarea>
-            </label>
+            <div class="account-field">
+                <div class="account-field-heading">
+                    <label for="accountProfileDisplayName">昵称</label>
+                    <button class="account-mini-action" type="button" data-account-random-profile="display_name" title="随机昵称">
+                        <i class="bi bi-shuffle" aria-hidden="true"></i>
+                        <span>随机</span>
+                    </button>
+                </div>
+                <input id="accountProfileDisplayName" name="display_name" type="text" maxlength="40" value="{{ codemark_account.display_name }}">
+            </div>
+            <div class="account-field">
+                <div class="account-field-heading">
+                    <label for="accountProfileBio">个人简介</label>
+                    <button class="account-mini-action" type="button" data-account-random-profile="bio" title="随机个人简介">
+                        <i class="bi bi-shuffle" aria-hidden="true"></i>
+                        <span>随机</span>
+                    </button>
+                </div>
+                <textarea id="accountProfileBio" name="bio" maxlength="160" rows="3">{{ codemark_account.bio|default_if_none:'' }}</textarea>
+            </div>
             <button class="account-primary-btn" type="submit">保存资料</button>
         </form>
     </div>

@@ -24,6 +24,7 @@ from .avatars import (
     random_default_avatar_path,
 )
 from .models import EmailVerificationCode, UserProfile
+from .random_profiles import random_default_nickname, random_default_profile
 
 
 CODE_EXPIRE_MINUTES = 10
@@ -173,6 +174,11 @@ def session_view(request):
     return JsonResponse({"ok": True, "user": _user_payload(request.user, request)})
 
 
+@require_GET
+def random_profile_view(request):
+    return JsonResponse({"ok": True, "profile": random_default_profile()})
+
+
 @require_POST
 def send_code_view(request):
     payload = _load_payload(request)
@@ -234,7 +240,8 @@ def register_view(request):
     email = _normalize_email(payload.get("email"))
     password = payload.get("password") or ""
     code = payload.get("code") or ""
-    display_name = (payload.get("display_name") or "").strip()
+    display_name = (payload.get("display_name") or "").strip() or random_default_nickname()
+    bio = (payload.get("bio") or "").strip()
 
     email_error = _email_error(email)
     if email_error:
@@ -260,6 +267,7 @@ def register_view(request):
     UserProfile.objects.create(
         user=user,
         display_name=display_name[:40],
+        bio=bio[:160],
         default_avatar=random_default_avatar_path(),
     )
     auth_login(request, user)
