@@ -20,6 +20,7 @@ class UserProfile(models.Model):
         default=DEFAULT_AVATAR_STATIC_PATH,
     )
     avatar = models.ImageField("头像", upload_to="accounts/avatars/", blank=True)
+    original_avatar = models.ImageField("原始头像", upload_to="accounts/original_avatars/", blank=True)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 

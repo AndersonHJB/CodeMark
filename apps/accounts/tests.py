@@ -1,4 +1,6 @@
+import io
 import json
+import os
 import re
 import tempfile
 from urllib.parse import unquote, urlparse
@@ -8,10 +10,12 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from .avatars import DEFAULT_AVATAR_STATIC_PATHS
 from .models import EmailVerificationCode, UserProfile
 from .random_profiles import DEFAULT_BIOS, DEFAULT_NICKNAMES
+from .views import MAX_AVATAR_BYTES
 
 
 def post_json(client, url_name, payload):
@@ -20,6 +24,13 @@ def post_json(client, url_name, payload):
         data=json.dumps(payload),
         content_type="application/json",
     )
+
+
+def noisy_png_upload(name="large-avatar.png", size=(1200, 1200)):
+    image = Image.frombytes("RGB", size, os.urandom(size[0] * size[1] * 3))
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return SimpleUploadedFile(name, output.getvalue(), content_type="image/png")
 
 
 @override_settings(
@@ -223,6 +234,44 @@ class AccountApiTests(TestCase):
                 self.assertEqual(payload["user"]["display_name"], "头像用户")
                 self.assertEqual(payload["user"]["bio"], "学习 Python")
                 self.assertIn("/media/accounts/avatars/", payload["user"]["avatar_url"])
+                profile = UserProfile.objects.get(user=user)
+                self.assertTrue(profile.avatar)
+                self.assertTrue(profile.original_avatar)
+                self.assertIn("accounts/avatars/", profile.avatar.name)
+                self.assertIn("accounts/original_avatars/", profile.original_avatar.name)
+
+    def test_profile_avatar_upload_saves_original_and_uses_compressed_copy(self):
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                User = get_user_model()
+                user = User.objects.create_user(
+                    username="large-avatar-user",
+                    email="large-avatar@example.com",
+                    password="test-password",
+                )
+                self.client.force_login(user)
+                avatar = noisy_png_upload()
+                self.assertGreater(avatar.size, MAX_AVATAR_BYTES)
+
+                response = self.client.post(
+                    reverse("account_profile"),
+                    data={"display_name": "大图用户", "bio": "上传大图", "avatar": avatar},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["ok"], True)
+                self.assertIn("/media/accounts/avatars/", payload["user"]["avatar_url"])
+                profile = UserProfile.objects.get(user=user)
+                self.assertTrue(profile.avatar)
+                self.assertTrue(profile.original_avatar)
+                self.assertIn("accounts/avatars/", profile.avatar.name)
+                self.assertIn("accounts/original_avatars/", profile.original_avatar.name)
+                self.assertGreater(profile.original_avatar.size, MAX_AVATAR_BYTES)
+                self.assertLess(profile.avatar.size, profile.original_avatar.size)
+                self.assertLessEqual(profile.avatar.size, MAX_AVATAR_BYTES)
+                with Image.open(profile.avatar.path) as compressed_image:
+                    self.assertLessEqual(max(compressed_image.size), 512)
 
     def test_profile_can_switch_to_random_default_avatar(self):
         with tempfile.TemporaryDirectory() as media_root:

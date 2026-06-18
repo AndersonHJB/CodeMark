@@ -556,12 +556,6 @@
                     showToast("头像仅支持 JPG、PNG、WebP 或 GIF", true);
                     return;
                 }
-                if (file.size > 2 * 1024 * 1024) {
-                    resetAvatarInput("请选择 2MB 以内的图片");
-                    setProfileAvatarPreview(accountState.avatarUrl || config.defaultAvatarUrl || "");
-                    showToast("头像不能超过 2MB", true);
-                    return;
-                }
                 clearPendingAvatarPreview();
                 pendingAvatarPreviewUrl = URL.createObjectURL(file);
                 setProfileAvatarPreview(pendingAvatarPreviewUrl);

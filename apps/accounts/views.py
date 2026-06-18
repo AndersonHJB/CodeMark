@@ -1,11 +1,14 @@
+import io
 import json
 import logging
 import re
 import secrets
-from smtplib import SMTPException
 from datetime import timedelta
+from pathlib import Path
+from smtplib import SMTPException
 
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -17,7 +20,7 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.views.decorators.http import require_GET, require_POST
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError, features
 
 from .avatars import (
     DEFAULT_AVATAR_STATIC_PATH,
@@ -31,6 +34,9 @@ from .random_profiles import random_default_nickname, random_default_profile
 CODE_EXPIRE_MINUTES = 10
 MAX_CODE_ATTEMPTS = 5
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
+COMPRESSED_AVATAR_MAX_DIMENSION = 512
+COMPRESSED_AVATAR_INITIAL_QUALITY = 85
+COMPRESSED_AVATAR_MIN_QUALITY = 55
 ALLOWED_AVATAR_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 logger = logging.getLogger(__name__)
 
@@ -102,6 +108,82 @@ def _user_payload(user, request):
         "avatar_url": _avatar_url_for_profile(profile, request),
         "default_avatar": normalize_default_avatar_path(profile.default_avatar),
     }
+
+
+def _safe_avatar_filename(original_name, extension):
+    stem = Path(original_name or "avatar").stem
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "-", stem).strip(".-") or "avatar"
+    return f"{stem[:60]}-{secrets.token_hex(6)}{extension}"
+
+
+def _original_avatar_extension(original_name, content_type):
+    extension = Path(original_name or "").suffix.lower()
+    if extension in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        return extension
+    return {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+    }.get(content_type, ".img")
+
+
+def _image_has_alpha(image):
+    return image.mode in {"RGBA", "LA"} or (image.mode == "P" and "transparency" in image.info)
+
+
+def _avatar_output_format(image):
+    if features.check("webp"):
+        return "WEBP", ".webp"
+    if _image_has_alpha(image):
+        return "PNG", ".png"
+    return "JPEG", ".jpg"
+
+
+def _encode_avatar_image(image, output_format, quality):
+    output = io.BytesIO()
+    if output_format == "WEBP":
+        image.save(output, format=output_format, quality=quality, method=6)
+    elif output_format == "JPEG":
+        image.save(output, format=output_format, quality=quality, optimize=True, progressive=True)
+    else:
+        image.save(output, format=output_format, optimize=True)
+    return output.getvalue()
+
+
+def _compressed_avatar_file(original_bytes, original_name):
+    with Image.open(io.BytesIO(original_bytes)) as opened_image:
+        image = ImageOps.exif_transpose(opened_image)
+        output_format, extension = _avatar_output_format(image)
+
+        if output_format == "JPEG":
+            image = image.convert("RGB")
+        elif image.mode not in {"RGB", "RGBA"}:
+            image = image.convert("RGBA" if _image_has_alpha(image) else "RGB")
+
+        max_dimension = COMPRESSED_AVATAR_MAX_DIMENSION
+        quality = COMPRESSED_AVATAR_INITIAL_QUALITY
+        while True:
+            resized = image.copy()
+            resized.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+            compressed_bytes = _encode_avatar_image(resized, output_format, quality)
+            if len(compressed_bytes) <= MAX_AVATAR_BYTES or max_dimension <= 128:
+                break
+            if output_format in {"WEBP", "JPEG"} and quality > COMPRESSED_AVATAR_MIN_QUALITY:
+                quality = max(COMPRESSED_AVATAR_MIN_QUALITY, quality - 10)
+            else:
+                max_dimension = max(128, int(max_dimension * 0.75))
+
+    return ContentFile(compressed_bytes, name=_safe_avatar_filename(original_name, extension))
+
+
+def _validate_avatar_bytes(original_bytes):
+    try:
+        with Image.open(io.BytesIO(original_bytes)) as image:
+            image.verify()
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        return False
+    return True
 
 
 def _unique_username_from_email(email):
@@ -349,17 +431,30 @@ def profile_view(request):
             profile.avatar.delete(save=False)
         profile.avatar = ""
     elif avatar_file:
-        if avatar_file.size > MAX_AVATAR_BYTES:
-            return _json_error("头像不能超过 2MB", field="avatar")
         content_type = getattr(avatar_file, "content_type", "")
         if content_type not in ALLOWED_AVATAR_TYPES:
             return _json_error("头像仅支持 JPG、PNG、WebP 或 GIF", field="avatar")
-        try:
-            Image.open(avatar_file).verify()
-            avatar_file.seek(0)
-        except (UnidentifiedImageError, OSError):
+        avatar_file.seek(0)
+        original_bytes = avatar_file.read()
+        if not _validate_avatar_bytes(original_bytes):
             return _json_error("头像文件无法识别，请重新选择图片", field="avatar")
-        profile.avatar = avatar_file
+        if profile.avatar:
+            profile.avatar.delete(save=False)
+        original_name = getattr(avatar_file, "name", "avatar")
+        try:
+            compressed_avatar = _compressed_avatar_file(original_bytes, original_name)
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+            return _json_error("头像文件无法识别，请重新选择图片", field="avatar")
+        profile.original_avatar.save(
+            _safe_avatar_filename(original_name, _original_avatar_extension(original_name, content_type)),
+            ContentFile(original_bytes),
+            save=False,
+        )
+        profile.avatar.save(
+            compressed_avatar.name,
+            compressed_avatar,
+            save=False,
+        )
 
     profile.save()
     message = "已使用随机默认头像" if use_random_default_avatar else "资料已更新"
