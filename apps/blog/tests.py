@@ -76,6 +76,12 @@ class BlogPostFlowTests(TestCase):
         detail_response = self.client.get(post.get_absolute_url())
         self.assertEqual(detail_response.status_code, 200)
         self.assertContains(detail_response, "标题")
+        self.assertContains(detail_response, "blog-post-meta-band", html=False)
+        self.assertContains(detail_response, "blog-ref-chip-blue", html=False)
+        self.assertContains(detail_response, "blog-ref-chip-tag", html=False)
+        self.assertContains(detail_response, "原创")
+        self.assertContains(detail_response, "约 ")
+        self.assertContains(detail_response, "data-like-count", html=False)
         self.assertNotContains(detail_response, "<script>alert", html=False)
 
     def test_draft_post_is_only_visible_to_author(self):

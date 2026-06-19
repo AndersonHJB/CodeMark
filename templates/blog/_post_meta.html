@@ -1,0 +1,90 @@
+<div class="blog-post-meta-band{% if compact %} blog-post-meta-band-compact{% endif %}" aria-label="文章信息">
+    <div class="blog-post-meta-line">
+        <a class="blog-meta-author" href="{% url 'blog_user_home' post.author.username %}">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>{{ post.author.get_full_name|default:post.author.username }}</span>
+        </a>
+        <span class="blog-origin-chip">
+            {% if post.status == "published" %}原创{% else %}{{ post.display_status }}{% endif %}
+        </span>
+        <span class="blog-meta-item">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <path d="M3 10h18"></path>
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+            </svg>
+            <time datetime="{{ post.published_at|default:post.updated_at|date:'c' }}">{{ post.published_at|default:post.updated_at|date:"Y/n/j" }}</time>
+        </span>
+        <span class="blog-meta-item blog-meta-taxonomy">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            </svg>
+            {% if post.category %}
+                <a class="blog-ref-chip blog-ref-chip-blue" href="{% url 'blog_list' %}?category={{ post.category|urlencode }}">{{ post.category }}</a>
+            {% elif not compact %}
+                <span class="blog-ref-chip blog-ref-chip-muted">未分类</span>
+            {% endif %}
+        </span>
+    </div>
+    <div class="blog-post-meta-line blog-post-meta-line-secondary">
+        {% if post.tags.all or not compact %}
+            <span class="blog-meta-item blog-meta-tags">
+                <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"></path>
+                    <circle cx="7.5" cy="7.5" r="1.5"></circle>
+                </svg>
+                {% if post.tags.all %}
+                    {% for tag in post.tags.all %}
+                        <a class="blog-ref-chip blog-ref-chip-tag" href="{% url 'blog_tag' tag.slug %}">{{ tag.name }}</a>
+                    {% endfor %}
+                {% else %}
+                    <span class="blog-ref-chip blog-ref-chip-muted">暂无标签</span>
+                {% endif %}
+            </span>
+        {% endif %}
+        <span class="blog-meta-item">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6 2h12"></path>
+                <path d="M6 22h12"></path>
+                <path d="M7 2v6a5 5 0 0 0 10 0V2"></path>
+                <path d="M7 22v-6a5 5 0 0 1 10 0v6"></path>
+            </svg>
+            大约 {{ post.read_minutes }} 分钟
+        </span>
+        <span class="blog-meta-item">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            {{ post.view_count }}
+        </span>
+        <span class="blog-meta-item">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M21 12a9 9 0 1 1-9-9v9Z"></path>
+                <path d="M12 3a9 9 0 0 1 9 9h-9Z"></path>
+            </svg>
+            约 {{ post.word_count }} 字
+        </span>
+        <span class="blog-meta-item">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M7 10v12"></path>
+                <path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7"></path>
+                <path d="M7 10H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"></path>
+            </svg>
+            <span {% if not compact %}data-like-count{% endif %}>{{ post.like_total }}</span> 点赞
+        </span>
+        <span class="blog-meta-item">
+            <svg class="blog-meta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
+            </svg>
+            {{ post.comment_total }} 评论
+        </span>
+    </div>
+</div>

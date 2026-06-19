@@ -135,6 +135,11 @@ class BlogPost(models.Model):
         return max(1, math.ceil(text_length / 500))
 
     @property
+    def word_count(self):
+        text = strip_tags(self.content or "")
+        return len("".join(text.split()))
+
+    @property
     def auto_summary(self):
         if self.summary:
             return self.summary

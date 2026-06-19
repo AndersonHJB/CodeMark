@@ -72,27 +72,9 @@
                     {% endif %}
                 </a>
                 <div class="blog-card-body">
-                    <div class="blog-card-meta">
-                        {% if post.category %}
-                            <a href="{% url 'blog_list' %}?category={{ post.category|urlencode }}">{{ post.category }}</a>
-                        {% endif %}
-                        <span>{{ post.published_at|date:"Y-m-d" }}</span>
-                        <span>{{ post.read_minutes }} 分钟阅读</span>
-                    </div>
                     <h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2>
+                    {% include "blog/_post_meta.html" with post=post compact=True %}
                     <p>{{ post.auto_summary }}</p>
-                    <div class="blog-card-footer">
-                        <span>{{ post.view_count }} 浏览</span>
-                        <span>{{ post.like_total }} 点赞</span>
-                        <span>{{ post.comment_total }} 评论</span>
-                    </div>
-                    {% if post.tags.all %}
-                        <div class="blog-tag-row">
-                            {% for tag in post.tags.all %}
-                                <a href="{% url 'blog_tag' tag.slug %}">#{{ tag.name }}</a>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
                 </div>
             </article>
         {% empty %}
