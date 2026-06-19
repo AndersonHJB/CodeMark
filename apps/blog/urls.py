@@ -13,6 +13,7 @@ urlpatterns = [
     path("blog/api/images/", views.blog_upload_image, name="blog_upload_image"),
     path("blog/<str:slug>/edit/", views.blog_edit, name="blog_edit"),
     path("blog/<str:slug>/delete/", views.blog_delete, name="blog_delete"),
+    path("blog/<str:slug>/download/", views.blog_download_markdown, name="blog_download_markdown"),
     path("blog/<str:slug>/comments/", views.blog_add_comment, name="blog_add_comment"),
     path("blog/<str:slug>/comments/<int:comment_id>/pin/", views.blog_toggle_comment_pin, name="blog_toggle_comment_pin"),
     path("blog/<str:slug>/reaction/", views.blog_toggle_reaction, name="blog_toggle_reaction"),

@@ -1,5 +1,6 @@
 import tempfile
 import zipfile
+from io import BytesIO
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
@@ -33,6 +34,10 @@ class BlogUrlPatternTests(SimpleTestCase):
             "blog_user_home": (reverse("blog_user_home", kwargs={"author_username": "demo"}), views.blog_user_home),
             "blog_detail": (reverse("blog_detail", kwargs={"slug": "demo"}), views.blog_detail),
             "blog_upload_image": (reverse("blog_upload_image"), views.blog_upload_image),
+            "blog_download_markdown": (
+                reverse("blog_download_markdown", kwargs={"slug": "demo"}),
+                views.blog_download_markdown,
+            ),
             "blog_toggle_comment_pin": (
                 reverse("blog_toggle_comment_pin", kwargs={"slug": "demo", "comment_id": 1}),
                 views.blog_toggle_comment_pin,
@@ -121,6 +126,39 @@ class BlogPostFlowTests(TestCase):
             self.assertIn("/media/blog/images/", payload["url"])
             self.assertIn("![screen.png]", payload["markdown"])
             self.assertIn("<img", payload["html"])
+
+    def test_staff_can_download_single_post_from_detail_page(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="管理员可下载文章",
+            content="这是一篇可以被管理员单独下载的正文。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        download_url = reverse("blog_download_markdown", kwargs={"slug": post.slug})
+
+        author_detail = self.client.get(post.get_absolute_url())
+        author_download = self.client.get(download_url)
+        self.assertNotContains(author_detail, download_url)
+        self.assertEqual(author_download.status_code, 404)
+
+        staff = get_user_model().objects.create_user(
+            username="staff",
+            email="staff@example.com",
+            password="test-password",
+            is_staff=True,
+        )
+        staff_client = Client()
+        staff_client.force_login(staff)
+
+        staff_detail = staff_client.get(post.get_absolute_url())
+        staff_download = staff_client.get(download_url)
+        archive_bytes = b"".join(staff_download.streaming_content)
+
+        self.assertContains(staff_detail, download_url)
+        self.assertEqual(staff_download.status_code, 200)
+        self.assertEqual(staff_download["Content-Type"], "application/zip")
+        with zipfile.ZipFile(BytesIO(archive_bytes)) as zip_file:
+            self.assertTrue(any(name.endswith(".md") for name in zip_file.namelist()))
 
     def test_reaction_and_bookmark_toggle(self):
         post = BlogPost.objects.create(

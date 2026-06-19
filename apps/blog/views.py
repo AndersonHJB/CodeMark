@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Prefetch, Q, Sum
-from django.http import Http404, JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
@@ -16,6 +16,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 from PIL import Image
 
+from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
 from .forms import validate_blog_image, BlogPostForm
 from .models import BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 from .sanitizer import sanitize_rich_text
@@ -293,6 +294,20 @@ def blog_detail(request, slug):
             "display_name": _display_name,
             **_sidebar_context(),
         },
+    )
+
+
+@blog_login_required
+def blog_download_markdown(request, slug):
+    if not request.user.is_staff:
+        raise Http404("文章不存在")
+    post = get_object_or_404(BlogPost.objects.select_related("author").prefetch_related("tags"), slug=slug)
+    archive = build_blog_posts_markdown_archive([post])
+    return FileResponse(
+        archive,
+        as_attachment=True,
+        filename=build_blog_export_filename(),
+        content_type="application/zip",
     )
 
 

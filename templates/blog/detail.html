@@ -15,6 +15,9 @@
             <button class="blog-btn blog-btn-ghost{% if user_bookmarked %} is-active{% endif %}" type="button" data-blog-bookmark>
                 {% if user_bookmarked %}已收藏{% else %}收藏{% endif %}
             </button>
+            {% if request.user.is_staff %}
+                <a class="blog-btn blog-btn-ghost" href="{% url 'blog_download_markdown' post.slug %}">下载 Markdown</a>
+            {% endif %}
             {% if request.user == post.author or request.user.is_staff %}
                 <a class="blog-btn blog-btn-primary" href="{% url 'blog_edit' post.slug %}">编辑</a>
                 <a class="blog-btn blog-btn-danger" href="{% url 'blog_delete' post.slug %}">删除</a>
