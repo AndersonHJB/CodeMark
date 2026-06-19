@@ -4,8 +4,10 @@
             <img class="account-avatar-img" src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
         </span>
         <span class="account-sidebar-copy">
-            <span class="account-sidebar-name" data-account-name>{{ codemark_account.display_name }}</span>
-            {% include "_account_membership_badge.html" %}
+            <span class="account-sidebar-name-line">
+                <span class="account-sidebar-name" data-account-name>{{ codemark_account.display_name }}</span>
+                {% include "_account_membership_badge.html" %}
+            </span>
             <span class="account-sidebar-status" data-account-subtitle>
                 {% if codemark_account.is_authenticated %}
                     {{ codemark_account.email|default:"已登录" }}
