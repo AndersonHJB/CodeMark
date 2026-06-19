@@ -7,6 +7,7 @@ urlpatterns = [
     path("blog/", views.blog_list, name="blog_list"),
     path("blog/write/", views.blog_write, name="blog_write"),
     path("blog/me/", views.blog_mine, name="blog_mine"),
+    path("blog/u/<str:author_username>/", views.blog_user_home, name="blog_user_home"),
     path("blog/tag/<str:tag_slug>/", views.blog_list, name="blog_tag"),
     path("blog/author/<str:author_username>/", views.blog_list, name="blog_author"),
     path("blog/api/images/", views.blog_upload_image, name="blog_upload_image"),

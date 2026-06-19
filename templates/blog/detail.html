@@ -13,7 +13,7 @@
         <h1>{{ post.title }}</h1>
         <p>{{ post.auto_summary }}</p>
         <div class="blog-detail-author">
-            <a href="{% url 'blog_author' post.author.username %}">{{ post.author.get_full_name|default:post.author.username }}</a>
+            <a href="{% url 'blog_user_home' post.author.username %}">{{ post.author.get_full_name|default:post.author.username }}</a>
             <span>{{ post.view_count }} 浏览</span>
             <span data-like-count>{{ post.like_total }}</span><span> 点赞</span>
             <span>{{ post.comment_total }} 评论</span>
@@ -31,7 +31,7 @@
             {% endif %}
         </div>
         <div class="blog-detail-taxonomy" aria-label="文章分类和标签">
-            <div>
+            <div class="blog-taxonomy-card">
                 <span>分类</span>
                 {% if post.category %}
                     <a href="{% url 'blog_list' %}?category={{ post.category|urlencode }}">{{ post.category }}</a>
@@ -39,7 +39,7 @@
                     <em>未分类</em>
                 {% endif %}
             </div>
-            <div>
+            <div class="blog-taxonomy-card">
                 <span>标签</span>
                 {% if post.tags.all %}
                     <div class="blog-tag-row">

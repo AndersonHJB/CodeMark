@@ -10,6 +10,7 @@
     </div>
     <div class="blog-command-actions">
         <a class="blog-btn blog-btn-ghost" href="{% url 'blog_list' %}">博客首页</a>
+        <a class="blog-btn blog-btn-ghost" href="{% url 'blog_user_home' request.user.username %}">我的公开主页</a>
         <a class="blog-btn blog-btn-primary" href="{% url 'blog_write' %}">写文章</a>
     </div>
 </section>

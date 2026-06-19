@@ -106,6 +106,9 @@
     }
 
     function initCommentReplies() {
+        document.querySelectorAll("[data-comment-reply-form]").forEach(function (form) {
+            form.hidden = true;
+        });
         document.querySelectorAll("[data-comment-reply-target]").forEach(function (button) {
             button.addEventListener("click", function () {
                 const targetId = button.dataset.commentReplyTarget;
@@ -134,6 +137,28 @@
                 if (form) {
                     form.hidden = true;
                 }
+            });
+        });
+    }
+
+    function initCopyLinks() {
+        document.querySelectorAll("[data-copy-link]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const link = button.dataset.copyLink || "";
+                const originalText = button.textContent;
+                const done = function () {
+                    button.textContent = "已复制";
+                    window.setTimeout(function () {
+                        button.textContent = originalText;
+                    }, 1600);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link).then(done).catch(function () {
+                        window.prompt("复制主页链接", link);
+                    });
+                    return;
+                }
+                window.prompt("复制主页链接", link);
             });
         });
     }
@@ -368,5 +393,6 @@
     initLoginPrompt();
     initPostActions();
     initCommentReplies();
+    initCopyLinks();
     initEditor();
 })();

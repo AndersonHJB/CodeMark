@@ -4,9 +4,10 @@ import markdown
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, F, Prefetch, Q, Sum
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape
@@ -18,6 +19,7 @@ from PIL import Image
 from .forms import validate_blog_image, BlogPostForm
 from .models import BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 from .sanitizer import sanitize_rich_text
+from apps.accounts.avatars import DEFAULT_AVATAR_STATIC_PATH, normalize_default_avatar_path
 
 
 MAX_PINNED_COMMENTS = 10
@@ -29,6 +31,22 @@ def _display_name(user):
     except Exception:
         profile = None
     return (getattr(profile, "display_name", "") or user.get_full_name() or user.get_username()).strip()
+
+
+def _profile_for_user(user):
+    try:
+        return user.codemark_profile
+    except Exception:
+        return None
+
+
+def _avatar_url_for_user(user):
+    profile = _profile_for_user(user)
+    if profile and profile.avatar:
+        return profile.avatar.url
+    if profile:
+        return static(normalize_default_avatar_path(profile.default_avatar))
+    return static(DEFAULT_AVATAR_STATIC_PATH)
 
 
 def _login_redirect(request):
@@ -172,6 +190,53 @@ def blog_list(request, tag_slug=None, author_username=None):
         **_sidebar_context(),
     }
     return render(request, "blog/list.html", context)
+
+
+def blog_user_home(request, author_username):
+    User = get_user_model()
+    author = get_object_or_404(User, username=author_username)
+    profile = _profile_for_user(author)
+    posts = _public_posts().filter(author=author).distinct().order_by("-published_at", "-created_at")
+    paginator = Paginator(posts, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    base_posts = BlogPost.objects.filter(author=author, status=BlogPost.STATUS_PUBLISHED)
+    stats = base_posts.aggregate(post_count=Count("id"), total_views=Sum("view_count"))
+    categories = (
+        base_posts.exclude(category="")
+        .values("category")
+        .annotate(post_count=Count("id"))
+        .order_by("-post_count", "category")
+    )
+    tags = (
+        BlogTag.objects.filter(posts__author=author, posts__status=BlogPost.STATUS_PUBLISHED)
+        .annotate(post_count=Count("posts", filter=Q(posts__author=author, posts__status=BlogPost.STATUS_PUBLISHED), distinct=True))
+        .filter(post_count__gt=0)
+        .order_by("-post_count", "name")
+    )
+    author_home_path = reverse("blog_user_home", kwargs={"author_username": author.username})
+    return render(
+        request,
+        "blog/user_home.html",
+        {
+            "author": author,
+            "profile": profile,
+            "avatar_url": _avatar_url_for_user(author),
+            "author_display_name": _display_name(author),
+            "author_home_url": request.build_absolute_uri(author_home_path),
+            "page_obj": page_obj,
+            "posts": page_obj.object_list,
+            "categories": categories,
+            "tags": tags,
+            "post_count": stats["post_count"] or 0,
+            "total_views": stats["total_views"] or 0,
+            "like_count": BlogReaction.objects.filter(post__author=author, post__status=BlogPost.STATUS_PUBLISHED).count(),
+            "comment_count": BlogComment.objects.filter(
+                post__author=author,
+                post__status=BlogPost.STATUS_PUBLISHED,
+                is_deleted=False,
+            ).count(),
+        },
+    )
 
 
 def blog_detail(request, slug):

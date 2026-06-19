@@ -90,7 +90,7 @@
                     <h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2>
                     <p>{{ post.auto_summary }}</p>
                     <div class="blog-card-footer">
-                        <a class="blog-author" href="{% url 'blog_author' post.author.username %}">
+                        <a class="blog-author" href="{% url 'blog_user_home' post.author.username %}">
                             {{ post.author.get_full_name|default:post.author.username }}
                         </a>
                         <span>{{ post.view_count }} 浏览</span>

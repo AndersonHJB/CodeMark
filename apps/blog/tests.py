@@ -27,6 +27,7 @@ class BlogUrlPatternTests(SimpleTestCase):
             "blog_list": (reverse("blog_list"), views.blog_list),
             "blog_write": (reverse("blog_write"), views.blog_write),
             "blog_mine": (reverse("blog_mine"), views.blog_mine),
+            "blog_user_home": (reverse("blog_user_home", kwargs={"author_username": "demo"}), views.blog_user_home),
             "blog_detail": (reverse("blog_detail", kwargs={"slug": "demo"}), views.blog_detail),
             "blog_upload_image": (reverse("blog_upload_image"), views.blog_upload_image),
             "blog_toggle_comment_pin": (
@@ -176,7 +177,35 @@ class BlogPostFlowTests(TestCase):
         detail_response = self.client.get(post.get_absolute_url())
         self.assertContains(detail_response, "主评论")
         self.assertContains(detail_response, "这是一条回复")
-        self.assertContains(detail_response, f'data-comment-reply-form="{parent.id}"', html=False)
+        self.assertContains(detail_response, f'hidden data-comment-reply-form="{parent.id}"', html=False)
+
+    def test_user_home_page_has_shareable_profile_link_and_public_posts(self):
+        published = BlogPost.objects.create(
+            author=self.user,
+            title="主页可见文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+            category="Claude",
+        )
+        hidden = BlogPost.objects.create(
+            author=self.user,
+            title="主页不可见草稿",
+            content="这是一篇草稿正文内容。",
+            status=BlogPost.STATUS_DRAFT,
+        )
+        tag = BlogTag.objects.create(name="主页标签")
+        published.tags.add(tag)
+
+        response = self.client.get(reverse("blog_user_home", kwargs={"author_username": self.user.username}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "博客作者")
+        self.assertContains(response, reverse("blog_user_home", kwargs={"author_username": self.user.username}))
+        self.assertContains(response, 'data-copy-link=', html=False)
+        self.assertContains(response, "Claude")
+        self.assertContains(response, "#主页标签")
+        self.assertContains(response, published.title)
+        self.assertNotContains(response, hidden.title)
 
     def test_only_author_can_pin_top_level_comments_up_to_ten(self):
         post = BlogPost.objects.create(
