@@ -15,12 +15,21 @@ class BlogTagAdmin(admin.ModelAdmin):
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "status", "category", "published_at", "updated_at", "view_count")
+    list_display = (
+        "title",
+        "author",
+        "status",
+        "category",
+        "published_at",
+        "updated_at",
+        "view_count",
+        "api_request_count",
+    )
     list_filter = ("status", "content_format", "allow_comments", "category", "published_at")
     search_fields = ("title", "summary", "content", "author__username", "author__email")
     autocomplete_fields = ("author", "tags")
     prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ("view_count", "created_at", "updated_at")
+    readonly_fields = ("view_count", "api_request_count", "created_at", "updated_at")
     actions = ("export_markdown_zip",)
 
     @admin.action(description="导出选中文章为 Markdown ZIP")

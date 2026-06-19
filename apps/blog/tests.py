@@ -97,6 +97,7 @@ class BlogPostFlowTests(TestCase):
         self.assertContains(detail_response, "约 ")
         self.assertContains(detail_response, "data-like-count", html=False)
         self.assertContains(detail_response, reverse("blog_article_api", kwargs={"slug": post.slug}))
+        self.assertContains(detail_response, 'data-copy-link="http://testserver', html=False)
         self.assertNotContains(detail_response, "<script>alert", html=False)
 
     def test_draft_post_is_only_visible_to_author(self):
@@ -221,6 +222,7 @@ class BlogPostFlowTests(TestCase):
         self.assertIn("API 正文", payload["article"]["content"])
         self.assertIn("<h1", payload["article"]["content_html"])
         self.assertEqual(payload["article"]["stats"]["views"], 8)
+        self.assertEqual(payload["article"]["stats"]["api_requests"], 1)
         self.assertEqual(payload["article"]["stats"]["likes"], 1)
         self.assertEqual(payload["article"]["stats"]["bookmarks"], 1)
         self.assertEqual(payload["article"]["stats"]["comments"], 2)
@@ -232,6 +234,8 @@ class BlogPostFlowTests(TestCase):
         self.assertEqual(second_response.json()["usage"]["remaining"], 0)
         self.assertEqual(limited_response.status_code, 429)
         self.assertEqual(BlogArticleApiAccess.objects.get(user=self.user, post=post).request_count, 2)
+        post.refresh_from_db()
+        self.assertEqual(post.api_request_count, 2)
 
     def test_staff_article_api_bypasses_rate_limit(self):
         post = BlogPost.objects.create(
@@ -255,6 +259,8 @@ class BlogPostFlowTests(TestCase):
         self.assertTrue(all(response.status_code == 200 for response in responses))
         self.assertEqual(responses[-1].json()["usage"]["limited"], False)
         self.assertFalse(BlogArticleApiAccess.objects.filter(user=staff, post=post).exists())
+        post.refresh_from_db()
+        self.assertEqual(post.api_request_count, 3)
 
     def test_reaction_and_bookmark_toggle(self):
         post = BlogPost.objects.create(

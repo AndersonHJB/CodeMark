@@ -191,6 +191,7 @@ def _build_article_api_payload(request, post, usage_payload):
             "updated_at": _json_time(post.updated_at),
             "stats": {
                 "views": post.view_count,
+                "api_requests": post.api_request_count,
                 "likes": post.like_total,
                 "bookmarks": post.bookmark_total,
                 "comments": post.comment_total,
@@ -418,6 +419,7 @@ def blog_detail(request, slug):
             "related_posts": related_posts,
             "user_liked": user_liked,
             "user_bookmarked": user_bookmarked,
+            "article_api_url": request.build_absolute_uri(reverse("blog_article_api", kwargs={"slug": post.slug})),
             "display_name": _display_name,
             **_sidebar_context(),
         },
@@ -448,6 +450,8 @@ def blog_article_api(request, slug):
                 json_dumps_params={"ensure_ascii": False},
             )
 
+    BlogPost.objects.filter(pk=post.pk).update(api_request_count=F("api_request_count") + 1)
+    post.api_request_count += 1
     return JsonResponse(
         _build_article_api_payload(request, post, usage_payload),
         json_dumps_params={"ensure_ascii": False},

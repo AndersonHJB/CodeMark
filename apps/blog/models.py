@@ -98,6 +98,7 @@ class BlogPost(models.Model):
     cover_image = models.ImageField("封面图", upload_to=blog_cover_upload_path, blank=True)
     allow_comments = models.BooleanField("允许评论", default=True)
     view_count = models.PositiveIntegerField("浏览量", default=0)
+    api_request_count = models.PositiveIntegerField("API 请求总次数", default=0)
     published_at = models.DateTimeField("发布时间", null=True, blank=True, db_index=True)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)

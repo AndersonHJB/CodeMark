@@ -145,6 +145,7 @@
         document.querySelectorAll("[data-copy-link]").forEach(function (button) {
             button.addEventListener("click", function () {
                 const link = button.dataset.copyLink || "";
+                const label = button.dataset.copyLabel || "复制链接";
                 const originalText = button.textContent;
                 const done = function () {
                     button.textContent = "已复制";
@@ -154,11 +155,11 @@
                 };
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(link).then(done).catch(function () {
-                        window.prompt("复制主页链接", link);
+                        window.prompt(label, link);
                     });
                     return;
                 }
-                window.prompt("复制主页链接", link);
+                window.prompt(label, link);
             });
         });
     }
