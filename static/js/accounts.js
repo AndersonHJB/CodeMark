@@ -122,6 +122,25 @@
         }).then(parseApiResponse);
     }
 
+    function normalizeAccountUser(user) {
+        const isAuthenticated = Object.prototype.hasOwnProperty.call(user, "isAuthenticated")
+            ? !!user.isAuthenticated
+            : !!user.is_authenticated;
+        return {
+            isAuthenticated: isAuthenticated,
+            displayName: user.displayName || user.display_name || (isAuthenticated ? (user.username || "CodeMark 用户") : "登录 CodeMark"),
+            email: user.email || "",
+            username: user.username || "",
+            bio: user.bio || "",
+            avatarUrl: user.avatarUrl || user.avatar_url || config.defaultAvatarUrl || accountState.avatarUrl,
+            canUseArticleApi: Object.prototype.hasOwnProperty.call(user, "canUseArticleApi")
+                ? !!user.canUseArticleApi
+                : !!user.can_use_article_api,
+            membershipTier: user.membershipTier || user.membership_tier || "",
+            membershipLabel: user.membershipLabel || user.membership_label || ""
+        };
+    }
+
     function refreshSession() {
         if (!config.sessionUrl) {
             return;
@@ -157,23 +176,15 @@
 
     function updateAccountUi(user) {
         if (user) {
-            accountState = Object.assign({}, accountState, {
-                isAuthenticated: !!user.is_authenticated,
-                displayName: user.display_name || (user.is_authenticated ? user.username : "登录 CodeMark"),
-                email: user.email || "",
-                username: user.username || "",
-                bio: user.bio || "",
-                avatarUrl: user.avatar_url || config.defaultAvatarUrl || accountState.avatarUrl,
-                canUseArticleApi: !!user.can_use_article_api,
-                membershipTier: user.membership_tier || "",
-                membershipLabel: user.membership_label || ""
-            });
+            accountState = Object.assign({}, accountState, normalizeAccountUser(user));
         }
 
         const subtitle = accountState.isAuthenticated
             ? (accountState.email || "已登录")
             : "登录 / 注册";
         const displayName = accountState.displayName || (accountState.isAuthenticated ? "CodeMark 用户" : "登录 CodeMark");
+        const membershipTier = accountState.isAuthenticated ? accountState.membershipTier : "";
+        const membershipLabel = accountState.isAuthenticated ? accountState.membershipLabel : "";
 
         document.querySelectorAll("[data-account-name]").forEach(function (node) {
             node.textContent = displayName;
@@ -197,11 +208,23 @@
             node.hidden = accountState.isAuthenticated;
         });
         document.querySelectorAll("[data-account-vip-badge]").forEach(function (node) {
-            node.hidden = !accountState.membershipLabel;
-            node.textContent = accountState.membershipLabel;
+            node.hidden = !(membershipTier && membershipLabel);
             node.classList.remove("account-vip-badge-admin", "account-vip-badge-permanent-vip", "account-vip-badge-vip");
-            if (accountState.membershipTier) {
-                node.classList.add("account-vip-badge-" + accountState.membershipTier);
+            if (membershipTier) {
+                node.classList.add("account-vip-badge-" + membershipTier);
+            }
+            if (membershipLabel) {
+                node.setAttribute("aria-label", membershipLabel);
+                node.setAttribute("title", membershipLabel);
+            } else {
+                node.removeAttribute("aria-label");
+                node.removeAttribute("title");
+            }
+            const labelNode = node.querySelector("[data-account-vip-label]");
+            if (labelNode) {
+                labelNode.textContent = membershipLabel;
+            } else {
+                node.textContent = membershipLabel;
             }
         });
         document.querySelectorAll("[data-account-profile-form] input[name='display_name']").forEach(function (node) {

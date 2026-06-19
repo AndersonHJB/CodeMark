@@ -5,9 +5,7 @@
         </span>
         <span class="site-account-copy">
             <span class="site-account-name" data-account-topbar-name>{% if codemark_account.is_authenticated %}{{ codemark_account.display_name }}{% else %}登录{% endif %}</span>
-            <span class="account-vip-badge account-vip-badge-{{ codemark_account.membership_tier }}"
-                  data-account-vip-badge
-                  {% if not codemark_account.membership_label %}hidden{% endif %}>{{ codemark_account.membership_label }}</span>
+            {% include "_account_membership_badge.html" %}
         </span>
         <svg class="site-account-caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="m7 10 5 5 5-5"></path>
@@ -20,9 +18,7 @@
             <div>
                 <div class="account-menu-name-line">
                     <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
-                    <span class="account-vip-badge account-vip-badge-{{ codemark_account.membership_tier }}"
-                          data-account-vip-badge
-                          {% if not codemark_account.membership_label %}hidden{% endif %}>{{ codemark_account.membership_label }}</span>
+                    {% include "_account_membership_badge.html" %}
                 </div>
                 <div class="account-menu-email" data-account-subtitle>
                     {% if codemark_account.is_authenticated %}

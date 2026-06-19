@@ -534,11 +534,11 @@ class AccountTemplateTests(TestCase):
 
     def test_account_menu_shows_distinct_membership_badges(self):
         cases = [
-            ("vip-user", {"is_vip": True}, {}, "VIP", "account-vip-badge-vip"),
-            ("permanent-user", {"is_permanent_vip": True}, {}, "永久 VIP", "account-vip-badge-permanent-vip"),
-            ("admin-user", {}, {"is_staff": True}, "管理员", "account-vip-badge-admin"),
+            ("vip-user", {"is_vip": True}, {}, "VIP", "account-vip-badge-vip", "account-vip-icon-vip"),
+            ("permanent-user", {"is_permanent_vip": True}, {}, "永久 VIP", "account-vip-badge-permanent-vip", "account-vip-icon-permanent-vip"),
+            ("admin-user", {}, {"is_staff": True}, "管理员", "account-vip-badge-admin", "account-vip-icon-admin"),
         ]
-        for username, profile_kwargs, user_kwargs, label, css_class in cases:
+        for username, profile_kwargs, user_kwargs, label, css_class, icon_class in cases:
             with self.subTest(label=label):
                 user = get_user_model().objects.create_user(
                     username=username,
@@ -555,6 +555,9 @@ class AccountTemplateTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, label)
                 self.assertContains(response, css_class)
+                self.assertContains(response, "account-vip-badge-icon")
+                self.assertContains(response, "data-account-vip-label")
+                self.assertContains(response, icon_class)
                 self.assertContains(response, "VIP API 教程")
                 self.assertContains(response, reverse("blog_vip_guide"))
 
