@@ -151,6 +151,10 @@
                     button.textContent = "已复制";
                     window.setTimeout(function () {
                         button.textContent = originalText;
+                        button.classList.remove("is-active");
+                        if (document.activeElement === button) {
+                            button.blur();
+                        }
                     }, 1600);
                 };
                 if (navigator.clipboard && navigator.clipboard.writeText) {
