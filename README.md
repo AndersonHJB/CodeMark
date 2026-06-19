@@ -133,7 +133,7 @@ DJANGO_EMAIL_USE_SSL=1
 DJANGO_EMAIL_USE_TLS=0
 DJANGO_EMAIL_HOST_USER=your-email@example.com
 DJANGO_EMAIL_HOST_PASSWORD=your-smtp-password
-DJANGO_DEFAULT_FROM_EMAIL=CodeMark <your-email@example.com>
+DJANGO_DEFAULT_FROM_EMAIL="CodeMark <your-email@example.com>"
 ```
 
 `DJANGO_EMAIL_HOST_PASSWORD` 应使用邮箱服务商提供的客户端专用密码或授权码，不要提交到 Git。
@@ -151,26 +151,35 @@ python manage.py makemigrations --check --dry-run
 
 完整部署、宝塔部署、更新和排障流程请查看：
 
-- [CodeMark 部署文档](docs/deployment.md)
-- [数据库、迁移和管理员账号教程](docs/deployment.md#数据库迁移和管理员账号教程)
+- [CodeMark 部署教程](docs/deployment.md)
+- [标准命令行部署](docs/deployment.md#标准命令行部署)
+- [宝塔部署](docs/deployment.md#宝塔部署)
+- [数据库、迁移和管理员账号](docs/deployment.md#数据库迁移和管理员账号)
+- [常见问题](docs/deployment.md#常见问题)
 
-最小生产部署流程：
+快速部署顺序：
 
 ```bash
+cd /www/wwwroot/codemark-ok
 python3.12 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 pip install gunicorn
 cp .env.example .env.prod
-# 编辑 .env.prod，设置 DJANGO_SETTINGS_MODULE、DJANGO_SECRET_KEY、DJANGO_DEBUG、DJANGO_ALLOWED_HOSTS
+# 编辑 .env.prod，至少设置：
+# DJANGO_SETTINGS_MODULE=codemark_project.settings.prod
+# DJANGO_SECRET_KEY=生产随机密钥
+# DJANGO_DEBUG=0
+# DJANGO_ALLOWED_HOSTS=你的域名,127.0.0.1,localhost
 ./scripts/init_deploy.sh .env.prod
 set -a
 source .env.prod
 set +a
-python manage.py create_admin_account --username admin
+python manage.py create_admin_account
 ```
 
-生产环境需要通过 Gunicorn 或面板 Python 项目管理器运行，并使用 Nginx 反向代理。`media/sharecode/` 和 `db.sqlite3` 是运行时数据，更新前请备份。
+生产环境需要通过 Gunicorn、systemd 或面板 Python 项目管理器运行，并使用 Nginx 反向代理。启动进程必须加载 `.env.prod`，否则可能会使用开发配置。`media/sharecode/` 和 `db.sqlite3` 是运行时数据，更新前请备份。
 
 ## 维护命令⚙️
 
