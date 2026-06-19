@@ -179,7 +179,7 @@ set +a
 python manage.py create_admin_account
 ```
 
-生产环境需要通过 Gunicorn、systemd 或面板 Python 项目管理器运行，并使用 Nginx 反向代理。启动进程必须加载 `.env.prod`，否则可能会使用开发配置。`media/sharecode/` 和 `db.sqlite3` 是运行时数据，更新前请备份。
+生产环境需要通过 Gunicorn、systemd 或面板 Python 项目管理器运行，并使用 Nginx 反向代理。启动进程必须加载 `.env.prod`，否则可能会使用开发配置。C++ 交互运行会话保存在单个 Django 进程内，启用该功能时建议使用 `--workers 1 --threads 8` 或等效的单进程多线程配置。`media/sharecode/` 和 `db.sqlite3` 是运行时数据，更新前请备份。
 
 ## 维护命令⚙️
 

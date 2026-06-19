@@ -72,6 +72,8 @@ OK/
 
 如果要使用 C++ 在线编辑器功能，服务器还需要安装 `g++` 或 `clang++`。没有 C++ 编译器时，Python 和分享功能仍可部署，C++ 运行功能会不可用。
 
+C++ 交互式运行会话保存在当前 Django 进程内。Gunicorn、Passenger、uWSGI 或面板 Python 项目管理器不要为这个项目开启多个进程/worker，否则 `/cpp-editor/run/start` 创建的会话和后续 `/cpp-editor/run/poll` 请求可能落到不同进程，页面会显示“运行会话已结束或不存在”。推荐使用 1 个 worker 加多个线程，例如 Gunicorn `--workers 1 --threads 8`；如果必须多进程部署，需要把 C++ 运行器改造成独立服务或接入共享会话存储。
+
 ## 生产环境变量
 
 生产环境建议在项目根目录创建 `.env.prod`：
@@ -315,7 +317,7 @@ DJANGO_SQLITE_PATH=/var/lib/codemark-ok/db.sqlite3
 先用实际服务用户在前台启动一次，确认 Django 进程能正常运行。下面以 `www-data` 为例：
 
 ```bash
-sudo -u www-data -H bash -lc 'cd /www/wwwroot/codemark-ok && set -a && source .env.prod && set +a && exec .venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 3 --timeout 120'
+sudo -u www-data -H bash -lc 'cd /www/wwwroot/codemark-ok && set -a && source .env.prod && set +a && exec .venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 1 --threads 8 --timeout 120'
 ```
 
 另开一个终端测试：
@@ -348,7 +350,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/www/wwwroot/codemark-ok
 EnvironmentFile=/www/wwwroot/codemark-ok/.env.prod
-ExecStart=/www/wwwroot/codemark-ok/.venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 3 --timeout 120
+ExecStart=/www/wwwroot/codemark-ok/.venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 1 --threads 8 --timeout 120
 Restart=always
 RestartSec=5
 
@@ -585,7 +587,7 @@ DJANGO_ALLOWED_HOSTS=...
 如果面板支持自定义启动命令，推荐使用：
 
 ```bash
-bash -lc 'cd /www/wwwroot/codemark-ok && set -a && source .env.prod && set +a && .venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 3 --timeout 120'
+bash -lc 'cd /www/wwwroot/codemark-ok && set -a && source .env.prod && set +a && .venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 1 --threads 8 --timeout 120'
 ```
 
 如果没有环境变量输入框，也不支持自定义启动命令，请不要直接用默认启动项上线。默认启动项很可能不会读取 `.env.prod`，导致项目用开发配置启动。
@@ -1086,6 +1088,12 @@ CODEMARK_CPP_COMPILER=/usr/bin/g++
 ```
 
 修改后重启服务。
+
+如果页面刚点击运行就显示“运行会话已结束或不存在”，重点检查部署进程数。当前 C++ 交互运行依赖同一个 Django 进程内的会话字典，Gunicorn、Passenger、uWSGI 或面板 Python 项目管理器如果开启多个 worker/app 实例，请改成单 worker 多线程并重启服务，例如：
+
+```bash
+.venv/bin/gunicorn codemark_project.wsgi:application --bind 127.0.0.1:8991 --workers 1 --threads 8 --timeout 120
+```
 
 ## 部署完成检查清单
 
