@@ -416,11 +416,13 @@
 .blog-post-meta-band {
     width: 100%;
     min-width: 0;
-    display: grid;
-    gap: 10px;
-    max-width: 980px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    max-width: none;
     color: #666a73;
-    font-size: 1.03rem;
+    font-size: 0.98rem;
     font-weight: 600;
 }
 
@@ -465,8 +467,8 @@
 }
 
 .blog-meta-icon {
-    width: 19px;
-    height: 19px;
+    width: 18px;
+    height: 18px;
     flex: 0 0 auto;
     color: #676b75;
     fill: none;
@@ -496,13 +498,13 @@
     border-radius: 999px;
     color: #5d626c;
     background: #ffffff;
-    font-size: 1rem;
+    font-size: 0.96rem;
     font-weight: 700;
 }
 
 .blog-ref-chip {
     border: 1px solid transparent;
-    font-size: 1rem;
+    font-size: 0.96rem;
     font-weight: 800;
 }
 
@@ -536,17 +538,9 @@
     background: #eef2f7;
 }
 
-.blog-post-meta-line-secondary {
-    row-gap: 9px;
-}
-
 .blog-post-meta-band-compact {
-    gap: 8px;
+    gap: 7px 9px;
     font-size: 0.86rem;
-}
-
-.blog-post-meta-band-compact .blog-post-meta-line {
-    gap: 8px 9px;
 }
 
 .blog-post-meta-band-compact .blog-meta-author {
