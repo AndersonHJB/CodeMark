@@ -5,6 +5,9 @@
         </span>
         <span class="account-sidebar-copy">
             <span class="account-sidebar-name" data-account-name>{{ codemark_account.display_name }}</span>
+            <span class="account-vip-badge account-vip-badge-{{ codemark_account.membership_tier }}"
+                  data-account-vip-badge
+                  {% if not codemark_account.membership_label %}hidden{% endif %}>{{ codemark_account.membership_label }}</span>
             <span class="account-sidebar-status" data-account-subtitle>
                 {% if codemark_account.is_authenticated %}
                     {{ codemark_account.email|default:"已登录" }}
@@ -22,7 +25,12 @@
         <div class="account-menu-user">
             <img class="account-menu-avatar" src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
             <div>
-                <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
+                <div class="account-menu-name-line">
+                    <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
+                    <span class="account-vip-badge account-vip-badge-{{ codemark_account.membership_tier }}"
+                          data-account-vip-badge
+                          {% if not codemark_account.membership_label %}hidden{% endif %}>{{ codemark_account.membership_label }}</span>
+                </div>
                 <div class="account-menu-email" data-account-subtitle>
                     {% if codemark_account.is_authenticated %}
                         {{ codemark_account.email|default:"已登录" }}
@@ -44,6 +52,15 @@
             <i class="bi bi-person-gear" aria-hidden="true"></i>
             <span>个人资料</span>
         </button>
+        <a class="account-menu-item account-menu-item-vip"
+           href="{% url 'blog_vip_guide' %}"
+           role="menuitem"
+           data-account-auth-only
+           data-account-vip-only
+           {% if not codemark_account.can_use_article_api %} hidden{% endif %}>
+            <i class="bi bi-stars" aria-hidden="true"></i>
+            <span>VIP API 教程</span>
+        </a>
         <button class="account-menu-item danger" type="button" role="menuitem" data-account-logout data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
             <span>退出登录</span>

@@ -31,7 +31,7 @@ from .avatars import (
     normalize_default_avatar_path,
     random_default_avatar_path,
 )
-from .models import EmailVerificationCode, UserProfile
+from .models import EmailVerificationCode, UserProfile, membership_payload_for_user
 from .random_profiles import random_default_nickname, random_default_profile
 
 
@@ -111,6 +111,7 @@ def _user_payload(user, request):
         "bio": profile.bio,
         "avatar_url": _avatar_url_for_profile(profile, request),
         "default_avatar": normalize_default_avatar_path(profile.default_avatar),
+        **membership_payload_for_user(user, profile),
     }
 
 
@@ -311,6 +312,7 @@ def session_view(request):
                     "username": "",
                     "bio": "",
                     "avatar_url": _absolute_static_url(request, DEFAULT_AVATAR_STATIC_PATH),
+                    **membership_payload_for_user(None),
                 },
             }
         )
@@ -445,6 +447,7 @@ def logout_view(request):
                 "username": "",
                 "bio": "",
                 "avatar_url": _absolute_static_url(request, DEFAULT_AVATAR_STATIC_PATH),
+                **membership_payload_for_user(None),
             },
         }
     )

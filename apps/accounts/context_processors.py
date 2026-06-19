@@ -1,7 +1,7 @@
 from django.templatetags.static import static
 
 from .avatars import DEFAULT_AVATAR_STATIC_PATH, ORIGINAL_AVATAR_STATIC_PATHS, normalize_default_avatar_path
-from .models import UserProfile
+from .models import UserProfile, membership_payload_for_user
 
 
 def _profile_for_user(user):
@@ -26,6 +26,7 @@ def account_context(request):
         "avatar_url": default_avatar_url,
         "default_avatar_url": default_avatar_url,
         "default_avatar_preview_urls": default_avatar_preview_urls,
+        **membership_payload_for_user(None),
     }
 
     user = getattr(request, "user", None)
@@ -49,6 +50,7 @@ def account_context(request):
                 "username": user.get_username(),
                 "bio": profile.bio if profile else "",
                 "avatar_url": avatar_url,
+                **membership_payload_for_user(user, profile),
             }
         )
 

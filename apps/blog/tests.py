@@ -210,6 +210,8 @@ class BlogPostFlowTests(TestCase):
         self.assertContains(guide_response, "VIP API 教程")
         self.assertContains(guide_response, "账号权限")
         self.assertContains(guide_response, "请求示例")
+        self.assertContains(guide_response, "获取 Cookies")
+        self.assertContains(guide_response, "sessionid")
         self.assertContains(guide_response, "返回数据")
         self.assertContains(guide_response, f"http://testserver{api_url}")
         self.assertContains(guide_response, 'data-copy-link="http://testserver', html=False)

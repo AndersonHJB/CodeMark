@@ -217,6 +217,23 @@ class AccountApiTests(TestCase):
         self.assertEqual(logout_response.status_code, 200)
         self.assertEqual(logout_response.json()["user"]["is_authenticated"], False)
 
+    def test_session_payload_exposes_membership_status(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="vip-session-user",
+            email="vip-session@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="VIP 用户", is_permanent_vip=True)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("account_session"))
+
+        payload = response.json()["user"]
+        self.assertEqual(payload["membership_tier"], "permanent-vip")
+        self.assertEqual(payload["membership_label"], "永久 VIP")
+        self.assertEqual(payload["can_use_article_api"], True)
+
     def test_profile_updates_display_name_and_avatar(self):
         with tempfile.TemporaryDirectory() as media_root:
             with override_settings(MEDIA_ROOT=media_root):
@@ -514,6 +531,32 @@ class AccountTemplateTests(TestCase):
         self.assertIn("data-account-open-register data-account-guest-only hidden", html)
         self.assertIn("data-account-open-profile data-account-auth-only", html)
         self.assertIn("已登录简介", html)
+
+    def test_account_menu_shows_distinct_membership_badges(self):
+        cases = [
+            ("vip-user", {"is_vip": True}, {}, "VIP", "account-vip-badge-vip"),
+            ("permanent-user", {"is_permanent_vip": True}, {}, "永久 VIP", "account-vip-badge-permanent-vip"),
+            ("admin-user", {}, {"is_staff": True}, "管理员", "account-vip-badge-admin"),
+        ]
+        for username, profile_kwargs, user_kwargs, label, css_class in cases:
+            with self.subTest(label=label):
+                user = get_user_model().objects.create_user(
+                    username=username,
+                    email=f"{username}@example.com",
+                    password="test-password",
+                    **user_kwargs,
+                )
+                UserProfile.objects.create(user=user, display_name=label, **profile_kwargs)
+                client = Client()
+                client.force_login(user)
+
+                response = client.get(reverse("index"))
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, label)
+                self.assertContains(response, css_class)
+                self.assertContains(response, "VIP API 教程")
+                self.assertContains(response, reverse("blog_vip_guide"))
 
     def test_accounts_api_requires_csrf_when_enforced(self):
         csrf_client = Client(enforce_csrf_checks=True)

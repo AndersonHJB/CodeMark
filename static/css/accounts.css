@@ -143,6 +143,7 @@
     font-size: 13px;
     font-weight: 650;
     text-align: left;
+    text-decoration: none;
 }
 
 .account-menu-item:hover {
@@ -191,7 +192,7 @@
 
 .site-account-trigger {
     min-height: 42px;
-    max-width: 210px;
+    max-width: 260px;
     border: 1px solid var(--site-line, #d9e3f1);
     border-radius: var(--site-radius, 8px);
     padding: 0 0.62rem 0 0.48rem;
@@ -239,6 +240,7 @@
 .site-account-copy {
     min-width: 0;
     display: grid;
+    gap: 4px;
 }
 
 .site-account-name {
@@ -249,6 +251,65 @@
     font-size: 0.9rem;
     font-weight: 800;
     line-height: 1;
+}
+
+.account-menu-name-line {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.account-vip-badge {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0 7px;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+    text-transform: uppercase;
+    box-shadow: 0 8px 18px rgba(26, 55, 98, 0.1);
+}
+
+.account-vip-badge-vip {
+    color: #064e3b;
+    border-color: rgba(16, 185, 129, 0.32);
+    background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+}
+
+.account-vip-badge-permanent-vip {
+    color: #5c3600;
+    border-color: rgba(217, 119, 6, 0.34);
+    background: linear-gradient(135deg, #fde68a, #fff7d6);
+    box-shadow: 0 10px 24px rgba(217, 119, 6, 0.22);
+}
+
+.account-vip-badge-admin {
+    color: #063f39;
+    border-color: rgba(15, 118, 110, 0.34);
+    background: linear-gradient(135deg, #99f6e4, #f0fdfa);
+    box-shadow: 0 10px 24px rgba(15, 118, 110, 0.18);
+}
+
+.account-sidebar-copy .account-vip-badge {
+    margin-top: 1px;
+}
+
+.account-menu-item-vip {
+    color: #8a5a00;
+    background: linear-gradient(135deg, rgba(253, 230, 138, 0.28), rgba(236, 253, 245, 0.4));
+}
+
+.account-menu-item-vip:hover {
+    background: linear-gradient(135deg, rgba(253, 230, 138, 0.46), rgba(236, 253, 245, 0.62));
 }
 
 .site-account-caret {
@@ -286,6 +347,16 @@
 
 .site-account-slot .account-menu-item:hover {
     background: rgba(237, 245, 255, 0.92);
+}
+
+.site-account-slot .account-menu-item-vip {
+    color: #7a4a00;
+    background: linear-gradient(135deg, rgba(253, 230, 138, 0.42), rgba(236, 253, 245, 0.58));
+}
+
+.site-account-slot .account-menu-item-vip:hover {
+    color: #5c3600;
+    background: linear-gradient(135deg, rgba(253, 230, 138, 0.62), rgba(236, 253, 245, 0.78));
 }
 
 .site-account-slot .account-menu-item.danger {

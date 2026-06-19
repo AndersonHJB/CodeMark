@@ -5,6 +5,46 @@ from django.utils import timezone
 from .avatars import DEFAULT_AVATAR_CHOICES, DEFAULT_AVATAR_STATIC_PATH
 
 
+def membership_payload_for_user(user, profile=None):
+    if not user or not getattr(user, "is_authenticated", False):
+        return {
+            "is_staff": False,
+            "is_vip": False,
+            "is_permanent_vip": False,
+            "can_use_article_api": False,
+            "membership_tier": "",
+            "membership_label": "",
+        }
+    if profile is None:
+        try:
+            profile = user.codemark_profile
+        except Exception:
+            profile = None
+    is_permanent_vip = bool(profile and profile.is_permanent_vip)
+    is_vip = bool(profile and profile.is_vip)
+    is_staff = bool(user.is_staff)
+    if is_staff:
+        tier = "admin"
+        label = "管理员"
+    elif is_permanent_vip:
+        tier = "permanent-vip"
+        label = "永久 VIP"
+    elif is_vip:
+        tier = "vip"
+        label = "VIP"
+    else:
+        tier = ""
+        label = ""
+    return {
+        "is_staff": is_staff,
+        "is_vip": is_vip,
+        "is_permanent_vip": is_permanent_vip,
+        "can_use_article_api": bool(is_staff or is_vip or is_permanent_vip),
+        "membership_tier": tier,
+        "membership_label": label,
+    }
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -22,6 +62,7 @@ class UserProfile(models.Model):
     avatar = models.ImageField("头像", upload_to="accounts/avatars/", blank=True)
     original_avatar = models.ImageField("原始头像", upload_to="accounts/original_avatars/", blank=True)
     is_vip = models.BooleanField("VIP 用户", default=False, db_index=True)
+    is_permanent_vip = models.BooleanField("永久 VIP", default=False, db_index=True)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 

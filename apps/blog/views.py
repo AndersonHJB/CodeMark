@@ -23,6 +23,7 @@ from .forms import validate_blog_image, BlogPostForm
 from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 from .sanitizer import sanitize_rich_text
 from apps.accounts.avatars import DEFAULT_AVATAR_STATIC_PATH, normalize_default_avatar_path
+from apps.accounts.models import membership_payload_for_user
 
 
 MAX_PINNED_COMMENTS = 10
@@ -85,7 +86,7 @@ def _user_can_use_article_api(user):
     if user.is_staff:
         return True
     profile = _profile_for_user(user)
-    return bool(profile and profile.is_vip)
+    return membership_payload_for_user(user, profile)["can_use_article_api"]
 
 
 def _json_time(value):

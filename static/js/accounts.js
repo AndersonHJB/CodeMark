@@ -6,7 +6,10 @@
         email: "",
         username: "",
         bio: "",
-        avatarUrl: config.defaultAvatarUrl || ""
+        avatarUrl: config.defaultAvatarUrl || "",
+        canUseArticleApi: false,
+        membershipTier: "",
+        membershipLabel: ""
     }, window.CODEMARK_ACCOUNT_INITIAL || {});
 
     const dialog = document.querySelector("[data-account-dialog]");
@@ -160,7 +163,10 @@
                 email: user.email || "",
                 username: user.username || "",
                 bio: user.bio || "",
-                avatarUrl: user.avatar_url || config.defaultAvatarUrl || accountState.avatarUrl
+                avatarUrl: user.avatar_url || config.defaultAvatarUrl || accountState.avatarUrl,
+                canUseArticleApi: !!user.can_use_article_api,
+                membershipTier: user.membership_tier || "",
+                membershipLabel: user.membership_label || ""
             });
         }
 
@@ -184,8 +190,19 @@
         document.querySelectorAll("[data-account-auth-only]").forEach(function (node) {
             node.hidden = !accountState.isAuthenticated;
         });
+        document.querySelectorAll("[data-account-vip-only]").forEach(function (node) {
+            node.hidden = !(accountState.isAuthenticated && accountState.canUseArticleApi);
+        });
         document.querySelectorAll("[data-account-guest-only]").forEach(function (node) {
             node.hidden = accountState.isAuthenticated;
+        });
+        document.querySelectorAll("[data-account-vip-badge]").forEach(function (node) {
+            node.hidden = !accountState.membershipLabel;
+            node.textContent = accountState.membershipLabel;
+            node.classList.remove("account-vip-badge-admin", "account-vip-badge-permanent-vip", "account-vip-badge-vip");
+            if (accountState.membershipTier) {
+                node.classList.add("account-vip-badge-" + accountState.membershipTier);
+            }
         });
         document.querySelectorAll("[data-account-profile-form] input[name='display_name']").forEach(function (node) {
             node.value = accountState.isAuthenticated ? displayName : "";

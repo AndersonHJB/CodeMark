@@ -16,7 +16,10 @@
         email: "{{ codemark_account.email|default_if_none:''|escapejs }}",
         username: "{{ codemark_account.username|default_if_none:''|escapejs }}",
         bio: "{{ codemark_account.bio|default_if_none:''|escapejs }}",
-        avatarUrl: "{{ codemark_account.avatar_url|escapejs }}"
+        avatarUrl: "{{ codemark_account.avatar_url|escapejs }}",
+        canUseArticleApi: {{ codemark_account.can_use_article_api|yesno:"true,false" }},
+        membershipTier: "{{ codemark_account.membership_tier|default_if_none:''|escapejs }}",
+        membershipLabel: "{{ codemark_account.membership_label|default_if_none:''|escapejs }}"
     };
 </script>
 

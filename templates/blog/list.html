@@ -10,9 +10,6 @@
     </div>
     <div class="blog-command-actions">
         {% if request.user.is_authenticated %}
-            {% if can_use_article_api %}
-                <a class="blog-btn blog-btn-ghost" href="{% url 'blog_vip_guide' %}">VIP API 教程</a>
-            {% endif %}
             <a class="blog-btn blog-btn-ghost" href="{% url 'blog_mine' %}">我的博客</a>
             <a class="blog-btn blog-btn-primary" href="{% url 'blog_write' %}">写文章</a>
         {% else %}

@@ -5,6 +5,9 @@
         </span>
         <span class="site-account-copy">
             <span class="site-account-name" data-account-topbar-name>{% if codemark_account.is_authenticated %}{{ codemark_account.display_name }}{% else %}登录{% endif %}</span>
+            <span class="account-vip-badge account-vip-badge-{{ codemark_account.membership_tier }}"
+                  data-account-vip-badge
+                  {% if not codemark_account.membership_label %}hidden{% endif %}>{{ codemark_account.membership_label }}</span>
         </span>
         <svg class="site-account-caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="m7 10 5 5 5-5"></path>
@@ -15,7 +18,12 @@
         <div class="account-menu-user">
             <img class="account-menu-avatar" src="{{ codemark_account.avatar_url }}" alt="" data-account-avatar>
             <div>
-                <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
+                <div class="account-menu-name-line">
+                    <div class="account-menu-name" data-account-name>{{ codemark_account.display_name }}</div>
+                    <span class="account-vip-badge account-vip-badge-{{ codemark_account.membership_tier }}"
+                          data-account-vip-badge
+                          {% if not codemark_account.membership_label %}hidden{% endif %}>{{ codemark_account.membership_label }}</span>
+                </div>
                 <div class="account-menu-email" data-account-subtitle>
                     {% if codemark_account.is_authenticated %}
                         {{ codemark_account.email|default:"已登录" }}
@@ -49,6 +57,17 @@
             </svg>
             <span>个人资料</span>
         </button>
+        <a class="account-menu-item account-menu-item-vip"
+           href="{% url 'blog_vip_guide' %}"
+           role="menuitem"
+           data-account-auth-only
+           data-account-vip-only
+           {% if not codemark_account.can_use_article_api %} hidden{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="m12 3 3 6 6 .9-4.5 4.4 1 6.2L12 17.4l-5.5 3.1 1-6.2L3 9.9 9 9z"></path>
+            </svg>
+            <span>VIP API 教程</span>
+        </a>
         <button class="account-menu-item danger" type="button" role="menuitem" data-account-logout data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
