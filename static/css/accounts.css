@@ -407,7 +407,45 @@
 }
 
 .account-sidebar-copy .account-vip-badge {
-    margin-top: 1px;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    margin-top: 0;
+    padding: 2px;
+    border-width: 1px;
+    flex: 0 0 24px;
+    box-shadow: 0 7px 16px rgba(0, 0, 0, 0.16);
+}
+
+.account-sidebar-copy .account-vip-badge::after {
+    display: none;
+}
+
+.account-sidebar-copy .account-vip-badge .account-vip-badge-icon {
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.account-sidebar-copy .account-vip-badge .account-vip-icon {
+    width: 13px;
+    height: 13px;
+    stroke-width: 2.2;
+}
+
+.account-sidebar-copy .account-vip-badge .account-vip-badge-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .site-account-copy > .account-vip-badge {
