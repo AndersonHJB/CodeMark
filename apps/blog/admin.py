@@ -1,5 +1,7 @@
 from django.contrib import admin
+from django.http import FileResponse
 
+from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
 from .models import BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 
 
@@ -18,6 +20,17 @@ class BlogPostAdmin(admin.ModelAdmin):
     autocomplete_fields = ("author", "tags")
     prepopulated_fields = {"slug": ("title",)}
     readonly_fields = ("view_count", "created_at", "updated_at")
+    actions = ("export_markdown_zip",)
+
+    @admin.action(description="导出选中文章为 Markdown ZIP")
+    def export_markdown_zip(self, request, queryset):
+        archive = build_blog_posts_markdown_archive(queryset.select_related("author").prefetch_related("tags"))
+        return FileResponse(
+            archive,
+            as_attachment=True,
+            filename=build_blog_export_filename(),
+            content_type="application/zip",
+        )
 
 
 @admin.register(BlogImage)

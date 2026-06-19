@@ -1,4 +1,6 @@
 import tempfile
+import zipfile
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -7,6 +9,7 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 
 from . import views
+from .exporters import build_blog_posts_markdown_archive
 from .models import BlogBookmark, BlogComment, BlogPost, BlogReaction, BlogTag
 
 
@@ -284,3 +287,74 @@ class BlogPostFlowTests(TestCase):
         self.assertRedirects(response, f"{post.get_absolute_url()}#comments")
         self.assertFalse(eleventh.is_pinned)
         self.assertEqual(post.comments.filter(is_pinned=True).count(), 10)
+
+
+class BlogMarkdownExportTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="writer",
+            email="writer@example.com",
+            password="test-password",
+        )
+
+    def test_markdown_export_rewrites_media_references_and_packages_assets(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            self._write_media_file(media_root, "blog/images/2026/06/5d5c1d1f462db70663df2688051236fc.jpg", b"image")
+            self._write_media_file(media_root, "blog/audio/2026/06/talk.mp3", b"audio")
+            self._write_media_file(media_root, "blog/covers/2026/06/cover.jpg", b"cover")
+            post = BlogPost.objects.create(
+                author=self.user,
+                title="Sub Agents Concepts and Benefits",
+                content=(
+                    "正文\n\n"
+                    "![old alt](/media/blog/images/2026/06/5d5c1d1f462db70663df2688051236fc.jpg)\n\n"
+                    "[音频](/media/blog/audio/2026/06/talk.mp3)"
+                ),
+                status=BlogPost.STATUS_PUBLISHED,
+            )
+            post.cover_image.name = "blog/covers/2026/06/cover.jpg"
+            post.save(update_fields=["cover_image"])
+
+            archive = build_blog_posts_markdown_archive(BlogPost.objects.filter(pk=post.pk))
+
+            with zipfile.ZipFile(archive) as zip_file:
+                names = set(zip_file.namelist())
+                markdown = zip_file.read("00-sub-agents-concepts-and-benefits.md").decode("utf-8")
+
+            self.assertIn("00-sub-agents-concepts-and-benefits.assets/", names)
+            self.assertIn("00-sub-agents-concepts-and-benefits.assets/5d5c1d1f462db70663df2688051236fc.jpg", names)
+            self.assertIn("00-sub-agents-concepts-and-benefits.assets/talk.mp3", names)
+            self.assertIn("00-sub-agents-concepts-and-benefits.assets/cover.jpg", names)
+            self.assertIn(
+                "![](./00-sub-agents-concepts-and-benefits.assets/5d5c1d1f462db70663df2688051236fc.jpg)",
+                markdown,
+            )
+            self.assertIn("[音频](./00-sub-agents-concepts-and-benefits.assets/talk.mp3)", markdown)
+            self.assertIn("![](./00-sub-agents-concepts-and-benefits.assets/cover.jpg)", markdown)
+
+    def test_rich_text_export_converts_image_tags_to_local_markdown_assets(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            self._write_media_file(media_root, "blog/images/2026/06/rich-image.png", TINY_PNG_BYTES)
+            post = BlogPost.objects.create(
+                author=self.user,
+                title="Rich Text Export",
+                content='<p>富文本正文</p><img src="/media/blog/images/2026/06/rich-image.png" alt="截图">',
+                content_format=BlogPost.FORMAT_RICH_TEXT,
+                status=BlogPost.STATUS_PUBLISHED,
+            )
+
+            archive = build_blog_posts_markdown_archive([post])
+
+            with zipfile.ZipFile(archive) as zip_file:
+                names = set(zip_file.namelist())
+                markdown = zip_file.read("00-rich-text-export.md").decode("utf-8")
+
+            self.assertIn("00-rich-text-export.assets/rich-image.png", names)
+            self.assertIn("富文本正文", markdown)
+            self.assertIn("![](./00-rich-text-export.assets/rich-image.png)", markdown)
+
+    def _write_media_file(self, media_root, relative_path, content):
+        path = Path(media_root) / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
