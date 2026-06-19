@@ -31,6 +31,7 @@ class BlogUrlPatternTests(SimpleTestCase):
     def test_blog_routes_resolve_to_views(self):
         expected_routes = {
             "blog_list": (reverse("blog_list"), views.blog_list),
+            "blog_vip_guide": (reverse("blog_vip_guide"), views.blog_vip_guide),
             "blog_write": (reverse("blog_write"), views.blog_write),
             "blog_mine": (reverse("blog_mine"), views.blog_mine),
             "blog_user_home": (reverse("blog_user_home", kwargs={"author_username": "demo"}), views.blog_user_home),
@@ -187,6 +188,32 @@ class BlogPostFlowTests(TestCase):
 
         self.assertEqual(denied_response.status_code, 403)
         self.assertFalse(BlogArticleApiAccess.objects.exists())
+
+    def test_vip_guide_requires_vip_and_renders_tutorial(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="VIP 教程示例文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        guide_url = reverse("blog_vip_guide")
+        api_url = reverse("blog_article_api", kwargs={"slug": post.slug})
+
+        denied_response = self.client.get(guide_url)
+        self.assertEqual(denied_response.status_code, 403)
+
+        UserProfile.objects.update_or_create(user=self.user, defaults={"is_vip": True})
+        guide_response = self.client.get(guide_url)
+        list_response = self.client.get(reverse("blog_list"))
+
+        self.assertEqual(guide_response.status_code, 200)
+        self.assertContains(guide_response, "VIP API 教程")
+        self.assertContains(guide_response, "账号权限")
+        self.assertContains(guide_response, "请求示例")
+        self.assertContains(guide_response, "返回数据")
+        self.assertContains(guide_response, f"http://testserver{api_url}")
+        self.assertContains(guide_response, 'data-copy-link="http://testserver', html=False)
+        self.assertContains(list_response, guide_url)
 
     def test_vip_article_api_returns_full_payload_and_rate_limits_per_article(self):
         UserProfile.objects.update_or_create(user=self.user, defaults={"is_vip": True})

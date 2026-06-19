@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, F, Prefetch, Q, Sum
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
@@ -315,10 +315,34 @@ def blog_list(request, tag_slug=None, author_username=None):
         "active_author": active_author,
         "stats": stats,
         "my_drafts": my_drafts,
+        "can_use_article_api": _user_can_use_article_api(request.user),
         "display_name": _display_name,
         **_sidebar_context(),
     }
     return render(request, "blog/list.html", context)
+
+
+@blog_login_required
+def blog_vip_guide(request):
+    if not _user_can_use_article_api(request.user):
+        return HttpResponseForbidden("仅 VIP 用户或管理员可以阅读此页面")
+
+    sample_post = _public_posts().order_by("-published_at", "-created_at").first()
+    sample_api_url = ""
+    if sample_post:
+        sample_api_url = request.build_absolute_uri(reverse("blog_article_api", kwargs={"slug": sample_post.slug}))
+
+    return render(
+        request,
+        "blog/vip_guide.html",
+        {
+            "sample_post": sample_post,
+            "sample_api_url": sample_api_url,
+            "api_window_days": ARTICLE_API_WINDOW_DAYS,
+            "api_limit": ARTICLE_API_LIMIT,
+            "display_name": _display_name(request.user),
+        },
+    )
 
 
 def blog_user_home(request, author_username):
