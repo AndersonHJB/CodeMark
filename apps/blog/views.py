@@ -1,9 +1,11 @@
+from datetime import timedelta
 from functools import wraps
 
 import markdown
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, F, Prefetch, Q, Sum
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,17 +15,19 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from PIL import Image
 
 from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
 from .forms import validate_blog_image, BlogPostForm
-from .models import BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
+from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 from .sanitizer import sanitize_rich_text
 from apps.accounts.avatars import DEFAULT_AVATAR_STATIC_PATH, normalize_default_avatar_path
 
 
 MAX_PINNED_COMMENTS = 10
+ARTICLE_API_WINDOW_DAYS = 7
+ARTICLE_API_LIMIT = 2
 
 
 def _display_name(user):
@@ -73,6 +77,129 @@ def json_login_required(view_func):
         return view_func(request, *args, **kwargs)
 
     return wrapped
+
+
+def _user_can_use_article_api(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_staff:
+        return True
+    profile = _profile_for_user(user)
+    return bool(profile and profile.is_vip)
+
+
+def _json_time(value):
+    return value.isoformat() if value else None
+
+
+def _api_usage_payload(usage, limited=True):
+    if not limited:
+        return {
+            "limited": False,
+            "window_days": ARTICLE_API_WINDOW_DAYS,
+            "limit": None,
+            "used": None,
+            "remaining": None,
+            "window_start": None,
+            "resets_at": None,
+        }
+    resets_at = usage.resets_at(ARTICLE_API_WINDOW_DAYS)
+    return {
+        "limited": True,
+        "window_days": ARTICLE_API_WINDOW_DAYS,
+        "limit": ARTICLE_API_LIMIT,
+        "used": usage.request_count,
+        "remaining": max(0, ARTICLE_API_LIMIT - usage.request_count),
+        "window_start": _json_time(usage.window_start),
+        "resets_at": _json_time(resets_at),
+    }
+
+
+def _consume_article_api_quota(user, post):
+    now = timezone.now()
+    window = timedelta(days=ARTICLE_API_WINDOW_DAYS)
+    with transaction.atomic():
+        usage, _ = BlogArticleApiAccess.objects.select_for_update().get_or_create(
+            user=user,
+            post=post,
+            defaults={"window_start": now},
+        )
+        if now >= usage.window_start + window:
+            usage.window_start = now
+            usage.request_count = 0
+        if usage.request_count >= ARTICLE_API_LIMIT:
+            return False, _api_usage_payload(usage)
+        usage.request_count += 1
+        usage.last_requested_at = now
+        usage.save(update_fields=["window_start", "request_count", "last_requested_at", "updated_at"])
+        return True, _api_usage_payload(usage)
+
+
+def _serialize_blog_user(request, user):
+    profile_url = reverse("blog_user_home", kwargs={"author_username": user.username})
+    return {
+        "id": user.id,
+        "username": user.username,
+        "display_name": _display_name(user),
+        "profile_url": request.build_absolute_uri(profile_url),
+    }
+
+
+def _serialize_comment(request, comment):
+    return {
+        "id": comment.id,
+        "parent_id": comment.parent_id,
+        "author": _serialize_blog_user(request, comment.author),
+        "content": comment.content,
+        "is_pinned": comment.is_pinned,
+        "created_at": _json_time(comment.created_at),
+        "updated_at": _json_time(comment.updated_at),
+    }
+
+
+def _build_article_api_payload(request, post, usage_payload):
+    comments = (
+        BlogComment.objects.filter(post=post, is_deleted=False)
+        .select_related("author", "author__codemark_profile")
+        .order_by("created_at")
+    )
+    article_url = request.build_absolute_uri(post.get_absolute_url())
+    api_url = request.build_absolute_uri(reverse("blog_article_api", kwargs={"slug": post.slug}))
+    cover_image_url = request.build_absolute_uri(post.cover_image.url) if post.cover_image else ""
+    return {
+        "ok": True,
+        "usage": usage_payload,
+        "article": {
+            "id": post.id,
+            "title": post.title,
+            "slug": post.slug,
+            "url": article_url,
+            "api_url": api_url,
+            "author": _serialize_blog_user(request, post.author),
+            "summary": post.summary,
+            "auto_summary": post.auto_summary,
+            "category": post.category,
+            "tags": [{"id": tag.id, "name": tag.name, "slug": tag.slug} for tag in post.tags.all()],
+            "cover_image_url": cover_image_url,
+            "content_format": post.content_format,
+            "content": post.content,
+            "content_html": str(render_post_body(post)),
+            "status": post.status,
+            "allow_comments": post.allow_comments,
+            "published_at": _json_time(post.published_at),
+            "created_at": _json_time(post.created_at),
+            "updated_at": _json_time(post.updated_at),
+            "stats": {
+                "views": post.view_count,
+                "likes": post.like_total,
+                "bookmarks": post.bookmark_total,
+                "comments": post.comment_total,
+                "word_count": post.word_count,
+                "read_minutes": post.read_minutes,
+            },
+            "comments": [_serialize_comment(request, comment) for comment in comments],
+        },
+    }
 
 
 def _post_queryset():
@@ -294,6 +421,36 @@ def blog_detail(request, slug):
             "display_name": _display_name,
             **_sidebar_context(),
         },
+    )
+
+
+@require_GET
+@json_login_required
+def blog_article_api(request, slug):
+    post = get_object_or_404(_post_queryset(), slug=slug)
+    if not post.visible_to(request.user):
+        raise Http404("文章不存在")
+    if not _user_can_use_article_api(request.user):
+        return JsonResponse({"ok": False, "message": "仅 VIP 用户或管理员可以访问文章 API"}, status=403)
+
+    if request.user.is_staff:
+        usage_payload = _api_usage_payload(None, limited=False)
+    else:
+        allowed, usage_payload = _consume_article_api_quota(request.user, post)
+        if not allowed:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": f"请求次数已用完，{ARTICLE_API_WINDOW_DAYS} 天内最多请求 {ARTICLE_API_LIMIT} 次",
+                    "usage": usage_payload,
+                },
+                status=429,
+                json_dumps_params={"ensure_ascii": False},
+            )
+
+    return JsonResponse(
+        _build_article_api_payload(request, post, usage_payload),
+        json_dumps_params={"ensure_ascii": False},
     )
 
 

@@ -1,5 +1,6 @@
 import math
 import secrets
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -253,3 +254,40 @@ class BlogBookmark(models.Model):
 
     def __str__(self):
         return f"{self.user} bookmarked {self.post}"
+
+
+class BlogArticleApiAccess(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blog_article_api_accesses",
+        verbose_name="用户",
+    )
+    post = models.ForeignKey(
+        BlogPost,
+        on_delete=models.CASCADE,
+        related_name="api_accesses",
+        verbose_name="文章",
+    )
+    window_start = models.DateTimeField("计数周期开始", default=timezone.now)
+    request_count = models.PositiveSmallIntegerField("周期内请求次数", default=0)
+    last_requested_at = models.DateTimeField("最后请求时间", null=True, blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "post"], name="unique_blog_article_api_access"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "post"]),
+            models.Index(fields=["window_start"]),
+        ]
+        verbose_name = "文章 API 请求次数"
+        verbose_name_plural = "文章 API 请求次数"
+
+    def __str__(self):
+        return f"{self.user} / {self.post} / {self.request_count}"
+
+    def resets_at(self, days=7):
+        return self.window_start + timedelta(days=days)

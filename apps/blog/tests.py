@@ -9,9 +9,11 @@ from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 
+from apps.accounts.models import UserProfile
+
 from . import views
 from .exporters import build_blog_posts_markdown_archive
-from .models import BlogBookmark, BlogComment, BlogPost, BlogReaction, BlogTag
+from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogPost, BlogReaction, BlogTag
 
 
 TINY_PNG_BYTES = (
@@ -34,6 +36,10 @@ class BlogUrlPatternTests(SimpleTestCase):
             "blog_user_home": (reverse("blog_user_home", kwargs={"author_username": "demo"}), views.blog_user_home),
             "blog_detail": (reverse("blog_detail", kwargs={"slug": "demo"}), views.blog_detail),
             "blog_upload_image": (reverse("blog_upload_image"), views.blog_upload_image),
+            "blog_article_api": (
+                reverse("blog_article_api", kwargs={"slug": "demo"}),
+                views.blog_article_api,
+            ),
             "blog_download_markdown": (
                 reverse("blog_download_markdown", kwargs={"slug": "demo"}),
                 views.blog_download_markdown,
@@ -90,6 +96,7 @@ class BlogPostFlowTests(TestCase):
         self.assertContains(detail_response, "原创")
         self.assertContains(detail_response, "约 ")
         self.assertContains(detail_response, "data-like-count", html=False)
+        self.assertContains(detail_response, reverse("blog_article_api", kwargs={"slug": post.slug}))
         self.assertNotContains(detail_response, "<script>alert", html=False)
 
     def test_draft_post_is_only_visible_to_author(self):
@@ -159,6 +166,95 @@ class BlogPostFlowTests(TestCase):
         self.assertEqual(staff_download["Content-Type"], "application/zip")
         with zipfile.ZipFile(BytesIO(archive_bytes)) as zip_file:
             self.assertTrue(any(name.endswith(".md") for name in zip_file.namelist()))
+
+    def test_article_api_requires_login_and_vip(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="仅 VIP 可请求数据的文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        api_url = reverse("blog_article_api", kwargs={"slug": post.slug})
+
+        self.client.logout()
+        guest_response = self.client.get(api_url)
+        self.assertEqual(guest_response.status_code, 401)
+
+        self.client.force_login(self.user)
+        UserProfile.objects.update_or_create(user=self.user, defaults={"is_vip": False})
+        denied_response = self.client.get(api_url)
+
+        self.assertEqual(denied_response.status_code, 403)
+        self.assertFalse(BlogArticleApiAccess.objects.exists())
+
+    def test_vip_article_api_returns_full_payload_and_rate_limits_per_article(self):
+        UserProfile.objects.update_or_create(user=self.user, defaults={"is_vip": True})
+        tag = BlogTag.objects.create(name="API")
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="可请求 API 数据的文章",
+            summary="API 摘要",
+            content="# API 正文\n\n这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+            category="数据",
+            view_count=8,
+        )
+        post.tags.add(tag)
+        BlogReaction.objects.create(post=post, user=self.user)
+        BlogBookmark.objects.create(post=post, user=self.user)
+        comment = BlogComment.objects.create(post=post, author=self.user, content="主评论")
+        BlogComment.objects.create(post=post, parent=comment, author=self.user, content="评论回复")
+        api_url = reverse("blog_article_api", kwargs={"slug": post.slug})
+
+        first_response = self.client.get(api_url)
+        second_response = self.client.get(api_url)
+        limited_response = self.client.get(api_url)
+
+        self.assertEqual(first_response.status_code, 200)
+        payload = first_response.json()
+        self.assertEqual(payload["ok"], True)
+        self.assertEqual(payload["article"]["title"], post.title)
+        self.assertEqual(payload["article"]["author"]["username"], self.user.username)
+        self.assertEqual(payload["article"]["summary"], "API 摘要")
+        self.assertEqual(payload["article"]["category"], "数据")
+        self.assertEqual(payload["article"]["tags"][0]["name"], "API")
+        self.assertIn("API 正文", payload["article"]["content"])
+        self.assertIn("<h1", payload["article"]["content_html"])
+        self.assertEqual(payload["article"]["stats"]["views"], 8)
+        self.assertEqual(payload["article"]["stats"]["likes"], 1)
+        self.assertEqual(payload["article"]["stats"]["bookmarks"], 1)
+        self.assertEqual(payload["article"]["stats"]["comments"], 2)
+        self.assertEqual(len(payload["article"]["comments"]), 2)
+        self.assertEqual(payload["usage"]["limit"], 2)
+        self.assertEqual(payload["usage"]["used"], 1)
+        self.assertEqual(payload["usage"]["remaining"], 1)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(second_response.json()["usage"]["remaining"], 0)
+        self.assertEqual(limited_response.status_code, 429)
+        self.assertEqual(BlogArticleApiAccess.objects.get(user=self.user, post=post).request_count, 2)
+
+    def test_staff_article_api_bypasses_rate_limit(self):
+        post = BlogPost.objects.create(
+            author=self.user,
+            title="管理员不限频 API 文章",
+            content="这是一篇已经发布的正文内容。",
+            status=BlogPost.STATUS_PUBLISHED,
+        )
+        staff = get_user_model().objects.create_user(
+            username="api-staff",
+            email="api-staff@example.com",
+            password="test-password",
+            is_staff=True,
+        )
+        staff_client = Client()
+        staff_client.force_login(staff)
+        api_url = reverse("blog_article_api", kwargs={"slug": post.slug})
+
+        responses = [staff_client.get(api_url) for _ in range(3)]
+
+        self.assertTrue(all(response.status_code == 200 for response in responses))
+        self.assertEqual(responses[-1].json()["usage"]["limited"], False)
+        self.assertFalse(BlogArticleApiAccess.objects.filter(user=staff, post=post).exists())
 
     def test_reaction_and_bookmark_toggle(self):
         post = BlogPost.objects.create(

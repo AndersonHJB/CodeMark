@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.http import FileResponse
+from django.utils import timezone
 
 from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
-from .models import BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
+from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
 
 
 @admin.register(BlogTag)
@@ -59,3 +60,19 @@ class BlogReactionAdmin(admin.ModelAdmin):
 class BlogBookmarkAdmin(admin.ModelAdmin):
     list_display = ("post", "user", "created_at")
     autocomplete_fields = ("post", "user")
+
+
+@admin.register(BlogArticleApiAccess)
+class BlogArticleApiAccessAdmin(admin.ModelAdmin):
+    list_display = ("post", "user", "request_count", "window_start", "last_requested_at", "updated_at")
+    list_filter = ("window_start", "last_requested_at")
+    list_editable = ("request_count",)
+    search_fields = ("post__title", "post__slug", "user__username", "user__email")
+    autocomplete_fields = ("post", "user")
+    readonly_fields = ("last_requested_at", "created_at", "updated_at")
+    actions = ("reset_api_count",)
+
+    @admin.action(description="重置选中的 API 请求次数")
+    def reset_api_count(self, request, queryset):
+        now = timezone.now()
+        queryset.update(request_count=0, window_start=now, last_requested_at=None, updated_at=now)

@@ -9,12 +9,15 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "display_name",
+        "is_vip",
         "default_avatar",
         "avatar",
         "original_avatar",
         "created_at",
         "updated_at",
     )
+    list_filter = ("is_vip",)
+    list_editable = ("is_vip",)
     search_fields = ("user__username", "user__email", "display_name")
 
 
