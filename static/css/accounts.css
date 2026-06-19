@@ -75,6 +75,7 @@
 .account-sidebar-name,
 .account-menu-name {
     min-width: 0;
+    flex: 1 1 auto;
     color: var(--text-main, #f4f5f0);
     font-size: 13px;
     font-weight: 700;
@@ -134,6 +135,11 @@
     padding: 8px;
     margin-bottom: 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.account-menu-user > div {
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .account-menu-item {
@@ -271,9 +277,16 @@
 
 .account-menu-name-line {
     min-width: 0;
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 8px;
+    overflow: hidden;
+}
+
+.account-menu-name-line .account-vip-badge {
+    flex: 0 0 auto;
+    max-width: 96px;
 }
 
 .account-vip-badge {
