@@ -1,0 +1,184 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人资料 - CodeMark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/site-topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+</head>
+<body class="account-profile-page">
+{% include "_site_topbar.html" with show_account=True brand_logo="images/logo-cm.svg" %}
+
+<main class="account-profile-shell">
+    <section class="account-profile-guest" data-account-guest-only{% if codemark_account.is_authenticated %} hidden{% endif %}>
+        <div class="account-profile-guest-card">
+            <span class="account-profile-guest-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </span>
+            <div>
+                <h1>登录后编辑个人资料</h1>
+                <p>头像、昵称和简介会同步到账号菜单与博客作者信息。</p>
+            </div>
+            <div class="account-profile-guest-actions">
+                <button class="account-primary-btn" type="button" data-account-open-login>登录</button>
+                <button class="account-secondary-btn" type="button" data-account-open-register>注册</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="account-profile-layout" data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
+        <aside class="account-profile-summary" aria-label="账号概览">
+            <div class="account-profile-summary-card">
+                <div class="account-profile-avatar-frame">
+                    <img src="{{ codemark_account.avatar_url }}" alt="当前头像" data-account-profile-avatar>
+                </div>
+                <div class="account-profile-identity">
+                    <div class="account-profile-name-line">
+                        <h1 data-account-name>{{ codemark_account.display_name }}</h1>
+                        {% include "_account_membership_badge.html" %}
+                    </div>
+                    <p data-account-bio>
+                        {% if codemark_account.bio %}
+                            {{ codemark_account.bio }}
+                        {% else %}
+                            还没有填写个人简介
+                        {% endif %}
+                    </p>
+                </div>
+                <dl class="account-profile-facts">
+                    <div>
+                        <dt>邮箱</dt>
+                        <dd data-account-subtitle>{{ codemark_account.email|default:"已登录" }}</dd>
+                    </div>
+                    <div>
+                        <dt>用户名</dt>
+                        <dd data-account-username>{{ codemark_account.username|default:"未设置" }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </aside>
+
+        <section class="account-profile-editor-card" aria-labelledby="accountProfilePageTitle">
+            <div class="account-profile-editor-head">
+                <div>
+                    <h2 id="accountProfilePageTitle">个人资料</h2>
+                    <p>调整你的公开显示信息。</p>
+                </div>
+                <a class="account-profile-back" href="/">返回首页</a>
+            </div>
+
+            <form class="account-profile-form" data-account-profile-form enctype="multipart/form-data">
+                <div class="account-profile-preview">
+                    <img src="{{ codemark_account.avatar_url }}" alt="当前头像" data-account-profile-avatar>
+                    <div>
+                        <strong data-account-name>{{ codemark_account.display_name }}</strong>
+                        <span data-account-subtitle>{{ codemark_account.email|default:"已登录" }}</span>
+                    </div>
+                </div>
+
+                <div class="account-profile-form-grid">
+                    <div class="account-field account-avatar-field account-profile-avatar-editor">
+                        <div class="account-field-heading">
+                            <label for="accountProfileAvatar">头像</label>
+                            <span class="account-avatar-limit">大图自动压缩</span>
+                        </div>
+                        <div class="account-avatar-picker">
+                            <label class="account-avatar-upload" for="accountProfileAvatar" role="button" tabindex="0" data-account-avatar-upload>
+                                <span class="account-avatar-upload-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" focusable="false">
+                                        <path d="M12 15V4"></path>
+                                        <path d="m7 9 5-5 5 5"></path>
+                                        <path d="M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3"></path>
+                                    </svg>
+                                </span>
+                                <span class="account-avatar-upload-copy">
+                                    <strong data-account-avatar-upload-title>上传图片</strong>
+                                    <span data-account-avatar-file-name aria-live="polite">JPG、PNG、WebP、GIF</span>
+                                </span>
+                            </label>
+                            <input id="accountProfileAvatar" class="account-avatar-file-input" name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-account-avatar-input>
+                            <button class="account-secondary-btn account-random-avatar-btn" type="button" data-account-use-random-default>
+                                <span class="account-random-avatar-stack" aria-hidden="true">
+                                    {% for avatar_url in codemark_account.default_avatar_preview_urls|slice:":3" %}
+                                        <img src="{{ avatar_url }}" alt="" loading="lazy" decoding="async">
+                                    {% endfor %}
+                                </span>
+                                <span class="account-random-avatar-copy">
+                                    <strong>随机头像</strong>
+                                    <small>默认头像库</small>
+                                </span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M16 3h5v5"></path>
+                                    <path d="M4 20 21 3"></path>
+                                    <path d="M21 16v5h-5"></path>
+                                    <path d="M15 15 21 21"></path>
+                                    <path d="M4 4l5 5"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="account-default-avatar-strip" aria-label="随机默认头像预览" data-account-default-avatar-strip>
+                            {% for avatar_url in codemark_account.default_avatar_preview_urls %}
+                                <img src="{{ avatar_url }}" alt="" loading="lazy" decoding="async">
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="account-profile-fields">
+                        <div class="account-field">
+                            <div class="account-field-heading">
+                                <label for="accountProfileDisplayName">昵称</label>
+                                <button class="account-mini-action" type="button" data-account-random-profile="display_name" title="随机昵称">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M16 3h5v5"></path>
+                                        <path d="M4 20 21 3"></path>
+                                        <path d="M21 16v5h-5"></path>
+                                        <path d="M15 15 21 21"></path>
+                                        <path d="M4 4l5 5"></path>
+                                    </svg>
+                                    <span>随机</span>
+                                </button>
+                            </div>
+                            <input id="accountProfileDisplayName" name="display_name" type="text" maxlength="40" value="{{ codemark_account.display_name }}">
+                        </div>
+
+                        <div class="account-field">
+                            <div class="account-field-heading">
+                                <label for="accountProfileBio">个人简介</label>
+                                <button class="account-mini-action" type="button" data-account-random-profile="bio" title="随机个人简介">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M16 3h5v5"></path>
+                                        <path d="M4 20 21 3"></path>
+                                        <path d="M21 16v5h-5"></path>
+                                        <path d="M15 15 21 21"></path>
+                                        <path d="M4 4l5 5"></path>
+                                    </svg>
+                                    <span>随机</span>
+                                </button>
+                            </div>
+                            <textarea id="accountProfileBio" name="bio" maxlength="160" rows="5">{{ codemark_account.bio|default_if_none:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="account-profile-actions">
+                    <button class="account-primary-btn" type="submit">保存资料</button>
+                </div>
+            </form>
+        </section>
+    </section>
+</main>
+
+{% include "_account_dialogs.html" %}
+<script src="{% static 'js/accounts.js' %}"></script>
+</body>
+</html>

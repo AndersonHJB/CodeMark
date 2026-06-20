@@ -300,6 +300,11 @@ def _send_registration_code_email(email, code):
 
 
 @require_GET
+def profile_page(request):
+    return render(request, "accounts/profile.html")
+
+
+@require_GET
 def session_view(request):
     if not request.user.is_authenticated:
         return JsonResponse(

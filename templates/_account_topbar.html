@@ -46,13 +46,18 @@
             </svg>
             <span>注册</span>
         </button>
-        <button class="account-menu-item" type="button" role="menuitem" data-account-open-profile data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
+        <a class="account-menu-item"
+           href="{% url 'account_profile_page' %}"
+           role="menuitem"
+           data-account-profile-link
+           data-account-auth-only
+           {% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M20 21a8 8 0 0 0-16 0"></path>
                 <circle cx="12" cy="7" r="4"></circle>
             </svg>
             <span>个人资料</span>
-        </button>
+        </a>
         <a class="account-menu-item account-menu-item-vip"
            href="{% url 'blog_vip_guide' %}"
            role="menuitem"

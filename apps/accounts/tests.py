@@ -474,17 +474,20 @@ class AccountTemplateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-account-trigger', html=False)
-        self.assertContains(response, 'data-account-use-random-default', html=False)
         self.assertContains(response, 'data-account-random-profile="display_name"', html=False)
         self.assertContains(response, 'data-account-random-profile="bio"', html=False)
         self.assertContains(response, "randomProfileUrl", html=False)
+        self.assertContains(response, "profilePageUrl", html=False)
+        self.assertContains(response, reverse("account_profile_page"), html=False)
         html = response.content.decode()
         self.assertIn('data-account-tab="login"', html)
         self.assertIn('data-account-tab="register"', html)
-        self.assertIn('data-account-tab="profile" hidden', html)
+        self.assertNotIn('data-account-tab="profile"', html)
+        self.assertNotIn('data-account-use-random-default', html)
         self.assertIn("data-account-open-login data-account-guest-only", html)
         self.assertIn("data-account-open-register data-account-guest-only", html)
-        self.assertIn("data-account-open-profile data-account-auth-only hidden", html)
+        self.assertIn("data-account-profile-link", html)
+        self.assertIn("data-account-auth-only", html)
 
     def test_sharecode_sidebar_includes_account_entry(self):
         response = self.client.get(reverse("sharecode"))
@@ -500,6 +503,7 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "site-account-trigger", html=False)
         self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
         self.assertContains(response, 'data-account-tab="login"', html=False)
+        self.assertContains(response, reverse("account_profile_page"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
 
     def test_algorithms_topbar_includes_account_entry(self):
@@ -509,6 +513,7 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "site-account-trigger", html=False)
         self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
         self.assertContains(response, 'data-account-tab="login"', html=False)
+        self.assertContains(response, reverse("account_profile_page"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
 
     def test_authenticated_editor_hides_guest_account_actions(self):
@@ -526,11 +531,47 @@ class AccountTemplateTests(TestCase):
         html = response.content.decode()
         self.assertIn('data-account-tab="login" hidden', html)
         self.assertIn('data-account-tab="register" hidden', html)
-        self.assertIn('data-account-tab="profile"', html)
+        self.assertNotIn('data-account-tab="profile"', html)
         self.assertIn("data-account-open-login data-account-guest-only hidden", html)
         self.assertIn("data-account-open-register data-account-guest-only hidden", html)
-        self.assertIn("data-account-open-profile data-account-auth-only", html)
+        self.assertIn("data-account-profile-link", html)
+        self.assertIn(reverse("account_profile_page"), html)
         self.assertIn("已登录简介", html)
+
+    def test_profile_page_prompts_guest_and_mounts_profile_form(self):
+        response = self.client.get(reverse("account_profile_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "account-profile-page", html=False)
+        self.assertContains(response, "登录后编辑个人资料")
+        self.assertContains(response, "data-account-open-login", html=False)
+        self.assertContains(response, "data-account-open-register", html=False)
+        self.assertContains(response, "data-account-profile-form", html=False)
+        self.assertContains(response, "data-account-use-random-default", html=False)
+        self.assertContains(response, "data-account-auth-only hidden", html=False)
+        self.assertContains(response, "js/accounts.js", html=False)
+
+    def test_authenticated_profile_page_renders_profile_editor(self):
+        user = get_user_model().objects.create_user(
+            username="profile-page-user",
+            email="profile-page@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="资料页用户", bio="资料页简介")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("account_profile_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "account-profile-layout", html=False)
+        self.assertContains(response, "data-account-guest-only hidden", html=False)
+        self.assertContains(response, "data-account-profile-form", html=False)
+        self.assertContains(response, "data-account-use-random-default", html=False)
+        self.assertContains(response, "资料页用户")
+        self.assertContains(response, "资料页简介")
+        self.assertContains(response, "profile-page@example.com")
+        self.assertContains(response, "profile-page-user")
+        self.assertNotContains(response, 'data-account-tab="profile"', html=False)
 
     def test_account_menu_shows_distinct_membership_badges(self):
         cases = [

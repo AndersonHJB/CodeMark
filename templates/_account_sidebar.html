@@ -46,10 +46,15 @@
             <i class="bi bi-person-plus" aria-hidden="true"></i>
             <span>注册</span>
         </button>
-        <button class="account-menu-item" type="button" role="menuitem" data-account-open-profile data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
+        <a class="account-menu-item"
+           href="{% url 'account_profile_page' %}"
+           role="menuitem"
+           data-account-profile-link
+           data-account-auth-only
+           {% if not codemark_account.is_authenticated %} hidden{% endif %}>
             <i class="bi bi-person-gear" aria-hidden="true"></i>
             <span>个人资料</span>
-        </button>
+        </a>
         <a class="account-menu-item account-menu-item-vip"
            href="{% url 'blog_vip_guide' %}"
            role="menuitem"

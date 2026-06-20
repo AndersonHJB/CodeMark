@@ -195,6 +195,14 @@
         document.querySelectorAll("[data-account-subtitle]").forEach(function (node) {
             node.textContent = accountState.isAuthenticated ? subtitle : "使用邮箱验证码注册";
         });
+        document.querySelectorAll("[data-account-username]").forEach(function (node) {
+            node.textContent = accountState.isAuthenticated ? (accountState.username || "未设置") : "";
+        });
+        document.querySelectorAll("[data-account-bio]").forEach(function (node) {
+            node.textContent = accountState.isAuthenticated
+                ? (accountState.bio || "还没有填写个人简介")
+                : "";
+        });
         document.querySelectorAll("[data-account-avatar], [data-account-profile-avatar]").forEach(function (node) {
             node.src = accountState.avatarUrl || config.defaultAvatarUrl || "";
         });
@@ -447,6 +455,10 @@
     });
     document.querySelectorAll("[data-account-open-profile]").forEach(function (button) {
         button.addEventListener("click", function () {
+            if (config.profilePageUrl) {
+                window.location.assign(config.profilePageUrl);
+                return;
+            }
             openDialog("profile");
         });
     });

@@ -7,6 +7,7 @@
         loginUrl: "{% url 'account_login' %}",
         logoutUrl: "{% url 'account_logout' %}",
         profileUrl: "{% url 'account_profile' %}",
+        profilePageUrl: "{% url 'account_profile_page' %}",
         csrfToken: "{{ csrf_token|escapejs }}",
         defaultAvatarUrl: "{{ codemark_account.default_avatar_url|escapejs }}"
     };
@@ -49,7 +50,6 @@
         <div class="account-tabs" role="tablist" aria-label="账号操作">
             <button class="account-tab{% if not codemark_account.is_authenticated %} is-active{% endif %}" type="button" data-account-tab="login"{% if codemark_account.is_authenticated %} hidden{% endif %}>登录</button>
             <button class="account-tab" type="button" data-account-tab="register"{% if codemark_account.is_authenticated %} hidden{% endif %}>注册</button>
-            <button class="account-tab{% if codemark_account.is_authenticated %} is-active{% endif %}" type="button" data-account-tab="profile"{% if not codemark_account.is_authenticated %} hidden{% endif %}>资料</button>
         </div>
 
         <form class="account-panel{% if not codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="login" data-account-login-form{% if codemark_account.is_authenticated %} hidden{% endif %}>
@@ -115,94 +115,6 @@
             </label>
             <button class="account-primary-btn" type="submit">注册并登录</button>
             <p class="account-inline-hint">已经有账号？<button type="button" data-account-switch-login>去登录</button></p>
-        </form>
-
-        <form class="account-panel{% if codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="profile" data-account-profile-form enctype="multipart/form-data"{% if not codemark_account.is_authenticated %} hidden{% endif %}>
-            <div class="account-profile-preview">
-                <img src="{{ codemark_account.avatar_url }}" alt="当前头像" data-account-profile-avatar>
-                <div>
-                    <strong data-account-name>{{ codemark_account.display_name }}</strong>
-                    <span data-account-subtitle>{{ codemark_account.email|default:"未登录" }}</span>
-                </div>
-            </div>
-            <div class="account-field account-avatar-field">
-                <div class="account-field-heading">
-                    <label for="accountProfileAvatar">头像</label>
-                    <span class="account-avatar-limit">大图自动压缩</span>
-                </div>
-                <div class="account-avatar-picker">
-                    <label class="account-avatar-upload" for="accountProfileAvatar" role="button" tabindex="0" data-account-avatar-upload>
-                        <span class="account-avatar-upload-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M12 15V4"></path>
-                                <path d="m7 9 5-5 5 5"></path>
-                                <path d="M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3"></path>
-                            </svg>
-                        </span>
-                        <span class="account-avatar-upload-copy">
-                            <strong data-account-avatar-upload-title>上传图片</strong>
-                            <span data-account-avatar-file-name aria-live="polite">JPG、PNG、WebP、GIF</span>
-                        </span>
-                    </label>
-                    <input id="accountProfileAvatar" class="account-avatar-file-input" name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-account-avatar-input>
-                    <button class="account-secondary-btn account-random-avatar-btn" type="button" data-account-use-random-default>
-                        <span class="account-random-avatar-stack" aria-hidden="true">
-                            {% for avatar_url in codemark_account.default_avatar_preview_urls|slice:":3" %}
-                                <img src="{{ avatar_url }}" alt="" loading="lazy" decoding="async">
-                            {% endfor %}
-                        </span>
-                        <span class="account-random-avatar-copy">
-                            <strong>随机头像</strong>
-                            <small>默认头像库</small>
-                        </span>
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M16 3h5v5"></path>
-                            <path d="M4 20 21 3"></path>
-                            <path d="M21 16v5h-5"></path>
-                            <path d="M15 15 21 21"></path>
-                            <path d="M4 4l5 5"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="account-default-avatar-strip" aria-label="随机默认头像预览" data-account-default-avatar-strip>
-                    {% for avatar_url in codemark_account.default_avatar_preview_urls %}
-                        <img src="{{ avatar_url }}" alt="" loading="lazy" decoding="async">
-                    {% endfor %}
-                </div>
-            </div>
-            <div class="account-field">
-                <div class="account-field-heading">
-                    <label for="accountProfileDisplayName">昵称</label>
-                    <button class="account-mini-action" type="button" data-account-random-profile="display_name" title="随机昵称">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M16 3h5v5"></path>
-                            <path d="M4 20 21 3"></path>
-                            <path d="M21 16v5h-5"></path>
-                            <path d="M15 15 21 21"></path>
-                            <path d="M4 4l5 5"></path>
-                        </svg>
-                        <span>随机</span>
-                    </button>
-                </div>
-                <input id="accountProfileDisplayName" name="display_name" type="text" maxlength="40" value="{{ codemark_account.display_name }}">
-            </div>
-            <div class="account-field">
-                <div class="account-field-heading">
-                    <label for="accountProfileBio">个人简介</label>
-                    <button class="account-mini-action" type="button" data-account-random-profile="bio" title="随机个人简介">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M16 3h5v5"></path>
-                            <path d="M4 20 21 3"></path>
-                            <path d="M21 16v5h-5"></path>
-                            <path d="M15 15 21 21"></path>
-                            <path d="M4 4l5 5"></path>
-                        </svg>
-                        <span>随机</span>
-                    </button>
-                </div>
-                <textarea id="accountProfileBio" name="bio" maxlength="160" rows="3">{{ codemark_account.bio|default_if_none:'' }}</textarea>
-            </div>
-            <button class="account-primary-btn" type="submit">保存资料</button>
         </form>
     </div>
 </div>
