@@ -676,6 +676,36 @@
     background: #f8e45c;
 }
 
+.account-login-modes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 4px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.account-login-mode {
+    min-height: 32px;
+    border: 0;
+    border-radius: 9px;
+    color: #c7cfbc;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.account-login-mode.is-active {
+    color: #15160f;
+    background: #f8e45c;
+}
+
+.account-login-panel[hidden] {
+    display: none !important;
+}
+
 .account-tab[hidden],
 .account-panel[hidden] {
     display: none !important;

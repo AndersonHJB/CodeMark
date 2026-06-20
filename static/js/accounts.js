@@ -18,6 +18,7 @@
     const registerForm = document.querySelector("[data-account-register-form]");
     const profileForm = document.querySelector("[data-account-profile-form]");
     const sendCodeButton = document.querySelector("[data-account-send-code]");
+    const loginSendCodeButton = document.querySelector("[data-account-login-send-code]");
     const randomDefaultAvatarButton = document.querySelector("[data-account-use-random-default]");
     const randomProfileButtons = document.querySelectorAll("[data-account-random-profile]");
     const emailCodeButtons = document.querySelectorAll("[data-account-email-code]");
@@ -305,6 +306,59 @@
         return input ? input.value.trim() : "";
     }
 
+    function enabledLoginModes() {
+        const methods = config.loginMethods || {};
+        const modes = [];
+        if (methods.emailPassword !== false) {
+            modes.push("email_password");
+        }
+        if (methods.emailCode !== false) {
+            modes.push("email_code");
+        }
+        if (methods.usernamePassword !== false) {
+            modes.push("username_password");
+        }
+        return modes.length ? modes : ["email_password"];
+    }
+
+    function currentLoginMode() {
+        const input = loginForm && loginForm.querySelector("[data-account-login-method]");
+        return input ? input.value : enabledLoginModes()[0];
+    }
+
+    function setLoginMode(mode) {
+        if (!loginForm) {
+            return;
+        }
+        const modes = enabledLoginModes();
+        const nextMode = modes.indexOf(mode) !== -1 ? mode : (config.loginMethods && config.loginMethods.defaultMode) || modes[0];
+        const input = loginForm.querySelector("[data-account-login-method]");
+        if (input) {
+            input.value = nextMode;
+        }
+        loginForm.querySelectorAll("[data-account-login-mode]").forEach(function (button) {
+            const active = button.dataset.accountLoginMode === nextMode;
+            button.classList.toggle("is-active", active);
+            button.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        loginForm.querySelectorAll("[data-account-login-panel]").forEach(function (panel) {
+            const active = panel.dataset.accountLoginPanel === nextMode;
+            panel.hidden = !active;
+            panel.querySelectorAll("input, button, select, textarea").forEach(function (field) {
+                field.disabled = !active;
+            });
+        });
+    }
+
+    function currentLoginEmail() {
+        if (!loginForm) {
+            return "";
+        }
+        const panel = loginForm.querySelector("[data-account-login-panel='" + currentLoginMode() + "']");
+        const input = panel && panel.querySelector("input[name='email']");
+        return input ? input.value.trim() : "";
+    }
+
     function currentNewEmail() {
         const input = profileForm && profileForm.querySelector("[data-account-new-email]");
         return input ? input.value.trim() : "";
@@ -537,6 +591,11 @@
             switchPanel(button.dataset.accountTab);
         });
     });
+    document.querySelectorAll("[data-account-login-mode]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            setLoginMode(button.dataset.accountLoginMode);
+        });
+    });
     document.querySelectorAll("[data-account-switch-register]").forEach(function (button) {
         button.addEventListener("click", function () {
             switchPanel("register");
@@ -577,6 +636,27 @@
                 .then(function (data) {
                     showToast(data.message || "验证码已发送");
                     startCodeCountdown(60);
+                })
+                .catch(function (error) {
+                    showToast(error.message, true);
+                    restore();
+                });
+        });
+    }
+
+    if (loginSendCodeButton) {
+        loginSendCodeButton.addEventListener("click", function () {
+            const email = currentLoginEmail();
+            if (!email) {
+                showToast("请先输入邮箱", true);
+                return;
+            }
+            const originalText = loginSendCodeButton.textContent;
+            const restore = setButtonLoading(loginSendCodeButton, "发送中");
+            jsonRequest(config.sendCodeUrl, {email: email, purpose: "login"})
+                .then(function (data) {
+                    showToast(data.message || "验证码已发送");
+                    startButtonCountdown(loginSendCodeButton, 60, originalText);
                 })
                 .catch(function (error) {
                     showToast(error.message, true);
@@ -637,8 +717,10 @@
     });
 
     if (loginForm) {
+        setLoginMode((config.loginMethods && config.loginMethods.defaultMode) || currentLoginMode());
         loginForm.addEventListener("submit", function (event) {
             event.preventDefault();
+            setLoginMode(currentLoginMode());
             const button = loginForm.querySelector("button[type='submit']");
             const restore = setButtonLoading(button, "登录中");
             const payload = Object.fromEntries(new FormData(loginForm).entries());

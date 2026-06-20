@@ -8,6 +8,12 @@
         logoutUrl: "{% url 'account_logout' %}",
         profileUrl: "{% url 'account_profile' %}",
         profilePageUrl: "{% url 'account_profile_page' %}",
+        loginMethods: {
+            emailPassword: {{ codemark_account.login_methods.email_password|yesno:"true,false" }},
+            emailCode: {{ codemark_account.login_methods.email_code|yesno:"true,false" }},
+            usernamePassword: {{ codemark_account.login_methods.username_password|yesno:"true,false" }},
+            defaultMode: "{{ codemark_account.login_methods.default|escapejs }}"
+        },
         csrfToken: "{{ csrf_token|escapejs }}",
         defaultAvatarUrl: "{{ codemark_account.default_avatar_url|escapejs }}"
     };
@@ -53,14 +59,59 @@
         </div>
 
         <form class="account-panel{% if not codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="login" data-account-login-form{% if codemark_account.is_authenticated %} hidden{% endif %}>
-            <label class="account-field">
-                <span>邮箱或用户名</span>
-                <input name="identifier" type="text" autocomplete="username" required>
-            </label>
-            <label class="account-field">
-                <span>密码</span>
-                <input name="password" type="password" autocomplete="current-password" required>
-            </label>
+            <input type="hidden" name="login_method" value="{{ codemark_account.login_methods.default }}" data-account-login-method>
+            {% if codemark_account.login_methods.enabled|length > 1 %}
+                <div class="account-login-modes" role="tablist" aria-label="登录方式">
+                    {% if codemark_account.login_methods.email_password %}
+                        <button class="account-login-mode" type="button" data-account-login-mode="email_password">邮箱密码</button>
+                    {% endif %}
+                    {% if codemark_account.login_methods.email_code %}
+                        <button class="account-login-mode" type="button" data-account-login-mode="email_code">邮箱验证码</button>
+                    {% endif %}
+                    {% if codemark_account.login_methods.username_password %}
+                        <button class="account-login-mode" type="button" data-account-login-mode="username_password">用户名密码</button>
+                    {% endif %}
+                </div>
+            {% endif %}
+            {% if codemark_account.login_methods.email_password %}
+                <div class="account-login-panel" data-account-login-panel="email_password">
+                    <label class="account-field">
+                        <span>邮箱</span>
+                        <input name="email" type="email" autocomplete="email" required>
+                    </label>
+                    <label class="account-field">
+                        <span>密码</span>
+                        <input name="password" type="password" autocomplete="current-password" required>
+                    </label>
+                </div>
+            {% endif %}
+            {% if codemark_account.login_methods.email_code %}
+                <div class="account-login-panel" data-account-login-panel="email_code">
+                    <label class="account-field">
+                        <span>邮箱</span>
+                        <input name="email" type="email" autocomplete="email" required>
+                    </label>
+                    <label class="account-field">
+                        <span>邮箱验证码</span>
+                        <span class="account-code-row">
+                            <input name="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+                            <button class="account-secondary-btn" type="button" data-account-login-send-code>发送验证码</button>
+                        </span>
+                    </label>
+                </div>
+            {% endif %}
+            {% if codemark_account.login_methods.username_password %}
+                <div class="account-login-panel" data-account-login-panel="username_password">
+                    <label class="account-field">
+                        <span>用户名</span>
+                        <input name="username" type="text" autocomplete="username" required>
+                    </label>
+                    <label class="account-field">
+                        <span>密码</span>
+                        <input name="password" type="password" autocomplete="current-password" required>
+                    </label>
+                </div>
+            {% endif %}
             <button class="account-primary-btn" type="submit">登录</button>
             <p class="account-inline-hint">还没有账号？<button type="button" data-account-switch-register>创建账号</button></p>
         </form>

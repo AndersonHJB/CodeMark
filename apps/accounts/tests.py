@@ -13,7 +13,7 @@ from django.urls import reverse
 from PIL import Image
 
 from .avatars import DEFAULT_AVATAR_STATIC_PATHS
-from .models import EmailVerificationCode, UserProfile
+from .models import AccountLoginSettings, EmailVerificationCode, UserProfile
 from .random_profiles import DEFAULT_BIOS, DEFAULT_NICKNAMES
 from .views import MAX_AVATAR_BYTES
 
@@ -216,6 +216,117 @@ class AccountApiTests(TestCase):
 
         self.assertEqual(logout_response.status_code, 200)
         self.assertEqual(logout_response.json()["user"]["is_authenticated"], False)
+
+    def test_login_by_username_password(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="username-login-user",
+            email="username-login@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="用户名登录用户")
+
+        response = post_json(
+            self.client,
+            "account_login",
+            {
+                "login_method": AccountLoginSettings.METHOD_USERNAME_PASSWORD,
+                "username": "username-login-user",
+                "password": "test-password",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["display_name"], "用户名登录用户")
+
+    def test_login_by_email_code(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="email-code-login-user",
+            email="email-code-login@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="验证码登录用户")
+
+        code_response = post_json(
+            self.client,
+            "account_send_code",
+            {
+                "purpose": EmailVerificationCode.PURPOSE_LOGIN,
+                "email": "email-code-login@example.com",
+            },
+        )
+
+        self.assertEqual(code_response.status_code, 200)
+        self.assertEqual(mail.outbox[-1].subject, "CodeMark 登录验证码")
+        self.assertEqual(mail.outbox[-1].to, ["email-code-login@example.com"])
+        code = re.search(r"(\d{6})", mail.outbox[-1].body).group(1)
+
+        response = post_json(
+            self.client,
+            "account_login",
+            {
+                "login_method": AccountLoginSettings.METHOD_EMAIL_CODE,
+                "email": "email-code-login@example.com",
+                "code": code,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["display_name"], "验证码登录用户")
+        self.assertTrue(
+            EmailVerificationCode.objects.get(
+                email="email-code-login@example.com",
+                purpose=EmailVerificationCode.PURPOSE_LOGIN,
+            ).is_used
+        )
+
+    def test_disabled_login_methods_are_rejected_by_api(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="method-limited-user",
+            email="method-limited@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="受限登录用户")
+        settings = AccountLoginSettings.load()
+        settings.enable_email_password = False
+        settings.enable_email_code = False
+        settings.enable_username_password = True
+        settings.save()
+
+        email_password_response = post_json(
+            self.client,
+            "account_login",
+            {
+                "login_method": AccountLoginSettings.METHOD_EMAIL_PASSWORD,
+                "email": "method-limited@example.com",
+                "password": "test-password",
+            },
+        )
+        email_code_response = post_json(
+            self.client,
+            "account_send_code",
+            {
+                "purpose": EmailVerificationCode.PURPOSE_LOGIN,
+                "email": "method-limited@example.com",
+            },
+        )
+        username_response = post_json(
+            self.client,
+            "account_login",
+            {
+                "login_method": AccountLoginSettings.METHOD_USERNAME_PASSWORD,
+                "username": "method-limited-user",
+                "password": "test-password",
+            },
+        )
+
+        self.assertEqual(email_password_response.status_code, 403)
+        self.assertIn("暂未开启", email_password_response.json()["message"])
+        self.assertEqual(email_code_response.status_code, 403)
+        self.assertIn("暂未开启", email_code_response.json()["message"])
+        self.assertEqual(username_response.status_code, 200)
 
     def test_session_payload_exposes_membership_status(self):
         User = get_user_model()
@@ -604,6 +715,23 @@ class AdminAvatarGalleryViewTests(TestCase):
         self.assertContains(response, "头像画册")
         self.assertContains(response, reverse("admin:accounts_avatargalleryadminentry_changelist"))
 
+    def test_admin_index_has_login_settings_entry(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="login-settings-admin",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "登录方式设置")
+        self.assertContains(response, reverse("admin:accounts_accountloginsettings_changelist"))
+
     def test_avatar_gallery_admin_entry_redirects_to_gallery(self):
         User = get_user_model()
         user = User.objects.create_user(
@@ -656,6 +784,10 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "site-account-trigger", html=False)
         self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
         self.assertContains(response, 'data-account-tab="login"', html=False)
+        self.assertContains(response, 'data-account-login-mode="email_password"', html=False)
+        self.assertContains(response, 'data-account-login-mode="email_code"', html=False)
+        self.assertContains(response, 'data-account-login-mode="username_password"', html=False)
+        self.assertContains(response, 'data-account-login-send-code', html=False)
         self.assertContains(response, reverse("account_profile_page"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
 
@@ -668,6 +800,21 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, 'data-account-tab="login"', html=False)
         self.assertContains(response, reverse("account_profile_page"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
+
+    def test_login_dialog_respects_enabled_login_methods(self):
+        settings = AccountLoginSettings.load()
+        settings.enable_email_password = False
+        settings.enable_email_code = False
+        settings.enable_username_password = True
+        settings.save()
+
+        response = self.client.get(reverse("index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'data-account-login-mode="email_password"', html=False)
+        self.assertNotContains(response, 'data-account-login-mode="email_code"', html=False)
+        self.assertContains(response, 'data-account-login-panel="username_password"', html=False)
+        self.assertNotContains(response, 'data-account-login-send-code', html=False)
 
     def test_authenticated_editor_hides_guest_account_actions(self):
         user = get_user_model().objects.create_user(

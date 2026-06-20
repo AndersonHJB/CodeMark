@@ -31,7 +31,7 @@ from .avatars import (
     normalize_default_avatar_path,
     random_default_avatar_path,
 )
-from .models import EmailVerificationCode, UserProfile, membership_payload_for_user
+from .models import AccountLoginSettings, EmailVerificationCode, UserProfile, membership_payload_for_user
 from .random_profiles import random_default_nickname, random_default_profile
 
 
@@ -244,12 +244,27 @@ def _unique_username_from_email(email):
     return f"user_{secrets.token_hex(8)}"
 
 
-def _find_login_user(identifier):
+def _find_user_by_email(email):
     User = get_user_model()
-    identifier = (identifier or "").strip()
-    if "@" in identifier:
-        return User.objects.filter(email__iexact=identifier).first()
-    return User.objects.filter(username__iexact=identifier).first()
+    return User.objects.filter(email__iexact=_normalize_email(email)).first()
+
+
+def _find_user_by_username(username):
+    User = get_user_model()
+    return User.objects.filter(username__iexact=(username or "").strip()).first()
+
+
+def _login_method_error(method):
+    labels = {
+        AccountLoginSettings.METHOD_EMAIL_PASSWORD: "邮箱密码登录",
+        AccountLoginSettings.METHOD_EMAIL_CODE: "邮箱验证码登录",
+        AccountLoginSettings.METHOD_USERNAME_PASSWORD: "用户名密码登录",
+    }
+    return f"{labels.get(method, '该登录方式')}暂未开启"
+
+
+def _login_settings():
+    return AccountLoginSettings.load()
 
 
 def _verify_code(email, purpose, code):
@@ -293,6 +308,13 @@ def _mark_code_used(record):
 
 
 def _verification_email_copy(purpose):
+    if purpose == EmailVerificationCode.PURPOSE_LOGIN:
+        return {
+            "subject": "CodeMark 登录验证码",
+            "title": "登录验证码",
+            "intro": "你正在使用邮箱验证码登录 CodeMark，请在页面中输入以下验证码完成登录。",
+            "plain_heading": "你的 CodeMark 登录验证码是：",
+        }
     if purpose == EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD:
         return {
             "subject": "CodeMark 原邮箱验证码",
@@ -406,6 +428,7 @@ def send_code_view(request):
 
     allowed_purposes = {
         EmailVerificationCode.PURPOSE_REGISTER,
+        EmailVerificationCode.PURPOSE_LOGIN,
         EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD,
         EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW,
     }
@@ -419,6 +442,20 @@ def send_code_view(request):
             return _json_error(email_error, field="email")
         if User.objects.filter(email__iexact=email).exists():
             return _json_error("该邮箱已经注册，可直接登录", field="email")
+        return _create_and_send_code(request, email, purpose)
+
+    if purpose == EmailVerificationCode.PURPOSE_LOGIN:
+        login_settings = _login_settings()
+        if not login_settings.enable_email_code:
+            return _json_error(_login_method_error(AccountLoginSettings.METHOD_EMAIL_CODE), status=403)
+        email_error = _email_error(email)
+        if email_error:
+            return _json_error(email_error, field="email")
+        user = _find_user_by_email(email)
+        if not user:
+            return _json_error("该邮箱尚未注册", field="email")
+        if not user.is_active:
+            return _json_error("账号已停用", status=403)
         return _create_and_send_code(request, email, purpose)
 
     if not request.user.is_authenticated:
@@ -484,15 +521,56 @@ def register_view(request):
 @require_POST
 def login_view(request):
     payload = _load_payload(request)
-    identifier = (payload.get("identifier") or payload.get("email") or "").strip()
+    login_method = (payload.get("login_method") or "").strip()
+    identifier = (payload.get("identifier") or payload.get("email") or payload.get("username") or "").strip()
+    email = _normalize_email(payload.get("email") or identifier)
+    username = (payload.get("username") or identifier).strip()
     password = payload.get("password") or ""
-    user_record = _find_login_user(identifier)
-    if not user_record:
-        return _json_error("账号或密码不正确", status=401)
+    code = (payload.get("code") or "").strip()
+    login_settings = _login_settings()
 
-    user = authenticate(request, username=user_record.get_username(), password=password)
-    if user is None:
-        return _json_error("账号或密码不正确", status=401)
+    if not login_method:
+        login_method = (
+            AccountLoginSettings.METHOD_EMAIL_PASSWORD
+            if "@" in identifier
+            else AccountLoginSettings.METHOD_USERNAME_PASSWORD
+        )
+
+    if login_method == AccountLoginSettings.METHOD_EMAIL_PASSWORD:
+        if not login_settings.enable_email_password:
+            return _json_error(_login_method_error(login_method), status=403)
+        user_record = _find_user_by_email(email)
+        if not user_record:
+            return _json_error("账号或密码不正确", status=401)
+        user = authenticate(request, username=user_record.get_username(), password=password)
+        if user is None:
+            return _json_error("账号或密码不正确", status=401)
+    elif login_method == AccountLoginSettings.METHOD_USERNAME_PASSWORD:
+        if not login_settings.enable_username_password:
+            return _json_error(_login_method_error(login_method), status=403)
+        user_record = _find_user_by_username(username)
+        if not user_record:
+            return _json_error("账号或密码不正确", status=401)
+        user = authenticate(request, username=user_record.get_username(), password=password)
+        if user is None:
+            return _json_error("账号或密码不正确", status=401)
+    elif login_method == AccountLoginSettings.METHOD_EMAIL_CODE:
+        if not login_settings.enable_email_code:
+            return _json_error(_login_method_error(login_method), status=403)
+        email_error = _email_error(email)
+        if email_error:
+            return _json_error(email_error, field="email")
+        user = _find_user_by_email(email)
+        if not user:
+            return _json_error("该邮箱尚未注册", status=401, field="email")
+        if not user.is_active:
+            return _json_error("账号已停用", status=403)
+        verified, message = _verify_code(email, EmailVerificationCode.PURPOSE_LOGIN, code)
+        if not verified:
+            return _json_error(message, field="code")
+    else:
+        return _json_error("不支持的登录方式", field="login_method")
+
     if not user.is_active:
         return _json_error("账号已停用", status=403)
 

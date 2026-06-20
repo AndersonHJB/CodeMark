@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.shortcuts import redirect
 
-from .models import AvatarGalleryAdminEntry, EmailVerificationCode, UserProfile
+from .models import AccountLoginSettings, AvatarGalleryAdminEntry, EmailVerificationCode, UserProfile
 
 
 @admin.register(UserProfile)
@@ -28,6 +28,27 @@ class EmailVerificationCodeAdmin(admin.ModelAdmin):
     list_filter = ("purpose", "used_at")
     search_fields = ("email",)
     readonly_fields = ("code_hash", "created_at", "used_at", "attempts", "request_ip")
+
+
+@admin.register(AccountLoginSettings)
+class AccountLoginSettingsAdmin(admin.ModelAdmin):
+    list_display = (
+        "enable_email_password",
+        "enable_email_code",
+        "enable_username_password",
+        "updated_at",
+    )
+    fields = (
+        "enable_email_password",
+        "enable_email_code",
+        "enable_username_password",
+    )
+
+    def has_add_permission(self, request):
+        return not AccountLoginSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(AvatarGalleryAdminEntry)

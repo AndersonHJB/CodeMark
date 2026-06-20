@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import OperationalError, ProgrammingError
 from django.db import models
 from django.utils import timezone
 
@@ -83,10 +84,12 @@ class AvatarGalleryAdminEntry(models.Model):
 
 class EmailVerificationCode(models.Model):
     PURPOSE_REGISTER = "register"
+    PURPOSE_LOGIN = "login"
     PURPOSE_EMAIL_CHANGE_OLD = "email_change_old"
     PURPOSE_EMAIL_CHANGE_NEW = "email_change_new"
     PURPOSE_CHOICES = (
         (PURPOSE_REGISTER, "注册"),
+        (PURPOSE_LOGIN, "邮箱验证码登录"),
         (PURPOSE_EMAIL_CHANGE_OLD, "邮箱变更-原邮箱"),
         (PURPOSE_EMAIL_CHANGE_NEW, "邮箱变更-新邮箱"),
     )
@@ -118,3 +121,88 @@ class EmailVerificationCode(models.Model):
     @property
     def is_used(self):
         return self.used_at is not None
+
+
+class AccountLoginSettings(models.Model):
+    METHOD_EMAIL_PASSWORD = "email_password"
+    METHOD_EMAIL_CODE = "email_code"
+    METHOD_USERNAME_PASSWORD = "username_password"
+
+    enable_email_password = models.BooleanField("邮箱 + 密码", default=True)
+    enable_email_code = models.BooleanField("邮箱 + 邮箱验证码", default=True)
+    enable_username_password = models.BooleanField("用户名 + 密码", default=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        verbose_name = "登录方式设置"
+        verbose_name_plural = "登录方式设置"
+
+    def __str__(self):
+        return "CodeMark 登录方式"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if not any((
+            self.enable_email_password,
+            self.enable_email_code,
+            self.enable_username_password,
+        )):
+            raise ValidationError("至少需要开启一种登录方式")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        settings, _ = cls.objects.get_or_create(pk=1)
+        return settings
+
+    def enabled_methods(self):
+        methods = []
+        if self.enable_email_password:
+            methods.append(self.METHOD_EMAIL_PASSWORD)
+        if self.enable_email_code:
+            methods.append(self.METHOD_EMAIL_CODE)
+        if self.enable_username_password:
+            methods.append(self.METHOD_USERNAME_PASSWORD)
+        return methods
+
+    def default_method(self):
+        methods = self.enabled_methods()
+        return methods[0] if methods else self.METHOD_EMAIL_PASSWORD
+
+
+def _default_login_methods_payload():
+    return {
+        "email_password": True,
+        "email_code": True,
+        "username_password": True,
+        "default": AccountLoginSettings.METHOD_EMAIL_PASSWORD,
+        "enabled": [
+            AccountLoginSettings.METHOD_EMAIL_PASSWORD,
+            AccountLoginSettings.METHOD_EMAIL_CODE,
+            AccountLoginSettings.METHOD_USERNAME_PASSWORD,
+        ],
+    }
+
+
+def login_methods_payload(settings=None):
+    if settings is None:
+        try:
+            settings = AccountLoginSettings.load()
+        except (OperationalError, ProgrammingError):
+            return _default_login_methods_payload()
+        except Exception as exc:
+            if exc.__class__.__name__ == "DatabaseOperationForbidden":
+                return _default_login_methods_payload()
+            raise
+    return {
+        "email_password": settings.enable_email_password,
+        "email_code": settings.enable_email_code,
+        "username_password": settings.enable_username_password,
+        "default": settings.default_method(),
+        "enabled": settings.enabled_methods(),
+    }
