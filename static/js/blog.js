@@ -168,6 +168,172 @@
         });
     }
 
+    function initBlogHome() {
+        const home = document.querySelector(".blog-home-modern");
+        if (!home) {
+            return;
+        }
+        const promo = home.querySelector(".blog-home-promo");
+        const toast = home.querySelector(".blog-home-toast");
+        const followKey = "codemark_blog_following";
+        const promoKey = "codemark_blog_home_promo_dismissed";
+
+        function showToast(message) {
+            if (!toast || !message) {
+                return;
+            }
+            toast.textContent = message;
+            toast.hidden = false;
+            window.clearTimeout(showToast.timer);
+            showToast.timer = window.setTimeout(function () {
+                toast.hidden = true;
+            }, 2400);
+        }
+
+        function closeMenus(exceptMenu) {
+            home.querySelectorAll(".blog-home-more-menu").forEach(function (menu) {
+                if (menu !== exceptMenu) {
+                    menu.hidden = true;
+                    const trigger = menu.parentElement && menu.parentElement.querySelector("[data-blog-home-more]");
+                    if (trigger) {
+                        trigger.setAttribute("aria-expanded", "false");
+                    }
+                }
+            });
+        }
+
+        function readFollowing() {
+            try {
+                return new Set(JSON.parse(window.localStorage.getItem(followKey) || "[]"));
+            } catch (error) {
+                return new Set();
+            }
+        }
+
+        function writeFollowing(ids) {
+            try {
+                window.localStorage.setItem(followKey, JSON.stringify(Array.from(ids)));
+            } catch (error) {
+                // Local follow state is progressive enhancement only.
+            }
+        }
+
+        function syncFollowButtons() {
+            const following = readFollowing();
+            home.querySelectorAll("[data-blog-follow]").forEach(function (button) {
+                const active = following.has(button.dataset.blogFollow);
+                button.classList.toggle("is-active", active);
+                button.textContent = active ? "Following" : "Follow";
+            });
+        }
+
+        function toggleHomeAction(button, countSelector) {
+            const url = button.dataset.url;
+            if (!url || button.disabled) {
+                return;
+            }
+            button.disabled = true;
+            fetch(url, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Accept": "application/json",
+                    "X-CSRFToken": csrfToken()
+                }
+            })
+                .then(parseResponse)
+                .then(function (data) {
+                    button.classList.toggle("is-active", !!data.active);
+                    const count = countSelector ? button.querySelector(countSelector) : null;
+                    if (count && typeof data.count !== "undefined") {
+                        count.textContent = data.count;
+                    }
+                    showToast(data.active ? "已保存操作" : "已取消操作");
+                })
+                .catch(function (error) {
+                    if (error.message === "请先登录") {
+                        openLoginDialog();
+                        return;
+                    }
+                    showToast(error.message);
+                })
+                .finally(function () {
+                    button.disabled = false;
+                });
+        }
+
+        if (promo && window.localStorage.getItem(promoKey) === "1") {
+            promo.hidden = true;
+        }
+
+        home.querySelectorAll("[data-blog-home-toast]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                showToast(button.dataset.blogHomeToast);
+            });
+        });
+
+        home.addEventListener("click", function (event) {
+            const dismiss = event.target.closest("[data-blog-home-dismiss]");
+            if (dismiss && promo) {
+                promo.hidden = true;
+                try {
+                    window.localStorage.setItem(promoKey, "1");
+                } catch (error) {
+                    // Dismiss still works for this page load.
+                }
+                return;
+            }
+
+            const followButton = event.target.closest("[data-blog-follow]");
+            if (followButton) {
+                const following = readFollowing();
+                const id = followButton.dataset.blogFollow;
+                if (following.has(id)) {
+                    following.delete(id);
+                    showToast("已取消关注");
+                } else {
+                    following.add(id);
+                    showToast("已关注作者");
+                }
+                writeFollowing(following);
+                syncFollowButtons();
+                return;
+            }
+
+            const likeButton = event.target.closest("[data-blog-home-like]");
+            if (likeButton) {
+                toggleHomeAction(likeButton, "[data-blog-home-like-count]");
+                return;
+            }
+
+            const bookmarkButton = event.target.closest("[data-blog-home-bookmark]");
+            if (bookmarkButton) {
+                toggleHomeAction(bookmarkButton);
+                return;
+            }
+
+            const moreButton = event.target.closest("[data-blog-home-more]");
+            if (moreButton) {
+                const menu = moreButton.parentElement.querySelector(".blog-home-more-menu");
+                if (!menu) {
+                    return;
+                }
+                const nextHidden = !menu.hidden;
+                closeMenus(menu);
+                menu.hidden = nextHidden;
+                moreButton.setAttribute("aria-expanded", String(!nextHidden));
+            }
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!event.target.closest(".blog-home-more-wrap")) {
+                closeMenus();
+            }
+        });
+
+        syncFollowButtons();
+    }
+
     function initEditor() {
         const editor = document.querySelector("[data-blog-editor]");
         if (!editor) {
@@ -399,5 +565,6 @@
     initPostActions();
     initCommentReplies();
     initCopyLinks();
+    initBlogHome();
     initEditor();
 })();

@@ -17,15 +17,31 @@
             {% if feed_mode == "featured" %}
                 <input type="hidden" name="sort" value="featured">
             {% endif %}
-            <button type="submit">搜索</button>
+            <button class="blog-home-search-submit" type="submit"><span>搜索</span></button>
         </form>
         <div class="blog-home-actions">
+            <button class="blog-home-mini-action" type="button" data-blog-home-toast="可以在浏览器菜单中将 CodeMark 添加到主屏幕，获得类似 App 的阅读体验。">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <rect x="4" y="4" width="7" height="7" rx="1"></rect>
+                    <rect x="13" y="4" width="7" height="7" rx="1"></rect>
+                    <rect x="4" y="13" width="7" height="7" rx="1"></rect>
+                    <path d="M16.5 13v7"></path>
+                    <path d="M13 16.5h7"></path>
+                </svg>
+                <span>Get app</span>
+            </button>
             {% if can_use_article_api %}
                 <a href="{% url 'blog_vip_guide' %}">VIP API 教程</a>
             {% endif %}
             {% if request.user.is_authenticated %}
                 <a href="{% url 'blog_mine' %}">我的博客</a>
                 <a class="blog-home-write" href="{% url 'blog_write' %}">写文章</a>
+                <button class="blog-home-icon-button" type="button" data-blog-home-toast="暂无新通知" aria-label="通知">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                        <path d="M10 21h4"></path>
+                    </svg>
+                </button>
             {% else %}
                 <button type="button" data-account-open-login>登录</button>
                 <button class="blog-home-write" type="button" data-account-open-register>注册写文章</button>
@@ -49,6 +65,12 @@
         {% else %}
             <button type="button" data-account-open-login>登录后参与发布</button>
         {% endif %}
+        <button class="blog-home-promo-close" type="button" data-blog-home-dismiss aria-label="关闭提示">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+            </svg>
+        </button>
     </div>
 
     <div class="blog-home-grid">
@@ -62,37 +84,96 @@
                     </svg>
                     <span>首页</span>
                 </a>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'blog_mine' %}#bookmarks">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"></path>
+                        </svg>
+                        <span>Library</span>
+                    </a>
+                    <a href="{% url 'account_profile_page' %}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M20 21a8 8 0 0 0-16 0"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Profile</span>
+                    </a>
+                    <a href="{% url 'blog_mine' %}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M4 4h16v16H4z"></path>
+                            <path d="M8 8h8"></path>
+                            <path d="M8 12h8"></path>
+                            <path d="M8 16h5"></path>
+                        </svg>
+                        <span>Stories</span>
+                    </a>
+                    <a href="#blog-home-stats">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M4 19V9"></path>
+                            <path d="M10 19V5"></path>
+                            <path d="M16 19v-8"></path>
+                            <path d="M22 19V3"></path>
+                            <path d="M2 19h22"></path>
+                        </svg>
+                        <span>Stats</span>
+                    </a>
+                {% else %}
+                    <button type="button" data-account-open-login>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"></path>
+                        </svg>
+                        <span>Library</span>
+                    </button>
+                    <button type="button" data-account-open-login>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M20 21a8 8 0 0 0-16 0"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Profile</span>
+                    </button>
+                    <button type="button" data-account-open-login>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M4 4h16v16H4z"></path>
+                            <path d="M8 8h8"></path>
+                            <path d="M8 12h8"></path>
+                            <path d="M8 16h5"></path>
+                        </svg>
+                        <span>Stories</span>
+                    </button>
+                    <a href="#blog-home-stats">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M4 19V9"></path>
+                            <path d="M10 19V5"></path>
+                            <path d="M16 19v-8"></path>
+                            <path d="M22 19V3"></path>
+                            <path d="M2 19h22"></path>
+                        </svg>
+                        <span>Stats</span>
+                    </a>
+                {% endif %}
                 <a class="{% if feed_mode == 'featured' %}is-active{% endif %}" href="{% url 'blog_list' %}?sort=featured">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="m12 2 2.9 6.1 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3.1 1.2-6.5L2.5 9l6.6-.9L12 2Z"></path>
                     </svg>
                     <span>精选</span>
                 </a>
-                {% if request.user.is_authenticated %}
-                    <a href="{% url 'blog_mine' %}">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"></path>
-                        </svg>
-                        <span>我的博客</span>
-                    </a>
-                    <a href="{% url 'blog_write' %}">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 20h9"></path>
-                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path>
-                        </svg>
-                        <span>写文章</span>
-                    </a>
-                {% else %}
-                    <button type="button" data-account-open-login>
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                            <path d="m10 17 5-5-5-5"></path>
-                            <path d="M15 12H3"></path>
-                        </svg>
-                        <span>登录</span>
-                    </button>
-                {% endif %}
             </nav>
+
+            <div class="blog-home-rail-section">
+                <h2>Following</h2>
+                {% for item in suggested_authors|slice:":6" %}
+                    <a class="blog-home-follow-row" href="{{ item.profile_url }}">
+                        {% if item.avatar_url %}
+                            <img src="{{ item.avatar_url }}" alt="">
+                        {% else %}
+                            <span>{{ item.display_name|slice:":1" }}</span>
+                        {% endif %}
+                        <strong>{{ item.display_name }}</strong>
+                    </a>
+                {% empty %}
+                    <p>关注作者后会出现在这里。</p>
+                {% endfor %}
+            </div>
 
             <div class="blog-home-rail-section">
                 <h2>关注主题</h2>
@@ -170,19 +251,40 @@
                             {% endif %}
                             <span>约 {{ post.read_minutes }} 分钟</span>
                             <span>{{ post.view_count }} 阅读</span>
-                            <span>{{ post.comment_total }} 评论</span>
-                            <span>{{ post.like_total }} 点赞</span>
-                            <span class="blog-home-story-spacer"></span>
-                            <a class="blog-home-icon-link" href="{{ post.get_absolute_url }}#comments" title="查看评论" aria-label="查看评论">
+                            <button class="blog-home-meta-action{% if post.home_user_liked %} is-active{% endif %}" type="button" data-blog-home-like data-url="{% url 'blog_toggle_reaction' post.slug %}" aria-label="点赞">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M7 10v11"></path>
+                                    <path d="M15 5.8 14 10h5.6a2 2 0 0 1 2 2.3l-1.2 6.8a2 2 0 0 1-2 1.7H7"></path>
+                                    <path d="M7 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"></path>
+                                </svg>
+                                <span data-blog-home-like-count>{{ post.like_total }}</span>
+                            </button>
+                            <a class="blog-home-meta-action" href="{{ post.get_absolute_url }}#comments" aria-label="查看评论">
                                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                     <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
                                 </svg>
+                                <span>{{ post.comment_total }}</span>
                             </a>
-                            <a class="blog-home-icon-link" href="{{ post.get_absolute_url }}" title="打开文章" aria-label="打开文章">
+                            <span class="blog-home-story-spacer"></span>
+                            <button class="blog-home-icon-link{% if post.home_user_bookmarked %} is-active{% endif %}" type="button" data-blog-home-bookmark data-url="{% url 'blog_toggle_bookmark' post.slug %}" title="收藏文章" aria-label="收藏文章">
                                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                     <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"></path>
                                 </svg>
-                            </a>
+                            </button>
+                            <span class="blog-home-more-wrap">
+                                <button class="blog-home-icon-link" type="button" data-blog-home-more aria-expanded="false" title="更多操作" aria-label="更多操作">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <circle cx="5" cy="12" r="1.4"></circle>
+                                        <circle cx="12" cy="12" r="1.4"></circle>
+                                        <circle cx="19" cy="12" r="1.4"></circle>
+                                    </svg>
+                                </button>
+                                <span class="blog-home-more-menu" hidden>
+                                    <button type="button" data-copy-link="{{ post.home_absolute_url }}" data-copy-label="复制文章链接">复制链接</button>
+                                    <a href="{{ post.get_absolute_url }}">打开文章</a>
+                                    <a href="{% url 'blog_user_home' post.author.username %}">查看作者</a>
+                                </span>
+                            </span>
                         </div>
                     </div>
 
@@ -236,9 +338,10 @@
                         <p>有阅读量后会生成编辑推荐。</p>
                     {% endfor %}
                 </div>
+                <a class="blog-home-side-link" href="{% url 'blog_list' %}?sort=featured">See the full list</a>
             </section>
 
-            <section class="blog-home-side-section">
+            <section id="blog-home-topics" class="blog-home-side-section">
                 <h2>Recommended topics</h2>
                 <div class="blog-home-topic-cloud">
                     {% for tag in popular_tags|slice:":10" %}
@@ -251,6 +354,7 @@
                         {% endfor %}
                     {% endfor %}
                 </div>
+                <a class="blog-home-side-link" href="#blog-home-topics">See more topics</a>
             </section>
 
             <section class="blog-home-side-section">
@@ -269,7 +373,11 @@
                                 <h3><a href="{{ item.profile_url }}">{{ item.display_name }}</a></h3>
                                 <p>{{ item.bio|default:item.post_count|stringformat:"s"|add:" 篇文章" }}</p>
                             </div>
-                            <a class="blog-home-follow-button" href="{{ item.profile_url }}">查看</a>
+                            {% if request.user.is_authenticated %}
+                                <button class="blog-home-follow-button" type="button" data-blog-follow="{{ item.user.id }}">Follow</button>
+                            {% else %}
+                                <button class="blog-home-follow-button" type="button" data-account-open-login>Follow</button>
+                            {% endif %}
                         </article>
                     {% empty %}
                         <p>作者发布文章后会出现在这里。</p>
@@ -277,7 +385,7 @@
                 </div>
             </section>
 
-            <section class="blog-home-side-section blog-home-stat-card">
+            <section id="blog-home-stats" class="blog-home-side-section blog-home-stat-card">
                 <h2>Community stats</h2>
                 <div>
                     <span><strong>{{ stats.post_count }}</strong> 篇文章</span>
@@ -287,5 +395,6 @@
             </section>
         </aside>
     </div>
+    <div class="blog-home-toast" role="status" aria-live="polite" hidden></div>
 </div>
 {% endblock %}

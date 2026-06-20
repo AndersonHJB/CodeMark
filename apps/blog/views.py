@@ -298,10 +298,13 @@ def _sidebar_context():
     }
 
 
-def _suggested_authors(limit=4):
+def _suggested_authors(limit=4, current_user=None):
     User = get_user_model()
+    authors = User.objects.filter(blog_posts__status=BlogPost.STATUS_PUBLISHED)
+    if current_user and current_user.is_authenticated:
+        authors = authors.exclude(pk=current_user.pk)
     authors = (
-        User.objects.filter(blog_posts__status=BlogPost.STATUS_PUBLISHED)
+        authors
         .select_related("codemark_profile")
         .annotate(
             published_post_count=Count(
@@ -365,9 +368,22 @@ def blog_list(request, tag_slug=None, author_username=None):
         posts = posts.distinct().order_by("-published_at", "-created_at")
     paginator = Paginator(posts, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+    page_post_ids = [post.id for post in page_obj.object_list]
+    liked_post_ids = set()
+    bookmarked_post_ids = set()
+    if request.user.is_authenticated and page_post_ids:
+        liked_post_ids = set(
+            BlogReaction.objects.filter(user=request.user, post_id__in=page_post_ids).values_list("post_id", flat=True)
+        )
+        bookmarked_post_ids = set(
+            BlogBookmark.objects.filter(user=request.user, post_id__in=page_post_ids).values_list("post_id", flat=True)
+        )
     for post in page_obj.object_list:
         post.home_summary = _homepage_summary(post)
         post.home_cover_url = _homepage_cover_url(post)
+        post.home_absolute_url = request.build_absolute_uri(post.get_absolute_url())
+        post.home_user_liked = post.id in liked_post_ids
+        post.home_user_bookmarked = post.id in bookmarked_post_ids
     pagination_params = request.GET.copy()
     pagination_params.pop("page", None)
     if feed_mode != "featured":
@@ -392,7 +408,7 @@ def blog_list(request, tag_slug=None, author_username=None):
         "pagination_query": pagination_params.urlencode(),
         "stats": stats,
         "my_drafts": my_drafts,
-        "suggested_authors": _suggested_authors(),
+        "suggested_authors": _suggested_authors(current_user=request.user),
         "can_use_article_api": _user_can_use_article_api(request.user),
         "display_name": _display_name,
         **_sidebar_context(),
