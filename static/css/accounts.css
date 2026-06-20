@@ -595,6 +595,7 @@
     --account-control-bg-focus: #181d17;
     --account-control-border: rgba(220, 226, 207, 0.18);
     --account-control-border-focus: rgba(109, 221, 242, 0.82);
+    --account-control-text: #fbfff2;
     --account-control-placeholder: rgba(220, 226, 207, 0.48);
     width: min(420px, 100%);
     max-height: min(760px, calc(100vh - 44px));
@@ -788,18 +789,22 @@
     border-radius: 11px;
     padding: 11px 12px;
     font: inherit;
+    font-weight: 700;
     line-height: 1.35;
-    color: #f4f5f0;
+    color: var(--account-control-text) !important;
+    -webkit-text-fill-color: var(--account-control-text);
     background: var(--account-control-bg) !important;
     background-image: none !important;
-    caret-color: #f4f5f0;
+    caret-color: var(--account-control-text);
     font-size: 14px;
+    letter-spacing: 0;
     outline: none;
 }
 
 .account-field input::placeholder,
 .account-field textarea::placeholder {
     color: var(--account-control-placeholder);
+    -webkit-text-fill-color: var(--account-control-placeholder);
     opacity: 1;
 }
 
@@ -817,8 +822,8 @@
 .account-field textarea:-webkit-autofill:hover,
 .account-field textarea:-webkit-autofill:focus {
     border-color: var(--account-control-border);
-    -webkit-text-fill-color: #f4f5f0;
-    caret-color: #f4f5f0;
+    -webkit-text-fill-color: var(--account-control-text);
+    caret-color: var(--account-control-text);
     box-shadow: 0 0 0 1000px var(--account-control-bg) inset;
     transition: background-color 9999s ease-out, color 9999s ease-out;
 }
@@ -826,6 +831,7 @@
 .account-field input:disabled,
 .account-field textarea:disabled {
     color: rgba(244, 245, 240, 0.54);
+    -webkit-text-fill-color: rgba(244, 245, 240, 0.54);
     background: rgba(23, 27, 22, 0.62) !important;
     opacity: 1;
 }
