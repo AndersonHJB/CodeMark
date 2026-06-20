@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from functools import wraps
 
@@ -15,6 +16,7 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
+from django.utils.text import Truncator
 from django.views.decorators.http import require_GET, require_POST
 from PIL import Image
 
@@ -29,6 +31,8 @@ from apps.accounts.models import membership_payload_for_user
 MAX_PINNED_COMMENTS = 10
 ARTICLE_API_WINDOW_DAYS = 7
 ARTICLE_API_LIMIT = 2
+MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 
 
 def _display_name(user):
@@ -53,6 +57,30 @@ def _avatar_url_for_user(user):
     if profile:
         return static(normalize_default_avatar_path(profile.default_avatar))
     return static(DEFAULT_AVATAR_STATIC_PATH)
+
+
+def _homepage_summary(post):
+    source = post.summary or post.content or ""
+    text = MARKDOWN_IMAGE_RE.sub(" ", source)
+    text = MARKDOWN_LINK_RE.sub(r"\1", text)
+    text = re.sub(r"[#>*_`~|-]+", " ", text)
+    text = strip_tags(text)
+    text = " ".join(text.split())
+    return Truncator(text).chars(118) if text else post.auto_summary
+
+
+def _homepage_cover_url(post):
+    if post.cover_image:
+        return post.cover_image.url
+    match = MARKDOWN_IMAGE_RE.search(post.content or "")
+    if not match:
+        return ""
+    url = match.group(1).strip("<>")
+    if url.startswith("media/"):
+        return f"/{url}"
+    if url.startswith(("/", "http://", "https://")):
+        return url
+    return ""
 
 
 def _login_redirect(request):
@@ -270,9 +298,45 @@ def _sidebar_context():
     }
 
 
+def _suggested_authors(limit=4):
+    User = get_user_model()
+    authors = (
+        User.objects.filter(blog_posts__status=BlogPost.STATUS_PUBLISHED)
+        .select_related("codemark_profile")
+        .annotate(
+            published_post_count=Count(
+                "blog_posts",
+                filter=Q(blog_posts__status=BlogPost.STATUS_PUBLISHED),
+                distinct=True,
+            ),
+            total_views=Sum(
+                "blog_posts__view_count",
+                filter=Q(blog_posts__status=BlogPost.STATUS_PUBLISHED),
+            ),
+        )
+        .filter(published_post_count__gt=0)
+        .order_by("-published_post_count", "-total_views", "username")[:limit]
+    )
+    recommendations = []
+    for author in authors:
+        profile = _profile_for_user(author)
+        recommendations.append(
+            {
+                "user": author,
+                "display_name": _display_name(author),
+                "avatar_url": _avatar_url_for_user(author),
+                "bio": getattr(profile, "bio", ""),
+                "post_count": author.published_post_count,
+                "profile_url": reverse("blog_user_home", kwargs={"author_username": author.username}),
+            }
+        )
+    return recommendations
+
+
 def blog_list(request, tag_slug=None, author_username=None):
     query = (request.GET.get("q") or "").strip()
     category = (request.GET.get("category") or "").strip()
+    feed_mode = "featured" if request.GET.get("sort") == "featured" else "for-you"
     posts = _public_posts()
     active_tag = None
     active_author = None
@@ -295,9 +359,19 @@ def blog_list(request, tag_slug=None, author_username=None):
             | Q(tags__name__icontains=query)
         )
 
-    posts = posts.distinct().order_by("-published_at", "-created_at")
+    if feed_mode == "featured":
+        posts = posts.distinct().order_by("-view_count", "-like_total", "-published_at", "-created_at")
+    else:
+        posts = posts.distinct().order_by("-published_at", "-created_at")
     paginator = Paginator(posts, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+    for post in page_obj.object_list:
+        post.home_summary = _homepage_summary(post)
+        post.home_cover_url = _homepage_cover_url(post)
+    pagination_params = request.GET.copy()
+    pagination_params.pop("page", None)
+    if feed_mode != "featured":
+        pagination_params.pop("sort", None)
     stats = {
         "post_count": BlogPost.objects.filter(status=BlogPost.STATUS_PUBLISHED).count(),
         "author_count": BlogPost.objects.filter(status=BlogPost.STATUS_PUBLISHED).values("author").distinct().count(),
@@ -314,8 +388,11 @@ def blog_list(request, tag_slug=None, author_username=None):
         "category": category,
         "active_tag": active_tag,
         "active_author": active_author,
+        "feed_mode": feed_mode,
+        "pagination_query": pagination_params.urlencode(),
         "stats": stats,
         "my_drafts": my_drafts,
+        "suggested_authors": _suggested_authors(),
         "can_use_article_api": _user_can_use_article_api(request.user),
         "display_name": _display_name,
         **_sidebar_context(),

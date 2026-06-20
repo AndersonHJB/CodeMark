@@ -15,10 +15,10 @@
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="blog-page" data-blog-login-prompt="{% if request.GET.login %}1{% else %}0{% endif %}">
+<body class="blog-page {% block body_class %}{% endblock %}" data-blog-login-prompt="{% if request.GET.login %}1{% else %}0{% endif %}">
 {% include "_site_topbar.html" with active_nav="blog" show_account=True brand_logo="images/logo-cm.svg" %}
 
-<main class="blog-shell">
+<main class="blog-shell {% block shell_class %}{% endblock %}">
     {% if messages %}
         <div class="blog-messages" aria-live="polite">
             {% for message in messages %}
