@@ -1498,6 +1498,95 @@
     background: #e1ecff;
 }
 
+.account-email-change-panel {
+    display: grid;
+    gap: 18px;
+    padding: 20px;
+    border: 1px solid var(--account-page-line);
+    border-radius: var(--account-page-radius);
+    background: #f8fbfd;
+}
+
+.account-email-change-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.account-email-change-head h3 {
+    margin: 0;
+    color: var(--account-page-ink);
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.account-email-change-head p {
+    margin: 6px 0 0;
+    color: var(--account-page-muted);
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+.account-email-current {
+    min-width: 220px;
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 118, 110, 0.16);
+    border-radius: var(--account-page-radius);
+    background: #ffffff;
+}
+
+.account-email-current span {
+    color: var(--account-page-muted);
+    font-size: 0.75rem;
+    font-weight: 850;
+}
+
+.account-email-current strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--account-page-ink);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account-email-change-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.account-email-change-grid .account-field {
+    margin: 0;
+}
+
+.account-email-change-grid .account-field:first-child {
+    grid-column: 1 / -1;
+}
+
+.account-profile-form .account-code-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.account-profile-form .account-code-row .account-secondary-btn {
+    min-height: 42px;
+    border-radius: var(--account-page-radius);
+    color: var(--account-page-blue);
+    background: #edf4ff;
+}
+
+.account-profile-form .account-code-row .account-secondary-btn:hover,
+.account-profile-form .account-code-row .account-secondary-btn:focus-visible {
+    background: #e1ecff;
+}
+
 .account-profile-actions {
     display: flex;
     justify-content: flex-end;
@@ -1608,6 +1697,24 @@
     .account-profile-editor-head {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .account-email-change-head,
+    .account-email-change-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .account-email-change-head {
+        flex-direction: column;
+    }
+
+    .account-email-current {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .account-profile-form .account-code-row {
+        grid-template-columns: 1fr;
     }
 
     .account-profile-editor-head h2,

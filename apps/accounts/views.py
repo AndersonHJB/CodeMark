@@ -253,6 +253,14 @@ def _find_login_user(identifier):
 
 
 def _verify_code(email, purpose, code):
+    record, message = _matching_code_record(email, purpose, code)
+    if record is None:
+        return False, message
+    _mark_code_used(record)
+    return True, ""
+
+
+def _matching_code_record(email, purpose, code):
     email = _normalize_email(email)
     code = (code or "").strip()
     record = (
@@ -265,38 +273,99 @@ def _verify_code(email, purpose, code):
         .first()
     )
     if not record:
-        return False, "请先获取邮箱验证码"
+        return None, "请先获取邮箱验证码"
     if record.is_expired:
-        return False, "验证码已过期，请重新获取"
+        return None, "验证码已过期，请重新获取"
     if record.attempts >= MAX_CODE_ATTEMPTS:
-        return False, "验证码错误次数过多，请重新获取"
+        return None, "验证码错误次数过多，请重新获取"
 
     record.attempts += 1
     record.save(update_fields=["attempts"])
     if not constant_time_compare(record.code_hash, _hash_code(email, code)):
-        return False, "验证码不正确"
+        return None, "验证码不正确"
 
+    return record, ""
+
+
+def _mark_code_used(record):
     record.used_at = timezone.now()
     record.save(update_fields=["used_at"])
-    return True, ""
 
 
-def _send_registration_code_email(email, code):
+def _verification_email_copy(purpose):
+    if purpose == EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD:
+        return {
+            "subject": "CodeMark 原邮箱验证码",
+            "title": "原邮箱验证码",
+            "intro": "你正在修改 CodeMark 账号邮箱，请在页面中输入以下验证码确认这是你的原邮箱。",
+            "plain_heading": "你的 CodeMark 原邮箱验证码是：",
+        }
+    if purpose == EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW:
+        return {
+            "subject": "CodeMark 新邮箱验证码",
+            "title": "新邮箱验证码",
+            "intro": "你正在修改 CodeMark 账号邮箱，请在页面中输入以下验证码确认这是你的新邮箱。",
+            "plain_heading": "你的 CodeMark 新邮箱验证码是：",
+        }
+    return {
+        "subject": "CodeMark 注册验证码",
+        "title": "注册验证码",
+        "intro": "你正在注册 CodeMark 账号，请在页面中输入以下验证码完成验证。",
+        "plain_heading": "你的 CodeMark 注册验证码是：",
+    }
+
+
+def _send_verification_code_email(email, code, purpose):
+    copy = _verification_email_copy(purpose)
     context = {
         "code": code,
         "expire_minutes": CODE_EXPIRE_MINUTES,
         "support_email": getattr(settings, "CODEMARK_SUPPORT_EMAIL", ""),
+        **copy,
     }
     text_body = render_to_string("emails/register_verification.txt", context)
     html_body = render_to_string("emails/register_verification.html", context)
     message = EmailMultiAlternatives(
-        subject="CodeMark 注册验证码",
+        subject=copy["subject"],
         body=text_body,
         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
         to=[email],
     )
     message.attach_alternative(html_body, "text/html")
     message.send(fail_silently=False)
+
+
+def _create_and_send_code(request, email, purpose):
+    recent_code = EmailVerificationCode.objects.filter(
+        email__iexact=email,
+        purpose=purpose,
+        created_at__gte=timezone.now() - timedelta(seconds=60),
+    ).first()
+    if recent_code:
+        return _json_error("验证码发送过于频繁，请稍后再试", status=429)
+
+    code = f"{secrets.randbelow(1000000):06d}"
+    EmailVerificationCode.objects.filter(
+        email__iexact=email,
+        purpose=purpose,
+        used_at__isnull=True,
+    ).update(used_at=timezone.now())
+    verification = EmailVerificationCode.objects.create(
+        email=email,
+        purpose=purpose,
+        code_hash=_hash_code(email, code),
+        expires_at=timezone.now() + timedelta(minutes=CODE_EXPIRE_MINUTES),
+        request_ip=_client_ip(request),
+    )
+
+    try:
+        _send_verification_code_email(email, code, purpose)
+    except (SMTPException, OSError) as exc:
+        verification.used_at = timezone.now()
+        verification.save(update_fields=["used_at"])
+        logger.exception("Failed to send verification code to %s: %s", email, exc)
+        return _json_error("验证码邮件发送失败，请检查邮箱服务配置", status=502)
+    return JsonResponse({"ok": True, "message": "验证码已发送，请查看邮箱"})
 
 
 @require_GET
@@ -335,46 +404,40 @@ def send_code_view(request):
     email = _normalize_email(payload.get("email"))
     purpose = payload.get("purpose") or EmailVerificationCode.PURPOSE_REGISTER
 
-    if purpose != EmailVerificationCode.PURPOSE_REGISTER:
+    allowed_purposes = {
+        EmailVerificationCode.PURPOSE_REGISTER,
+        EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD,
+        EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW,
+    }
+    if purpose not in allowed_purposes:
         return _json_error("不支持的验证码用途", field="purpose")
-    email_error = _email_error(email)
-    if email_error:
-        return _json_error(email_error, field="email")
 
     User = get_user_model()
-    if User.objects.filter(email__iexact=email).exists():
-        return _json_error("该邮箱已经注册，可直接登录", field="email")
+    if purpose == EmailVerificationCode.PURPOSE_REGISTER:
+        email_error = _email_error(email)
+        if email_error:
+            return _json_error(email_error, field="email")
+        if User.objects.filter(email__iexact=email).exists():
+            return _json_error("该邮箱已经注册，可直接登录", field="email")
+        return _create_and_send_code(request, email, purpose)
 
-    recent_code = EmailVerificationCode.objects.filter(
-        email__iexact=email,
-        purpose=purpose,
-        created_at__gte=timezone.now() - timedelta(seconds=60),
-    ).first()
-    if recent_code:
-        return _json_error("验证码发送过于频繁，请稍后再试", status=429)
+    if not request.user.is_authenticated:
+        return _json_error("请先登录", status=401)
 
-    code = f"{secrets.randbelow(1000000):06d}"
-    EmailVerificationCode.objects.filter(
-        email__iexact=email,
-        purpose=purpose,
-        used_at__isnull=True,
-    ).update(used_at=timezone.now())
-    verification = EmailVerificationCode.objects.create(
-        email=email,
-        purpose=purpose,
-        code_hash=_hash_code(email, code),
-        expires_at=timezone.now() + timedelta(minutes=CODE_EXPIRE_MINUTES),
-        request_ip=_client_ip(request),
-    )
+    current_email = _normalize_email(request.user.email)
+    if purpose == EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD:
+        if not current_email:
+            return _json_error("当前账号未绑定邮箱，无需验证原邮箱", field="current_email_code")
+        return _create_and_send_code(request, current_email, purpose)
 
-    try:
-        _send_registration_code_email(email, code)
-    except (SMTPException, OSError) as exc:
-        verification.used_at = timezone.now()
-        verification.save(update_fields=["used_at"])
-        logger.exception("Failed to send registration code to %s: %s", email, exc)
-        return _json_error("验证码邮件发送失败，请检查邮箱服务配置", status=502)
-    return JsonResponse({"ok": True, "message": "验证码已发送，请查看邮箱"})
+    email_error = _email_error(email)
+    if email_error:
+        return _json_error(email_error, field="new_email")
+    if current_email and email == current_email:
+        return _json_error("新邮箱不能和当前邮箱相同", field="new_email")
+    if User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+        return _json_error("该邮箱已经被其它账号使用", field="new_email")
+    return _create_and_send_code(request, email, purpose)
 
 
 @require_POST
@@ -466,8 +529,48 @@ def profile_view(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     display_name = (request.POST.get("display_name") or "").strip()
     bio = (request.POST.get("bio") or "").strip()
+    new_email = _normalize_email(request.POST.get("new_email"))
+    current_email_code = (request.POST.get("current_email_code") or "").strip()
+    new_email_code = (request.POST.get("new_email_code") or "").strip()
     avatar_file = request.FILES.get("avatar")
     use_random_default_avatar = request.POST.get("use_random_default_avatar") in {"1", "true", "on"}
+    email_change_requested = bool(new_email or current_email_code or new_email_code)
+    current_email = _normalize_email(request.user.email)
+    old_email_code_record = None
+    new_email_code_record = None
+
+    if email_change_requested:
+        email_error = _email_error(new_email)
+        if email_error:
+            return _json_error(email_error, field="new_email")
+        if current_email and new_email == current_email:
+            return _json_error("新邮箱不能和当前邮箱相同", field="new_email")
+        User = get_user_model()
+        if User.objects.filter(email__iexact=new_email).exclude(pk=request.user.pk).exists():
+            return _json_error("该邮箱已经被其它账号使用", field="new_email")
+
+        if current_email:
+            if not current_email_code:
+                return _json_error("请输入原邮箱验证码", field="current_email_code")
+            old_email_code_record, message = _matching_code_record(
+                current_email,
+                EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD,
+                current_email_code,
+            )
+            if old_email_code_record is None:
+                return _json_error(message, field="current_email_code")
+        elif current_email_code:
+            return _json_error("当前账号未绑定邮箱，无需原邮箱验证码", field="current_email_code")
+
+        if not new_email_code:
+            return _json_error("请输入新邮箱验证码", field="new_email_code")
+        new_email_code_record, message = _matching_code_record(
+            new_email,
+            EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW,
+            new_email_code,
+        )
+        if new_email_code_record is None:
+            return _json_error(message, field="new_email_code")
 
     if display_name:
         profile.display_name = display_name[:40]
@@ -507,7 +610,18 @@ def profile_view(request):
         )
 
     profile.save()
-    message = "已使用随机默认头像" if use_random_default_avatar else "资料已更新"
+    if email_change_requested:
+        request.user.email = new_email
+        request.user.save(update_fields=["email"])
+        if old_email_code_record is not None:
+            _mark_code_used(old_email_code_record)
+        _mark_code_used(new_email_code_record)
+    if use_random_default_avatar:
+        message = "已使用随机默认头像"
+    elif email_change_requested:
+        message = "邮箱已更新"
+    else:
+        message = "资料已更新"
     return JsonResponse({"ok": True, "message": message, "user": _user_payload(request.user, request)})
 
 

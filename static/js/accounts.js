@@ -20,6 +20,7 @@
     const sendCodeButton = document.querySelector("[data-account-send-code]");
     const randomDefaultAvatarButton = document.querySelector("[data-account-use-random-default]");
     const randomProfileButtons = document.querySelectorAll("[data-account-random-profile]");
+    const emailCodeButtons = document.querySelectorAll("[data-account-email-code]");
     let toastTimer = null;
     let sendCodeTimer = null;
     let pendingAvatarPreviewUrl = "";
@@ -206,6 +207,9 @@
                 ? (accountState.bio || "还没有填写个人简介")
                 : "";
         });
+        document.querySelectorAll("[data-account-current-email-code-field]").forEach(function (node) {
+            node.hidden = !(accountState.isAuthenticated && accountState.email);
+        });
         document.querySelectorAll("[data-account-avatar], [data-account-profile-avatar]").forEach(function (node) {
             node.src = accountState.avatarUrl || config.defaultAvatarUrl || "";
         });
@@ -301,6 +305,11 @@
         return input ? input.value.trim() : "";
     }
 
+    function currentNewEmail() {
+        const input = profileForm && profileForm.querySelector("[data-account-new-email]");
+        return input ? input.value.trim() : "";
+    }
+
     function startCodeCountdown(seconds) {
         if (!sendCodeButton) {
             return;
@@ -318,6 +327,28 @@
                 return;
             }
             sendCodeButton.textContent = remain + "s";
+        }, 1000);
+    }
+
+    function startButtonCountdown(button, seconds, doneText) {
+        if (!button) {
+            return;
+        }
+        let remain = seconds;
+        const originalText = doneText || button.dataset.accountDefaultText || button.textContent || "发送验证码";
+        button.dataset.accountDefaultText = originalText;
+        button.disabled = true;
+        button.textContent = remain + "s";
+        window.clearInterval(button.accountCodeTimer);
+        button.accountCodeTimer = window.setInterval(function () {
+            remain -= 1;
+            if (remain <= 0) {
+                window.clearInterval(button.accountCodeTimer);
+                button.disabled = false;
+                button.textContent = originalText;
+                return;
+            }
+            button.textContent = remain + "s";
         }, 1000);
     }
 
@@ -554,6 +585,32 @@
         });
     }
 
+    emailCodeButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            const purpose = button.dataset.accountEmailCode;
+            const payload = {purpose: purpose};
+            if (purpose === "email_change_new") {
+                const email = currentNewEmail();
+                if (!email) {
+                    showToast("请先输入新邮箱", true);
+                    return;
+                }
+                payload.email = email;
+            }
+            const originalText = button.textContent;
+            const restore = setButtonLoading(button, "发送中");
+            jsonRequest(config.sendCodeUrl, payload)
+                .then(function (data) {
+                    showToast(data.message || "验证码已发送");
+                    startButtonCountdown(button, 60, originalText);
+                })
+                .catch(function (error) {
+                    showToast(error.message, true);
+                    restore();
+                });
+        });
+    });
+
     randomProfileButtons.forEach(function (button) {
         button.addEventListener("click", function () {
             const form = button.closest("form");
@@ -659,6 +716,9 @@
                 .then(function (data) {
                     updateAccountUi(data.user);
                     resetAvatarInput("已同步最新头像");
+                    profileForm.querySelectorAll("[data-account-new-email], input[name='current_email_code'], input[name='new_email_code']").forEach(function (input) {
+                        input.value = "";
+                    });
                     showToast(data.message || "资料已更新");
                 })
                 .catch(function (error) {
@@ -677,6 +737,9 @@
             const avatarInput = profileForm.querySelector("[data-account-avatar-input]");
             const formData = new FormData(profileForm);
             formData.delete("avatar");
+            formData.delete("new_email");
+            formData.delete("current_email_code");
+            formData.delete("new_email_code");
             formData.set("use_random_default_avatar", "1");
 
             const restore = setButtonLoading(randomDefaultAvatarButton, "抽取中");

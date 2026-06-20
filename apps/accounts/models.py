@@ -83,8 +83,12 @@ class AvatarGalleryAdminEntry(models.Model):
 
 class EmailVerificationCode(models.Model):
     PURPOSE_REGISTER = "register"
+    PURPOSE_EMAIL_CHANGE_OLD = "email_change_old"
+    PURPOSE_EMAIL_CHANGE_NEW = "email_change_new"
     PURPOSE_CHOICES = (
         (PURPOSE_REGISTER, "注册"),
+        (PURPOSE_EMAIL_CHANGE_OLD, "邮箱变更-原邮箱"),
+        (PURPOSE_EMAIL_CHANGE_NEW, "邮箱变更-新邮箱"),
     )
 
     email = models.EmailField("邮箱", db_index=True)

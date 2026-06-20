@@ -85,7 +85,7 @@
                     <img src="{{ codemark_account.avatar_url }}" alt="当前头像" data-account-profile-avatar>
                     <div>
                         <strong data-account-name>{{ codemark_account.display_name }}</strong>
-                        <span data-account-subtitle>{{ codemark_account.email|default:"已登录" }}</span>
+                        <span data-account-email>{{ codemark_account.email|default:"未绑定邮箱" }}</span>
                     </div>
                 </div>
 
@@ -172,6 +172,48 @@
                         </div>
                     </div>
                 </div>
+
+                <section class="account-email-change-panel" aria-labelledby="accountEmailChangeTitle">
+                    <div class="account-email-change-head">
+                        <div>
+                            <h3 id="accountEmailChangeTitle">邮箱</h3>
+                            <p>
+                                {% if codemark_account.email %}
+                                    修改邮箱需要同时验证原邮箱和新邮箱。
+                                {% else %}
+                                    当前账号未绑定邮箱，绑定新邮箱时只需验证新邮箱。
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="account-email-current">
+                            <span>当前邮箱</span>
+                            <strong data-account-email>{{ codemark_account.email|default:"未绑定邮箱" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="account-email-change-grid">
+                        <label class="account-field">
+                            <span>新邮箱</span>
+                            <input name="new_email" type="email" autocomplete="email" placeholder="输入新的邮箱地址" data-account-new-email>
+                        </label>
+
+                        <label class="account-field" data-account-current-email-code-field{% if not codemark_account.email %} hidden{% endif %}>
+                            <span>原邮箱验证码</span>
+                            <span class="account-code-row">
+                                <input name="current_email_code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                                <button class="account-secondary-btn" type="button" data-account-email-code="email_change_old">发送验证码</button>
+                            </span>
+                        </label>
+
+                        <label class="account-field">
+                            <span>新邮箱验证码</span>
+                            <span class="account-code-row">
+                                <input name="new_email_code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                                <button class="account-secondary-btn" type="button" data-account-email-code="email_change_new">发送验证码</button>
+                            </span>
+                        </label>
+                    </div>
+                </section>
 
                 <div class="account-profile-actions">
                     <button class="account-primary-btn" type="submit">保存资料</button>

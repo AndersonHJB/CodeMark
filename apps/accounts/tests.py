@@ -382,6 +382,159 @@ class AccountApiTests(TestCase):
                 self.assertEqual(payload["user"]["display_name"], "CSRF 头像")
                 self.assertIn("/media/accounts/avatars/", payload["user"]["avatar_url"])
 
+    def test_profile_email_change_requires_old_and_new_email_codes(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="email-change-user",
+            email="old@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="邮箱用户")
+        self.client.force_login(user)
+
+        old_code_response = post_json(
+            self.client,
+            "account_send_code",
+            {"purpose": EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD},
+        )
+        new_code_response = post_json(
+            self.client,
+            "account_send_code",
+            {"purpose": EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW, "email": "new@example.com"},
+        )
+
+        self.assertEqual(old_code_response.status_code, 200)
+        self.assertEqual(new_code_response.status_code, 200)
+        self.assertEqual(mail.outbox[-2].to, ["old@example.com"])
+        self.assertEqual(mail.outbox[-2].subject, "CodeMark 原邮箱验证码")
+        self.assertEqual(mail.outbox[-1].to, ["new@example.com"])
+        self.assertEqual(mail.outbox[-1].subject, "CodeMark 新邮箱验证码")
+        old_code = re.search(r"(\d{6})", mail.outbox[-2].body).group(1)
+        new_code = re.search(r"(\d{6})", mail.outbox[-1].body).group(1)
+
+        missing_old_response = self.client.post(
+            reverse("account_profile"),
+            data={"new_email": "new@example.com", "new_email_code": new_code},
+        )
+        self.assertEqual(missing_old_response.status_code, 400)
+        self.assertEqual(missing_old_response.json()["field"], "current_email_code")
+
+        change_response = self.client.post(
+            reverse("account_profile"),
+            data={
+                "display_name": "邮箱用户",
+                "bio": "修改邮箱",
+                "new_email": "new@example.com",
+                "current_email_code": old_code,
+                "new_email_code": new_code,
+            },
+        )
+
+        self.assertEqual(change_response.status_code, 200)
+        payload = change_response.json()
+        self.assertEqual(payload["message"], "邮箱已更新")
+        self.assertEqual(payload["user"]["email"], "new@example.com")
+        user.refresh_from_db()
+        self.assertEqual(user.email, "new@example.com")
+        self.assertTrue(
+            EmailVerificationCode.objects.get(
+                email="old@example.com",
+                purpose=EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD,
+            ).is_used
+        )
+        self.assertTrue(
+            EmailVerificationCode.objects.get(
+                email="new@example.com",
+                purpose=EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW,
+            ).is_used
+        )
+
+    def test_profile_email_change_rejects_missing_new_email_code(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="missing-new-code",
+            email="old-code@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="旧邮箱用户")
+        self.client.force_login(user)
+
+        post_json(
+            self.client,
+            "account_send_code",
+            {"purpose": EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD},
+        )
+        old_code = re.search(r"(\d{6})", mail.outbox[-1].body).group(1)
+
+        response = self.client.post(
+            reverse("account_profile"),
+            data={
+                "new_email": "missing-new@example.com",
+                "current_email_code": old_code,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field"], "new_email_code")
+        self.assertFalse(
+            EmailVerificationCode.objects.get(
+                email="old-code@example.com",
+                purpose=EmailVerificationCode.PURPOSE_EMAIL_CHANGE_OLD,
+            ).is_used
+        )
+
+    def test_profile_can_bind_email_without_existing_email_using_new_code(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="bind-email-user",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="绑定邮箱用户")
+        self.client.force_login(user)
+
+        code_response = post_json(
+            self.client,
+            "account_send_code",
+            {"purpose": EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW, "email": "bind@example.com"},
+        )
+
+        self.assertEqual(code_response.status_code, 200)
+        code = re.search(r"(\d{6})", mail.outbox[-1].body).group(1)
+        response = self.client.post(
+            reverse("account_profile"),
+            data={"new_email": "bind@example.com", "new_email_code": code},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.email, "bind@example.com")
+        self.assertEqual(response.json()["user"]["email"], "bind@example.com")
+
+    def test_email_change_new_code_rejects_duplicate_email(self):
+        User = get_user_model()
+        User.objects.create_user(
+            username="email-owner",
+            email="taken@example.com",
+            password="test-password",
+        )
+        user = User.objects.create_user(
+            username="email-claimer",
+            email="claimer@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="邮箱占用测试")
+        self.client.force_login(user)
+
+        response = post_json(
+            self.client,
+            "account_send_code",
+            {"purpose": EmailVerificationCode.PURPOSE_EMAIL_CHANGE_NEW, "email": "taken@example.com"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field"], "new_email")
+        self.assertEqual(len(mail.outbox), 0)
+
 
 class AdminAvatarGalleryViewTests(TestCase):
     def test_avatar_gallery_requires_staff_login(self):
@@ -548,6 +701,8 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "data-account-open-register", html=False)
         self.assertContains(response, "data-account-profile-form", html=False)
         self.assertContains(response, "data-account-use-random-default", html=False)
+        self.assertContains(response, "data-account-new-email", html=False)
+        self.assertContains(response, 'data-account-email-code="email_change_new"', html=False)
         self.assertContains(response, "data-account-auth-only hidden", html=False)
         self.assertContains(response, "js/accounts.js", html=False)
 
@@ -568,6 +723,9 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "data-account-profile-form", html=False)
         self.assertContains(response, "data-account-use-random-default", html=False)
         self.assertContains(response, "data-account-return", html=False)
+        self.assertContains(response, "修改邮箱需要同时验证原邮箱和新邮箱")
+        self.assertContains(response, 'data-account-email-code="email_change_old"', html=False)
+        self.assertContains(response, 'data-account-email-code="email_change_new"', html=False)
         self.assertContains(response, "资料页用户")
         self.assertContains(response, "资料页简介")
         self.assertContains(response, "data-account-email", html=False)
@@ -587,6 +745,9 @@ class AccountTemplateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "未绑定邮箱")
+        self.assertContains(response, "绑定新邮箱时只需验证新邮箱")
+        self.assertContains(response, "data-account-current-email-code-field hidden", html=False)
+        self.assertContains(response, 'data-account-email-code="email_change_old"', html=False)
         self.assertContains(response, "admin")
         self.assertNotContains(response, "<dd data-account-email>已登录</dd>", html=False)
 

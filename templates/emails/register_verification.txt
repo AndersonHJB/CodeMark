@@ -1,6 +1,6 @@
-CodeMark 注册验证码
+{{ subject|default:"CodeMark 注册验证码" }}
 
-你的 CodeMark 注册验证码是：{{ code }}
+{{ plain_heading|default:"你的 CodeMark 注册验证码是：" }}{{ code }}
 
 验证码 {{ expire_minutes }} 分钟内有效。为了保障账号安全，请不要将验证码告诉他人。
 
