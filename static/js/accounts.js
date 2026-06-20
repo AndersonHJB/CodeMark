@@ -366,7 +366,7 @@
         loginForm.querySelectorAll("[data-account-login-mode]").forEach(function (button) {
             const active = button.dataset.accountLoginMode === nextMode;
             button.classList.toggle("is-active", active);
-            button.setAttribute("aria-pressed", active ? "true" : "false");
+            button.setAttribute("aria-selected", active ? "true" : "false");
         });
         loginForm.querySelectorAll("[data-account-login-panel]").forEach(function (panel) {
             const active = panel.dataset.accountLoginPanel === nextMode;

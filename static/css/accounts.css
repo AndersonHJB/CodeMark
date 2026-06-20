@@ -648,7 +648,6 @@
 }
 
 .account-dialog-close svg,
-.account-login-switch-btn svg,
 .account-mini-action svg,
 .account-random-avatar-btn > svg,
 .account-avatar-upload-icon svg {
@@ -710,72 +709,44 @@
     background: #f8e45c;
 }
 
-.account-login-switch {
-    margin-top: 10px;
-}
-
-.account-login-switch-btn {
-    width: 100%;
-    min-height: 54px;
-    border: 1px solid rgba(109, 221, 242, 0.24);
-    border-radius: 12px;
-    padding: 10px 12px;
+.account-login-tags {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    color: #e7f7f8;
-    background: rgba(109, 221, 242, 0.09);
+    gap: 8px;
+    margin: -2px 0 14px;
+}
+
+.account-login-tag {
+    min-height: 30px;
+    border: 1px solid rgba(220, 226, 207, 0.14);
+    border-radius: 999px;
+    padding: 0 12px;
+    color: #c7cfbc;
+    background: rgba(255, 255, 255, 0.05);
     cursor: pointer;
-    text-align: left;
-    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.14s ease;
-}
-
-.account-login-switch-btn + .account-login-switch-btn {
-    margin-top: 8px;
-}
-
-.account-login-switch-btn:hover,
-.account-login-switch-btn:focus-visible {
-    border-color: rgba(109, 221, 242, 0.52);
-    background: rgba(109, 221, 242, 0.15);
-}
-
-.account-login-switch-btn:active {
-    transform: scale(0.99);
-}
-
-.account-login-switch-btn.is-active {
-    display: none;
-}
-
-.account-login-switch-btn span {
-    min-width: 0;
-    display: grid;
-    gap: 3px;
-}
-
-.account-login-switch-btn strong {
-    color: #f4f5f0;
-    font-size: 13px;
-    line-height: 1.1;
-    font-weight: 850;
-}
-
-.account-login-switch-btn small {
-    overflow: hidden;
-    color: #aeb7a3;
     font-size: 12px;
-    line-height: 1.2;
-    font-weight: 650;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    font-weight: 850;
+    line-height: 1;
+    letter-spacing: 0;
+    transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, transform 0.14s ease;
 }
 
-.account-login-switch-btn svg {
-    flex: 0 0 auto;
-    color: #6dddf2;
-    stroke-width: 2.5;
+.account-login-tag:hover,
+.account-login-tag:focus-visible {
+    color: #f4f5f0;
+    border-color: rgba(109, 221, 242, 0.44);
+    background: rgba(109, 221, 242, 0.12);
+}
+
+.account-login-tag:active {
+    transform: scale(0.98);
+}
+
+.account-login-tag.is-active {
+    color: #15160f;
+    border-color: transparent;
+    background: #f8e45c;
 }
 
 .account-login-panel[hidden] {
