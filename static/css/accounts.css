@@ -483,12 +483,22 @@
 }
 
 .account-menu-item-vip {
-    color: #8a5a00;
-    background: linear-gradient(135deg, rgba(253, 230, 138, 0.28), rgba(236, 253, 245, 0.4));
+    box-sizing: border-box;
+    border: 1px solid rgba(245, 158, 11, 0.34);
+    color: #fff1b8;
+    background: linear-gradient(135deg, rgba(120, 53, 15, 0.56), rgba(20, 83, 45, 0.36));
+    box-shadow: inset 0 0 0 1px rgba(255, 247, 214, 0.08);
 }
 
 .account-menu-item-vip:hover {
-    background: linear-gradient(135deg, rgba(253, 230, 138, 0.46), rgba(236, 253, 245, 0.62));
+    color: #fffbe6;
+    background: linear-gradient(135deg, rgba(146, 64, 14, 0.7), rgba(21, 128, 61, 0.45));
+    box-shadow: inset 0 0 0 1px rgba(255, 247, 214, 0.16);
+}
+
+.account-menu-item-vip i,
+.account-menu-item-vip svg {
+    color: #fbbf24;
 }
 
 .site-account-caret {
@@ -529,13 +539,20 @@
 }
 
 .site-account-slot .account-menu-item-vip {
-    color: #7a4a00;
-    background: linear-gradient(135deg, rgba(253, 230, 138, 0.42), rgba(236, 253, 245, 0.58));
+    color: #5f3700;
+    border-color: rgba(217, 119, 6, 0.34);
+    background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(236, 253, 245, 0.95));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 }
 
 .site-account-slot .account-menu-item-vip:hover {
-    color: #5c3600;
-    background: linear-gradient(135deg, rgba(253, 230, 138, 0.62), rgba(236, 253, 245, 0.78));
+    color: #422006;
+    background: linear-gradient(135deg, rgba(254, 243, 199, 1), rgba(209, 250, 229, 0.96));
+    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.18);
+}
+
+.site-account-slot .account-menu-item-vip svg {
+    color: #b45309;
 }
 
 .site-account-slot .account-menu-item.danger {
