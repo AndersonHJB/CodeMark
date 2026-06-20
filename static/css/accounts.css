@@ -1300,6 +1300,14 @@
     line-height: 1.65;
 }
 
+.account-profile-nav-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
 .account-profile-back {
     min-height: 38px;
     display: inline-flex;
@@ -1311,8 +1319,10 @@
     padding: 0 12px;
     color: var(--account-page-primary-strong);
     background: #edf8f6;
+    cursor: pointer;
     font-size: 0.88rem;
     font-weight: 850;
+    font-family: inherit;
     transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
 }
 
@@ -1613,6 +1623,10 @@
     .account-profile-actions .account-primary-btn,
     .account-profile-guest-actions .account-primary-btn,
     .account-profile-guest-actions .account-secondary-btn {
+        width: 100%;
+    }
+
+    .account-profile-nav-actions {
         width: 100%;
     }
 

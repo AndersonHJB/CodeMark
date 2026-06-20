@@ -195,6 +195,9 @@
         document.querySelectorAll("[data-account-subtitle]").forEach(function (node) {
             node.textContent = accountState.isAuthenticated ? subtitle : "使用邮箱验证码注册";
         });
+        document.querySelectorAll("[data-account-email]").forEach(function (node) {
+            node.textContent = accountState.isAuthenticated ? (accountState.email || "未绑定邮箱") : "";
+        });
         document.querySelectorAll("[data-account-username]").forEach(function (node) {
             node.textContent = accountState.isAuthenticated ? (accountState.username || "未设置") : "";
         });
@@ -460,6 +463,31 @@
                 return;
             }
             openDialog("profile");
+        });
+    });
+    document.querySelectorAll("[data-account-return]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            let referrerUrl = null;
+            if (document.referrer) {
+                try {
+                    referrerUrl = new URL(document.referrer);
+                } catch (error) {
+                    referrerUrl = null;
+                }
+            }
+            if (
+                referrerUrl &&
+                referrerUrl.origin === window.location.origin &&
+                referrerUrl.pathname !== window.location.pathname
+            ) {
+                window.location.assign(referrerUrl.href);
+                return;
+            }
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            window.location.assign("/");
         });
     });
     document.querySelectorAll("[data-account-close]").forEach(function (button) {

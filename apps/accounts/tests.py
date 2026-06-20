@@ -567,11 +567,28 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "data-account-guest-only hidden", html=False)
         self.assertContains(response, "data-account-profile-form", html=False)
         self.assertContains(response, "data-account-use-random-default", html=False)
+        self.assertContains(response, "data-account-return", html=False)
         self.assertContains(response, "资料页用户")
         self.assertContains(response, "资料页简介")
+        self.assertContains(response, "data-account-email", html=False)
         self.assertContains(response, "profile-page@example.com")
         self.assertContains(response, "profile-page-user")
         self.assertNotContains(response, 'data-account-tab="profile"', html=False)
+
+    def test_profile_page_shows_unbound_email_when_user_has_no_email(self):
+        user = get_user_model().objects.create_user(
+            username="admin",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=user, display_name="无邮箱用户")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("account_profile_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "未绑定邮箱")
+        self.assertContains(response, "admin")
+        self.assertNotContains(response, "<dd data-account-email>已登录</dd>", html=False)
 
     def test_account_menu_shows_distinct_membership_badges(self):
         cases = [

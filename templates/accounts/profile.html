@@ -58,7 +58,7 @@
                 <dl class="account-profile-facts">
                     <div>
                         <dt>邮箱</dt>
-                        <dd data-account-subtitle>{{ codemark_account.email|default:"已登录" }}</dd>
+                        <dd data-account-email>{{ codemark_account.email|default:"未绑定邮箱" }}</dd>
                     </div>
                     <div>
                         <dt>用户名</dt>
@@ -74,7 +74,10 @@
                     <h2 id="accountProfilePageTitle">个人资料</h2>
                     <p>调整你的公开显示信息。</p>
                 </div>
-                <a class="account-profile-back" href="/">返回首页</a>
+                <div class="account-profile-nav-actions">
+                    <button class="account-profile-back" type="button" data-account-return>返回</button>
+                    <a class="account-profile-back" href="/">返回首页</a>
+                </div>
             </div>
 
             <form class="account-profile-form" data-account-profile-form enctype="multipart/form-data">
