@@ -578,7 +578,7 @@
 .account-dialog-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 5000;
+    z-index: 12000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -591,6 +591,11 @@
 }
 
 .account-dialog {
+    --account-control-bg: #171b16;
+    --account-control-bg-focus: #181d17;
+    --account-control-border: rgba(220, 226, 207, 0.18);
+    --account-control-border-focus: rgba(109, 221, 242, 0.82);
+    --account-control-placeholder: rgba(220, 226, 207, 0.48);
     width: min(420px, 100%);
     max-height: min(760px, calc(100vh - 44px));
     overflow: auto;
@@ -598,6 +603,7 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: #20231d;
     color: #f4f5f0;
+    color-scheme: dark;
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.44);
 }
 
@@ -775,20 +781,53 @@
 
 .account-field input,
 .account-field textarea {
+    appearance: none;
+    box-sizing: border-box;
     width: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--account-control-border);
     border-radius: 11px;
     padding: 11px 12px;
+    font: inherit;
+    line-height: 1.35;
     color: #f4f5f0;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--account-control-bg) !important;
+    background-image: none !important;
+    caret-color: #f4f5f0;
     font-size: 14px;
     outline: none;
 }
 
+.account-field input::placeholder,
+.account-field textarea::placeholder {
+    color: var(--account-control-placeholder);
+    opacity: 1;
+}
+
 .account-field input:focus,
 .account-field textarea:focus {
-    border-color: rgba(109, 221, 242, 0.82);
+    border-color: var(--account-control-border-focus);
+    background: var(--account-control-bg-focus) !important;
     box-shadow: 0 0 0 3px rgba(109, 221, 242, 0.12);
+}
+
+.account-field input:-webkit-autofill,
+.account-field input:-webkit-autofill:hover,
+.account-field input:-webkit-autofill:focus,
+.account-field textarea:-webkit-autofill,
+.account-field textarea:-webkit-autofill:hover,
+.account-field textarea:-webkit-autofill:focus {
+    border-color: var(--account-control-border);
+    -webkit-text-fill-color: #f4f5f0;
+    caret-color: #f4f5f0;
+    box-shadow: 0 0 0 1000px var(--account-control-bg) inset;
+    transition: background-color 9999s ease-out, color 9999s ease-out;
+}
+
+.account-field input:disabled,
+.account-field textarea:disabled {
+    color: rgba(244, 245, 240, 0.54);
+    background: rgba(23, 27, 22, 0.62) !important;
+    opacity: 1;
 }
 
 .account-code-row {
@@ -798,6 +837,7 @@
 
 .account-code-row input {
     flex: 1 1 auto;
+    min-width: 0;
 }
 
 .account-primary-btn,
@@ -1070,7 +1110,7 @@
     position: fixed;
     left: 50%;
     bottom: 28px;
-    z-index: 5200;
+    z-index: 12100;
     max-width: min(420px, calc(100vw - 32px));
     transform: translateX(-50%);
     border-radius: 999px;
