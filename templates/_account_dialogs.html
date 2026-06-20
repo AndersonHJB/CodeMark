@@ -61,9 +61,12 @@
         <form class="account-panel{% if not codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="login" data-account-login-form{% if codemark_account.is_authenticated %} hidden{% endif %}>
             <input type="hidden" name="login_method" value="{% if codemark_account.login_methods.email_password or codemark_account.login_methods.username_password %}password{% else %}email_code{% endif %}" data-account-login-method>
             {% if codemark_account.login_methods.email_code and codemark_account.login_methods.email_password or codemark_account.login_methods.email_code and codemark_account.login_methods.username_password %}
-                <div class="account-login-tags" role="tablist" aria-label="登录方式">
-                    <button class="account-login-tag" type="button" role="tab" data-account-login-mode="password">密码登录</button>
-                    <button class="account-login-tag" type="button" role="tab" data-account-login-mode="email_code">邮箱验证码</button>
+                <div class="account-login-modebar" role="tablist" aria-label="登录方式">
+                    <span class="account-login-modebar-label">登录方式</span>
+                    <div class="account-login-mode-options">
+                        <button class="account-login-mode-choice" type="button" role="tab" data-account-login-mode="password">密码</button>
+                        <button class="account-login-mode-choice" type="button" role="tab" data-account-login-mode="email_code">验证码</button>
+                    </div>
                 </div>
             {% endif %}
             {% if codemark_account.login_methods.email_password or codemark_account.login_methods.username_password %}
