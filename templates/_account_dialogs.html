@@ -59,25 +59,12 @@
         </div>
 
         <form class="account-panel{% if not codemark_account.is_authenticated %} is-active{% endif %}" data-account-panel="login" data-account-login-form{% if codemark_account.is_authenticated %} hidden{% endif %}>
-            <input type="hidden" name="login_method" value="{{ codemark_account.login_methods.default }}" data-account-login-method>
-            {% if codemark_account.login_methods.enabled|length > 1 %}
-                <div class="account-login-modes" role="tablist" aria-label="登录方式">
-                    {% if codemark_account.login_methods.email_password %}
-                        <button class="account-login-mode" type="button" data-account-login-mode="email_password">邮箱密码</button>
-                    {% endif %}
-                    {% if codemark_account.login_methods.email_code %}
-                        <button class="account-login-mode" type="button" data-account-login-mode="email_code">邮箱验证码</button>
-                    {% endif %}
-                    {% if codemark_account.login_methods.username_password %}
-                        <button class="account-login-mode" type="button" data-account-login-mode="username_password">用户名密码</button>
-                    {% endif %}
-                </div>
-            {% endif %}
-            {% if codemark_account.login_methods.email_password %}
-                <div class="account-login-panel" data-account-login-panel="email_password">
+            <input type="hidden" name="login_method" value="{% if codemark_account.login_methods.email_password or codemark_account.login_methods.username_password %}password{% else %}email_code{% endif %}" data-account-login-method>
+            {% if codemark_account.login_methods.email_password or codemark_account.login_methods.username_password %}
+                <div class="account-login-panel" data-account-login-panel="password">
                     <label class="account-field">
-                        <span>邮箱</span>
-                        <input name="email" type="email" autocomplete="email" required>
+                        <span>{% if codemark_account.login_methods.email_password and codemark_account.login_methods.username_password %}邮箱或用户名{% elif codemark_account.login_methods.email_password %}邮箱{% else %}用户名{% endif %}</span>
+                        <input name="identifier" type="{% if codemark_account.login_methods.email_password and not codemark_account.login_methods.username_password %}email{% else %}text{% endif %}" autocomplete="{% if codemark_account.login_methods.email_password and not codemark_account.login_methods.username_password %}email{% else %}username{% endif %}" required>
                     </label>
                     <label class="account-field">
                         <span>密码</span>
@@ -100,19 +87,29 @@
                     </label>
                 </div>
             {% endif %}
-            {% if codemark_account.login_methods.username_password %}
-                <div class="account-login-panel" data-account-login-panel="username_password">
-                    <label class="account-field">
-                        <span>用户名</span>
-                        <input name="username" type="text" autocomplete="username" required>
-                    </label>
-                    <label class="account-field">
-                        <span>密码</span>
-                        <input name="password" type="password" autocomplete="current-password" required>
-                    </label>
+            <button class="account-primary-btn" type="submit">登录</button>
+            {% if codemark_account.login_methods.email_code and codemark_account.login_methods.email_password or codemark_account.login_methods.email_code and codemark_account.login_methods.username_password %}
+                <div class="account-login-switch" aria-label="切换登录方式">
+                    <button class="account-login-switch-btn" type="button" data-account-login-mode="email_code">
+                        <span>
+                            <strong>邮箱验证码登录</strong>
+                            <small>用邮箱收取 6 位验证码</small>
+                        </span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M9 18l6-6-6-6"></path>
+                        </svg>
+                    </button>
+                    <button class="account-login-switch-btn" type="button" data-account-login-mode="password">
+                        <span>
+                            <strong>密码登录</strong>
+                            <small>{% if codemark_account.login_methods.email_password and codemark_account.login_methods.username_password %}邮箱或用户名 + 密码{% elif codemark_account.login_methods.email_password %}邮箱 + 密码{% else %}用户名 + 密码{% endif %}</small>
+                        </span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M9 18l6-6-6-6"></path>
+                        </svg>
+                    </button>
                 </div>
             {% endif %}
-            <button class="account-primary-btn" type="submit">登录</button>
             <p class="account-inline-hint">还没有账号？<button type="button" data-account-switch-register>创建账号</button></p>
         </form>
 

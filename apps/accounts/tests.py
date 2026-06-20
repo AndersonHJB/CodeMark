@@ -784,9 +784,11 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "site-account-trigger", html=False)
         self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
         self.assertContains(response, 'data-account-tab="login"', html=False)
-        self.assertContains(response, 'data-account-login-mode="email_password"', html=False)
+        self.assertContains(response, 'data-account-login-panel="password"', html=False)
+        self.assertContains(response, 'data-account-login-mode="password"', html=False)
         self.assertContains(response, 'data-account-login-mode="email_code"', html=False)
-        self.assertContains(response, 'data-account-login-mode="username_password"', html=False)
+        self.assertNotContains(response, 'data-account-login-mode="email_password"', html=False)
+        self.assertNotContains(response, 'data-account-login-mode="username_password"', html=False)
         self.assertContains(response, 'data-account-login-send-code', html=False)
         self.assertContains(response, reverse("account_profile_page"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
@@ -813,7 +815,8 @@ class AccountTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'data-account-login-mode="email_password"', html=False)
         self.assertNotContains(response, 'data-account-login-mode="email_code"', html=False)
-        self.assertContains(response, 'data-account-login-panel="username_password"', html=False)
+        self.assertNotContains(response, 'data-account-login-mode="username_password"', html=False)
+        self.assertContains(response, 'data-account-login-panel="password"', html=False)
         self.assertNotContains(response, 'data-account-login-send-code', html=False)
 
     def test_authenticated_editor_hides_guest_account_actions(self):

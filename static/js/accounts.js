@@ -309,21 +309,47 @@
     function enabledLoginModes() {
         const methods = config.loginMethods || {};
         const modes = [];
-        if (methods.emailPassword !== false) {
-            modes.push("email_password");
+        const hasPasswordLogin = methods.emailPassword !== false || methods.usernamePassword !== false;
+        if (hasPasswordLogin) {
+            modes.push("password");
         }
         if (methods.emailCode !== false) {
             modes.push("email_code");
         }
-        if (methods.usernamePassword !== false) {
-            modes.push("username_password");
+        return modes.length ? modes : ["password"];
+    }
+
+    function normalizeLoginMode(mode) {
+        if (mode === "email_password" || mode === "username_password") {
+            return "password";
         }
-        return modes.length ? modes : ["email_password"];
+        return mode || "password";
+    }
+
+    function defaultLoginMode() {
+        const modes = enabledLoginModes();
+        const configuredMode = normalizeLoginMode(config.loginMethods && config.loginMethods.defaultMode);
+        return modes.indexOf(configuredMode) !== -1 ? configuredMode : modes[0];
     }
 
     function currentLoginMode() {
         const input = loginForm && loginForm.querySelector("[data-account-login-method]");
-        return input ? input.value : enabledLoginModes()[0];
+        return input ? normalizeLoginMode(input.value) : enabledLoginModes()[0];
+    }
+
+    function passwordLoginMethod(identifier) {
+        const methods = config.loginMethods || {};
+        const looksLikeEmail = String(identifier || "").indexOf("@") !== -1;
+        if (looksLikeEmail && methods.emailPassword !== false) {
+            return "email_password";
+        }
+        if (!looksLikeEmail && methods.usernamePassword !== false) {
+            return "username_password";
+        }
+        if (methods.emailPassword !== false) {
+            return "email_password";
+        }
+        return "username_password";
     }
 
     function setLoginMode(mode) {
@@ -331,7 +357,8 @@
             return;
         }
         const modes = enabledLoginModes();
-        const nextMode = modes.indexOf(mode) !== -1 ? mode : (config.loginMethods && config.loginMethods.defaultMode) || modes[0];
+        const requestedMode = normalizeLoginMode(mode);
+        const nextMode = modes.indexOf(requestedMode) !== -1 ? requestedMode : defaultLoginMode();
         const input = loginForm.querySelector("[data-account-login-method]");
         if (input) {
             input.value = nextMode;
@@ -339,7 +366,7 @@
         loginForm.querySelectorAll("[data-account-login-mode]").forEach(function (button) {
             const active = button.dataset.accountLoginMode === nextMode;
             button.classList.toggle("is-active", active);
-            button.setAttribute("aria-selected", active ? "true" : "false");
+            button.setAttribute("aria-pressed", active ? "true" : "false");
         });
         loginForm.querySelectorAll("[data-account-login-panel]").forEach(function (panel) {
             const active = panel.dataset.accountLoginPanel === nextMode;
@@ -357,6 +384,24 @@
         const panel = loginForm.querySelector("[data-account-login-panel='" + currentLoginMode() + "']");
         const input = panel && panel.querySelector("input[name='email']");
         return input ? input.value.trim() : "";
+    }
+
+    function loginPayloadFromForm() {
+        const payload = Object.fromEntries(new FormData(loginForm).entries());
+        const mode = normalizeLoginMode(payload.login_method || currentLoginMode());
+        if (mode === "password") {
+            const identifier = (payload.identifier || "").trim();
+            payload.identifier = identifier;
+            payload.login_method = passwordLoginMethod(identifier);
+            if (payload.login_method === "email_password") {
+                payload.email = identifier;
+            } else {
+                payload.username = identifier;
+            }
+            return payload;
+        }
+        payload.login_method = "email_code";
+        return payload;
     }
 
     function currentNewEmail() {
@@ -723,7 +768,7 @@
             setLoginMode(currentLoginMode());
             const button = loginForm.querySelector("button[type='submit']");
             const restore = setButtonLoading(button, "登录中");
-            const payload = Object.fromEntries(new FormData(loginForm).entries());
+            const payload = loginPayloadFromForm();
             jsonRequest(config.loginUrl, payload)
                 .then(function (data) {
                     updateAccountUi(data.user);
