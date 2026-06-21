@@ -36,12 +36,37 @@
 
 <div class="page-container">
     <!-- 左侧目录 -->
-    <div class="sidebar">
-        <h3>所有文章</h3>
-        <ul>
-            {% include "_article_tree_sidebar.html" with tree=directory_tree %}
-        </ul>
-    </div>
+    <aside class="sidebar article-sidebar" aria-label="{{ sidebar_title }}目录">
+        <div class="sidebar-panel-head">
+            <a class="sidebar-home-link" href="/#learning">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>学习专栏</span>
+            </a>
+            <h3>{{ sidebar_title }}</h3>
+            <p>{{ sidebar_article_count }} 篇文章</p>
+        </div>
+
+        {% if article_collections %}
+            <div class="collection-switcher" aria-label="专栏切换">
+                {% for collection in article_collections %}
+                    {% if collection.first_article_path %}
+                        <a class="collection-chip {% if current_collection.path == collection.path %}is-active{% endif %}"
+                           href="/article/{{ collection.first_article_path }}">
+                            {{ collection.dirname }}
+                        </a>
+                    {% else %}
+                        <span class="collection-chip is-disabled">{{ collection.dirname }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <nav class="sidebar-tree-nav" aria-label="{{ sidebar_title }}文章列表">
+            <ul class="sidebar-tree">
+                {% include "_article_tree_sidebar.html" with tree=sidebar_tree %}
+            </ul>
+        </nav>
+    </aside>
 
     <!-- 中间内容 + TOC -->
     <div class="content">
@@ -171,6 +196,8 @@
         const nestedUl = folderNameDiv.nextElementSibling;
         if (!nestedUl) return;
         nestedUl.classList.toggle('show');
+        folderNameDiv.classList.toggle('is-open', nestedUl.classList.contains('show'));
+        folderNameDiv.setAttribute('aria-expanded', nestedUl.classList.contains('show') ? 'true' : 'false');
 
         // 获取右侧箭头图标
         const arrowIcon = folderNameDiv.querySelector('.arrow-icon');
@@ -220,7 +247,7 @@
                     window.history.pushState({}, '', url);
                     reinitializeCodeBlocks();
                     insertAdmonitionIcons();  // <-- 核心！重新插入
-                    if (window.MathJax) {
+                    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
                         window.MathJax.typesetPromise();
                     }
                     updateActiveLink(url);

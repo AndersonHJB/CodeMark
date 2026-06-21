@@ -192,29 +192,42 @@
             </a>
         </div>
 
-        {% if directory_tree.subdirs %}
+        {% if article_collections %}
             <div class="learning-board" data-home-catalog>
-                {% for subdir in directory_tree.subdirs_list %}
+                {% for collection in article_collections %}
                     <article class="learning-column">
                         <header class="column-head">
                             <span class="column-index">{{ forloop.counter|stringformat:"02d" }}</span>
-                            <h3>{{ subdir.dirname }}</h3>
+                            <div class="column-title">
+                                <h3>{{ collection.dirname }}</h3>
+                                <span>{{ collection.article_count }} 篇文章</span>
+                            </div>
+                            {% if collection.first_article_path %}
+                                <a class="column-open"
+                                   href="/article/{{ collection.first_article_path }}"
+                                   aria-label="打开 {{ collection.dirname }}">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M5 12h14"></path>
+                                        <path d="m13 6 6 6-6 6"></path>
+                                    </svg>
+                                </a>
+                            {% endif %}
                         </header>
                         <ul class="article-list">
-                            {% include "_article_tree_index.html" with tree=subdir.tree %}
+                            {% include "_article_tree_index.html" with tree=collection.tree %}
                         </ul>
                     </article>
                 {% endfor %}
             </div>
         {% else %}
             <div class="empty-state">
-                <p>暂时还没有检测到文章目录，请先在 <code>articles</code> 文件夹添加 Markdown 文档。</p>
+                <p>暂时还没有检测到专栏目录，请先在 <code>content/articles</code> 下添加专栏文件夹和 Markdown 文档。</p>
             </div>
         {% endif %}
 
         {% if directory_tree.files %}
             <section class="root-files">
-                <h3>根目录文章</h3>
+                <h3>未归入专栏</h3>
                 <ul class="article-list">
                     {% for file_info in directory_tree.files %}
                         <li class="article-item">

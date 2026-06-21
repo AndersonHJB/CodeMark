@@ -795,10 +795,10 @@ svg {
 
 .column-head {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 0.7rem;
     align-items: center;
-    min-height: 54px;
+    min-height: 64px;
     padding: 0 0.95rem;
     border-bottom: 1px solid var(--line);
     background: linear-gradient(180deg, #fbfdff 0%, #f4f8fd 100%);
@@ -811,7 +811,11 @@ svg {
     font-weight: 800;
 }
 
-.column-head h3 {
+.column-title {
+    min-width: 0;
+}
+
+.column-title h3 {
     min-width: 0;
     margin: 0;
     overflow: hidden;
@@ -821,6 +825,43 @@ svg {
     line-height: 1.3;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.column-title span {
+    display: block;
+    margin-top: 0.22rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.column-open {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--primary);
+    background: #fff;
+    text-decoration: none;
+    transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.column-open svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.column-open:hover {
+    border-color: rgba(7, 94, 234, 0.45);
+    background: var(--surface-blue);
 }
 
 .article-list {

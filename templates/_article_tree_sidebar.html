@@ -1,18 +1,28 @@
 {% for file_info in tree.files %}
-    <li>
-        <a class="article-link {% if file_info.is_active %}active-file{% endif %}"
+    <li class="sidebar-tree-item sidebar-tree-file">
+        <a class="article-link sidebar-tree-link {% if file_info.is_active %}active-file{% endif %}"
            href="/article/{{ file_info.path }}">
-            <i class="fab fa-python"></i> {{ file_info.title }}
+            <span class="sidebar-node-icon file-node-icon" aria-hidden="true">
+                <i class="fas fa-file-lines"></i>
+            </span>
+            <span class="sidebar-node-label">{{ file_info.title }}</span>
         </a>
     </li>
 {% endfor %}
 {% for subdir in tree.subdirs_list %}
-    <li>
-        <div class="folder-name" onclick="toggleFolder(this)">
-            <i class="fas fa-folder folder-icon"></i>  <!-- 左侧文件夹图标 -->
-            {{ subdir.dirname }}
-            <i class="fas fa-angle-right arrow-icon"></i>
-        </div>
+    <li class="sidebar-tree-item sidebar-tree-folder">
+        <button class="folder-name sidebar-tree-button {% if subdir.is_open %}is-open{% endif %}"
+                type="button"
+                onclick="toggleFolder(this)"
+                aria-expanded="{% if subdir.is_open %}true{% else %}false{% endif %}">
+            <span class="sidebar-node-icon folder-node-icon" aria-hidden="true">
+                <i class="fas fa-folder"></i>
+            </span>
+            <span class="sidebar-node-label">{{ subdir.dirname }}</span>
+            <span class="folder-count">{{ subdir.article_count }}</span>
+            <i class="fas {% if subdir.is_open %}fa-angle-down{% else %}fa-angle-right{% endif %} arrow-icon"
+               aria-hidden="true"></i>
+        </button>
         <ul class="nested {% if subdir.is_open %}show{% endif %}">
             {% include "_article_tree_sidebar.html" with tree=subdir.tree %}
         </ul>

@@ -17,10 +17,15 @@
     const updateFilter = () => {
         const query = normalize(searchInput.value);
         let visibleArticleCount = 0;
+        let visibleRowCount = 0;
 
         rows.forEach((row) => {
             const matches = !query || normalize(row.textContent).includes(query);
             row.hidden = !matches;
+
+            if (matches) {
+                visibleRowCount += 1;
+            }
 
             if (matches && row.classList.contains("article-item")) {
                 visibleArticleCount += 1;
@@ -38,11 +43,11 @@
         });
 
         if (status) {
-            status.textContent = query ? `${visibleArticleCount} 个匹配结果` : "搜索文档、代码、专栏";
+            status.textContent = query ? `${visibleArticleCount || visibleRowCount} 个匹配结果` : "搜索文档、代码、专栏";
         }
 
         if (emptyResults) {
-            emptyResults.hidden = !(query && visibleArticleCount === 0);
+            emptyResults.hidden = !(query && visibleRowCount === 0);
         }
     };
 

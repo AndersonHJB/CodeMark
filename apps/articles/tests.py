@@ -1,3 +1,6 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 from django.test import SimpleTestCase
 from django.urls import resolve, reverse
 
@@ -38,3 +41,26 @@ class SiteNavigationTests(SimpleTestCase):
         self.assertIn(f'href="{reverse("cpp_editor")}" role="menuitem"', html)
         self.assertIn(f'<a class="quick-tile" href="{reverse("cpp_editor")}">', html)
         self.assertContains(response, "C++ 编辑器")
+
+
+class ArticleDirectoryTreeTests(SimpleTestCase):
+    def test_top_level_directories_are_collections_with_own_tree(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏1" / "章节").mkdir(parents=True)
+            (root / "专栏10").mkdir()
+            (root / "专栏1" / "00-start.md").write_text("# start", encoding="utf-8")
+            (root / "专栏1" / "章节" / "01-a.md").write_text("# a", encoding="utf-8")
+            (root / "专栏10" / "01-other.md").write_text("# other", encoding="utf-8")
+
+            tree = views.build_directory_tree(root, current_file="专栏1/章节/01-a.md")
+            collections = views.get_article_collections(tree)
+            current_collection = views.get_current_collection(tree, "专栏1/章节/01-a.md")
+
+        self.assertEqual(tree["article_count"], 3)
+        self.assertEqual([collection["dirname"] for collection in collections], ["专栏1", "专栏10"])
+        self.assertTrue(collections[0]["is_open"])
+        self.assertFalse(collections[1]["is_open"])
+        self.assertEqual(current_collection["dirname"], "专栏1")
+        self.assertEqual(current_collection["article_count"], 2)
+        self.assertEqual(current_collection["first_article_path"], "专栏1/00-start.md")
