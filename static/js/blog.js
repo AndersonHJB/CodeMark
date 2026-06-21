@@ -168,6 +168,284 @@
         });
     }
 
+    let blogPyodidePromise = null;
+
+    function copyPlainText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).catch(function () {
+                window.prompt("复制代码", text);
+            });
+        }
+        return new Promise(function (resolve) {
+            window.prompt("复制代码", text);
+            resolve();
+        });
+    }
+
+    function inferBlogCodeLanguage(codeText) {
+        const code = (codeText || "").trim();
+        if (!code) {
+            return "plaintext";
+        }
+        if (/^curl\b/m.test(code) || /^#!/.test(code)) {
+            return "bash";
+        }
+        if (/^(GET|POST|PUT|PATCH|DELETE)\s+\S+/m.test(code) || /^Cookie:/m.test(code)) {
+            return "http";
+        }
+        if (/^\s*(from\s+\w+(?:\.\w+)*\s+import|import\s+\w+)/m.test(code)
+            || /^\s*def\s+\w+\s*\(/m.test(code)
+            || /^\s*class\s+\w+\s*(\(|:)/m.test(code)
+            || /\b(print|input|range|len|enumerate)\s*\(/.test(code)) {
+            return "python";
+        }
+        if (/\b(fetch|console\.log|const|let|=>)\b/.test(code)) {
+            return "javascript";
+        }
+        if (/^\s*[\[{]/.test(code)) {
+            try {
+                JSON.parse(code);
+                return "json";
+            } catch (error) {
+                return "plaintext";
+            }
+        }
+        return "plaintext";
+    }
+
+    function normalizeBlogCodeLanguage(rawLanguage, codeText) {
+        let language = (rawLanguage || "").toLowerCase().trim();
+        language = language
+            .replace(/^language-/, "")
+            .replace(/^lang-/, "")
+            .replace(/^highlight-/, "");
+        if (!language || language === "hljs" || language === "codehilite") {
+            language = inferBlogCodeLanguage(codeText);
+        }
+        const aliases = {
+            c: "cpp",
+            "c++": "cpp",
+            html: "xml",
+            js: "javascript",
+            jsx: "javascript",
+            md: "markdown",
+            py: "python",
+            python3: "python",
+            sh: "bash",
+            shell: "bash",
+            text: "plaintext",
+            txt: "plaintext",
+        };
+        return aliases[language] || language || "plaintext";
+    }
+
+    function detectBlogCodeLanguage(codeElement, codeText) {
+        const candidates = [];
+        [codeElement, codeElement.parentElement].forEach(function (element) {
+            if (!element) {
+                return;
+            }
+            Array.from(element.classList || []).forEach(function (className) {
+                const match = className.match(/^(?:language|lang|highlight)-(.+)$/i);
+                if (match) {
+                    candidates.push(match[1]);
+                } else if (["bash", "css", "html", "http", "javascript", "js", "json", "py", "python", "shell"].includes(className)) {
+                    candidates.push(className);
+                }
+            });
+            const dataLanguage = element.dataset.language || element.dataset.lang;
+            if (dataLanguage) {
+                candidates.push(dataLanguage);
+            }
+        });
+        return normalizeBlogCodeLanguage(candidates[0], codeText);
+    }
+
+    function displayBlogCodeLanguage(language) {
+        const labels = {
+            bash: "Bash",
+            cpp: "C++",
+            css: "CSS",
+            http: "HTTP",
+            javascript: "JavaScript",
+            json: "JSON",
+            markdown: "Markdown",
+            plaintext: "Text",
+            python: "Python",
+            xml: "HTML",
+        };
+        return labels[language] || language.toUpperCase();
+    }
+
+    function canRunBlogCode(codeElement, language) {
+        const pre = codeElement.parentElement;
+        const runValue = (codeElement.dataset.codeRun || (pre && pre.dataset.codeRun) || "").toLowerCase();
+        if (runValue === "false" || runValue === "0" || runValue === "off") {
+            return false;
+        }
+        if (codeElement.classList.contains("no-run") || (pre && pre.classList.contains("no-run"))) {
+            return false;
+        }
+        return language === "python";
+    }
+
+    function createBlogCodeButton(label, className) {
+        const button = document.createElement("button");
+        button.className = "blog-code-action " + className;
+        button.type = "button";
+        button.textContent = label;
+        return button;
+    }
+
+    function loadBlogPyodideScript() {
+        return new Promise(function (resolve, reject) {
+            if (typeof window.loadPyodide === "function") {
+                resolve();
+                return;
+            }
+            const existingScript = document.querySelector("script[data-blog-pyodide]");
+            if (existingScript) {
+                existingScript.addEventListener("load", resolve, {once: true});
+                existingScript.addEventListener("error", reject, {once: true});
+                return;
+            }
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js";
+            script.async = true;
+            script.dataset.blogPyodide = "1";
+            script.addEventListener("load", resolve, {once: true});
+            script.addEventListener("error", reject, {once: true});
+            document.head.appendChild(script);
+        });
+    }
+
+    function loadBlogPyodide() {
+        if (window.pyodide && typeof window.pyodide.runPythonAsync === "function") {
+            return Promise.resolve(window.pyodide);
+        }
+        if (!blogPyodidePromise) {
+            blogPyodidePromise = loadBlogPyodideScript()
+                .then(function () {
+                    return window.loadPyodide({
+                        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/"
+                    });
+                })
+                .then(function (runtime) {
+                    window.pyodide = runtime;
+                    return runtime.loadPackage(["micropip", "numpy", "pandas"]).then(function () {
+                        return runtime;
+                    });
+                });
+        }
+        return blogPyodidePromise;
+    }
+
+    function setBlogCodeOutput(outputElement, text, isError) {
+        outputElement.hidden = false;
+        outputElement.textContent = text;
+        outputElement.classList.toggle("is-error", !!isError);
+    }
+
+    async function runBlogPython(codeText, outputElement, button) {
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = "运行中";
+        setBlogCodeOutput(outputElement, "正在准备 Python 环境...", false);
+        try {
+            const runtime = await loadBlogPyodide();
+            setBlogCodeOutput(outputElement, "运行中...", false);
+            await runtime.runPythonAsync(`
+import sys, io
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+`);
+            await runtime.runPythonAsync(codeText);
+            const stdout = runtime.runPython("sys.stdout.getvalue()");
+            const stderr = runtime.runPython("sys.stderr.getvalue()");
+            setBlogCodeOutput(outputElement, (stdout + stderr).trim() || "No output.", false);
+        } catch (error) {
+            setBlogCodeOutput(outputElement, "Error:\n" + error, true);
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+
+    function highlightBlogCode(codeElement, language) {
+        let highlightLanguage = language === "plaintext" ? "plaintext" : language;
+        if (window.hljs && window.hljs.getLanguage && !window.hljs.getLanguage(highlightLanguage)) {
+            highlightLanguage = "plaintext";
+        }
+        Array.from(codeElement.classList || []).forEach(function (className) {
+            if (/^(?:language|lang|highlight)-/i.test(className)) {
+                codeElement.classList.remove(className);
+            }
+        });
+        codeElement.classList.add("language-" + highlightLanguage);
+        if (!window.hljs || typeof window.hljs.highlightElement !== "function") {
+            return;
+        }
+        try {
+            window.hljs.highlightElement(codeElement);
+        } catch (error) {
+            codeElement.classList.add("nohighlight");
+        }
+    }
+
+    function initBlogCodeBlocks() {
+        document.querySelectorAll(".blog-prose pre > code").forEach(function (codeElement) {
+            const pre = codeElement.parentElement;
+            if (!pre || pre.dataset.blogCodeEnhanced === "1" || pre.closest(".blog-code-block")) {
+                return;
+            }
+
+            const rawCode = codeElement.textContent.replace(/\s+$/, "");
+            const language = detectBlogCodeLanguage(codeElement, rawCode);
+            const wrapper = document.createElement("div");
+            const toolbar = document.createElement("div");
+            const languageLabel = document.createElement("span");
+            const actions = document.createElement("div");
+            const copyButton = createBlogCodeButton("复制", "blog-code-copy");
+            const outputElement = document.createElement("pre");
+
+            pre.dataset.blogCodeEnhanced = "1";
+            wrapper.className = "blog-code-block";
+            toolbar.className = "blog-code-toolbar";
+            languageLabel.className = "blog-code-language";
+            languageLabel.textContent = displayBlogCodeLanguage(language);
+            actions.className = "blog-code-actions";
+            outputElement.className = "blog-code-output";
+            outputElement.hidden = true;
+
+            copyButton.addEventListener("click", function () {
+                const originalText = copyButton.textContent;
+                copyPlainText(rawCode).then(function () {
+                    copyButton.textContent = "已复制";
+                    window.setTimeout(function () {
+                        copyButton.textContent = originalText;
+                    }, 1400);
+                });
+            });
+            actions.appendChild(copyButton);
+
+            if (canRunBlogCode(codeElement, language)) {
+                const runButton = createBlogCodeButton("运行", "blog-code-run");
+                runButton.addEventListener("click", function () {
+                    runBlogPython(rawCode, outputElement, runButton);
+                });
+                actions.appendChild(runButton);
+            }
+
+            toolbar.appendChild(languageLabel);
+            toolbar.appendChild(actions);
+            pre.parentNode.insertBefore(wrapper, pre);
+            wrapper.appendChild(toolbar);
+            wrapper.appendChild(pre);
+            wrapper.appendChild(outputElement);
+            highlightBlogCode(codeElement, language);
+        });
+    }
+
     function initBlogHome() {
         const home = document.querySelector(".blog-home-modern");
         if (!home) {
@@ -565,6 +843,7 @@
     initPostActions();
     initCommentReplies();
     initCopyLinks();
+    initBlogCodeBlocks();
     initBlogHome();
     initEditor();
 })();

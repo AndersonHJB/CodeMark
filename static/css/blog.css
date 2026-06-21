@@ -1914,6 +1914,96 @@
     line-height: 1.65;
 }
 
+.blog-code-block {
+    margin: 1em 0;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.12);
+    border-radius: var(--blog-radius);
+    background: #182235;
+}
+
+.blog-prose .blog-code-block pre {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.blog-code-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 10px 9px 14px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.12);
+    background: #111827;
+}
+
+.blog-code-language {
+    color: #cbd5e1;
+    font-family: var(--blog-font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.blog-code-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.blog-code-action {
+    min-height: 30px;
+    padding: 5px 10px;
+    border: 1px solid rgba(203, 213, 225, 0.2);
+    border-radius: 6px;
+    color: #e5edf7;
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.blog-code-action:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.blog-code-action:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+
+.blog-code-run {
+    border-color: rgba(20, 184, 166, 0.48);
+    color: #ecfeff;
+    background: #0f766e;
+}
+
+.blog-code-run:hover {
+    background: #0b5e57;
+}
+
+.blog-prose .blog-code-output {
+    margin: 0;
+    max-height: 360px;
+    overflow: auto;
+    padding: 14px 16px;
+    border-top: 1px solid rgba(226, 232, 240, 0.12);
+    border-radius: 0;
+    color: #dbeafe;
+    background: #0f172a;
+    white-space: pre-wrap;
+}
+
+.blog-prose .blog-code-output[hidden] {
+    display: none;
+}
+
+.blog-code-output.is-error {
+    color: #fecaca;
+}
+
 .blog-prose code {
     padding: 0.14em 0.32em;
     border-radius: 5px;
@@ -1929,6 +2019,11 @@
     width: max-content;
     padding: 0;
     color: inherit;
+    background: transparent;
+}
+
+.blog-prose pre code.hljs {
+    padding: 0;
     background: transparent;
 }
 

@@ -11,6 +11,7 @@
           rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/site-topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/default.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/blog.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     {% block extra_head %}{% endblock %}
@@ -31,6 +32,7 @@
 
 {% include "_account_dialogs.html" %}
 <script src="{% static 'js/accounts.js' %}"></script>
+<script src="{% static 'js/highlight.min.js' %}"></script>
 <script src="{% static 'js/blog.js' %}"></script>
 {% block extra_scripts %}{% endblock %}
 </body>

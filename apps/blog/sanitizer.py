@@ -1,3 +1,4 @@
+import re
 from html import escape
 from html.parser import HTMLParser
 from urllib.parse import urlparse
@@ -35,11 +36,31 @@ ALLOWED_TAGS = {
 VOID_TAGS = {"br", "hr", "img"}
 ALLOWED_ATTRS = {
     "a": {"href", "title"},
+    "code": {"class"},
     "img": {"src", "alt", "title"},
+    "pre": {"class"},
     "th": {"align"},
     "td": {"align"},
 }
 SAFE_URL_SCHEMES = {"http", "https", "mailto", ""}
+SAFE_CODE_CLASS_RE = re.compile(r"^(?:language|lang)-[-_a-z0-9+#.]+$", re.IGNORECASE)
+SAFE_CODE_CLASSES = {
+    "bash",
+    "css",
+    "html",
+    "http",
+    "javascript",
+    "js",
+    "json",
+    "no-run",
+    "nohighlight",
+    "plaintext",
+    "py",
+    "python",
+    "python3",
+    "shell",
+    "text",
+}
 
 
 def _safe_url(value, image=False):
@@ -56,6 +77,15 @@ def _safe_url(value, image=False):
 
 def _safe_align(value):
     return (value or "").strip().lower() in {"left", "right", "center"}
+
+
+def _safe_code_classes(value):
+    classes = []
+    for class_name in (value or "").split():
+        normalized = class_name.strip()
+        if normalized in SAFE_CODE_CLASSES or SAFE_CODE_CLASS_RE.match(normalized):
+            classes.append(normalized)
+    return " ".join(classes)
 
 
 class _Sanitizer(HTMLParser):
@@ -80,6 +110,10 @@ class _Sanitizer(HTMLParser):
                 continue
             if name == "align" and not _safe_align(value):
                 continue
+            if name == "class":
+                value = _safe_code_classes(value)
+                if not value:
+                    continue
             clean_attrs.append(f'{name}="{escape(value, quote=True)}"')
         if tag == "a":
             clean_attrs.append('rel="nofollow noopener noreferrer"')

@@ -51,10 +51,10 @@
     </div>
     <div class="blog-prose">
         <p>每篇文章的 API 地址格式如下：</p>
-        <pre><code>GET /blog/&lt;文章 slug&gt;/api/</code></pre>
+        <pre><code class="language-http">GET /blog/&lt;文章 slug&gt;/api/</code></pre>
         {% if sample_api_url %}
             <p>当前可用示例：</p>
-            <pre><code>{{ sample_api_url }}</code></pre>
+            <pre><code class="language-plaintext">{{ sample_api_url }}</code></pre>
         {% else %}
             <p>当前还没有已发布文章。发布文章后，文章页会显示可复制的 API 链接。</p>
         {% endif %}
@@ -68,7 +68,7 @@
     </div>
     <div class="blog-prose">
         <h3>浏览器或 Cookie 请求</h3>
-        <pre><code>fetch("{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}", {
+        <pre><code class="language-javascript">fetch("{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}", {
   method: "GET",
   credentials: "include",
   headers: {
@@ -79,7 +79,7 @@
   .then(data =&gt; console.log(data.article.title));</code></pre>
 
         <h3>Python 分析脚本</h3>
-        <pre><code>import requests
+        <pre><code class="language-python no-run" data-code-run="false">import requests
 
 url = "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}"
 cookies = {{ current_cookie_python }}
@@ -107,14 +107,14 @@ print(article["stats"])</code></pre>
         <h3>当前登录 Cookies</h3>
         {% if current_cookie_header %}
             <p>下面是当前账号可直接用于文章 API 的 Cookie 请求头：</p>
-            <pre><code>Cookie: {{ current_cookie_header }}</code></pre>
+            <pre><code class="language-http">Cookie: {{ current_cookie_header }}</code></pre>
             <div class="blog-vip-cookie-actions">
                 <button class="blog-btn blog-btn-primary" type="button" data-copy-link="{{ current_cookie_header }}" data-copy-label="复制当前 Cookies">复制 Cookies</button>
                 <button class="blog-btn blog-btn-ghost" type="button" data-copy-link="Cookie: {{ current_cookie_header }}" data-copy-label="复制 Cookie 请求头">复制 Cookie 请求头</button>
             </div>
 
             <p>Python <code>requests</code> 可直接使用这个 cookies 字典：</p>
-            <pre><code>cookies = {{ current_cookie_python }}</code></pre>
+            <pre><code class="language-python no-run" data-code-run="false">cookies = {{ current_cookie_python }}</code></pre>
         {% else %}
             <p>当前请求没有读取到登录 Cookie。请重新登录后刷新此页面，或按下面的方法手动复制。</p>
         {% endif %}
@@ -126,7 +126,7 @@ print(article["stats"])</code></pre>
             <li>在 <code>Cookies</code> 中选择当前站点域名。</li>
             <li>复制 <code>sessionid</code> 的值。这个值就是服务端识别登录态的关键 Cookie。</li>
         </ol>
-        <pre><code>Cookie: sessionid=你的-sessionid-值</code></pre>
+        <pre><code class="language-http">Cookie: sessionid=你的-sessionid-值</code></pre>
 
         <h3>备用方法二：复制为 cURL</h3>
         <ol>
@@ -134,12 +134,12 @@ print(article["stats"])</code></pre>
             <li>打开开发者工具的 <code>Network</code> 面板，选中这次 API 请求。</li>
             <li>右键选择 <code>Copy as cURL</code>。复制出的命令会自动带上 Cookie。</li>
         </ol>
-        <pre><code>curl "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}" \
+        <pre><code class="language-bash">curl "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}" \
   -H "Accept: application/json" \
   -H "Cookie: sessionid=你的-sessionid-值"</code></pre>
 
         <h3>备用方法三：Python requests</h3>
-        <pre><code>import requests
+        <pre><code class="language-python no-run" data-code-run="false">import requests
 
 url = "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}"
 cookies = {{ current_cookie_python }}

@@ -100,6 +100,7 @@ class BlogPostFlowTests(TestCase):
         self.assertContains(detail_response, "data-like-count", html=False)
         self.assertContains(detail_response, reverse("blog_article_api", kwargs={"slug": post.slug}))
         self.assertContains(detail_response, 'data-copy-link="http://testserver', html=False)
+        self.assertContains(detail_response, 'class="language-python"', html=False)
         self.assertNotContains(detail_response, "<script>alert", html=False)
 
     def test_draft_post_is_only_visible_to_author(self):
@@ -216,6 +217,9 @@ class BlogPostFlowTests(TestCase):
         self.assertContains(guide_response, "复制 Cookies")
         self.assertContains(guide_response, "sessionid")
         self.assertContains(guide_response, f"{settings.SESSION_COOKIE_NAME}={session_cookie}", html=False)
+        self.assertContains(guide_response, "language-javascript")
+        self.assertContains(guide_response, "language-python")
+        self.assertContains(guide_response, 'data-code-run="false"', html=False)
         self.assertContains(guide_response, "返回数据")
         self.assertContains(guide_response, f"http://testserver{api_url}")
         self.assertContains(guide_response, 'data-copy-link="http://testserver', html=False)
