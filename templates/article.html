@@ -36,22 +36,32 @@
 
 <div class="page-container">
     <!-- 左侧目录 -->
-    <aside class="sidebar article-sidebar" aria-label="{{ sidebar_title }}目录">
-        <div class="sidebar-panel-head">
-            <a class="sidebar-home-link" href="/#learning">
-                <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                <span>学习专栏</span>
-            </a>
-            <h3>{{ sidebar_title }}</h3>
-            <p>{{ sidebar_article_count }} 篇文章</p>
-        </div>
+    <div class="article-sidebar-shell" data-article-sidebar-shell>
+        <aside class="sidebar article-sidebar" id="article-sidebar" aria-label="{{ sidebar_title }}目录">
+            <div class="sidebar-panel-head">
+                <a class="sidebar-home-link" href="/#learning">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    <span>学习专栏</span>
+                </a>
+                <h3>{{ sidebar_title }}</h3>
+                <p>{{ sidebar_article_count }} 篇文章</p>
+            </div>
 
-        <nav class="sidebar-tree-nav" aria-label="{{ sidebar_title }}文章列表">
-            <ul class="sidebar-tree">
-                {% include "_article_tree_sidebar.html" with tree=sidebar_tree %}
-            </ul>
-        </nav>
-    </aside>
+            <nav class="sidebar-tree-nav" aria-label="{{ sidebar_title }}文章列表">
+                <ul class="sidebar-tree">
+                    {% include "_article_tree_sidebar.html" with tree=sidebar_tree %}
+                </ul>
+            </nav>
+        </aside>
+        <button class="article-sidebar-rail-toggle"
+                type="button"
+                data-sidebar-rail-toggle
+                aria-controls="article-sidebar"
+                aria-expanded="true"
+                aria-label="收起文章目录">
+            <span class="article-sidebar-rail-arrow" aria-hidden="true"></span>
+        </button>
+    </div>
 
     <!-- 中间内容 + TOC -->
     <div class="content">
@@ -177,34 +187,177 @@
         });
     }
 
-    function toggleFolder(folderNameDiv) {
-        const nestedUl = folderNameDiv.nextElementSibling;
-        if (!nestedUl) return;
-        nestedUl.classList.toggle('show');
-        folderNameDiv.classList.toggle('is-open', nestedUl.classList.contains('show'));
-        folderNameDiv.setAttribute('aria-expanded', nestedUl.classList.contains('show') ? 'true' : 'false');
+    const ARTICLE_SIDEBAR_COLLAPSED_KEY = 'codemark:article-sidebar-collapsed:v1';
 
-        // 获取右侧箭头图标
-        const arrowIcon = folderNameDiv.querySelector('.arrow-icon');
-        if (nestedUl.classList.contains('show')) {
-            // 如果已展开，则将右箭头切换成下箭头
-            arrowIcon.classList.remove('fa-angle-right');
-            arrowIcon.classList.add('fa-angle-down');
-        } else {
-            // 否则切换回右箭头
-            arrowIcon.classList.remove('fa-angle-down');
-            arrowIcon.classList.add('fa-angle-right');
+    function getFolderList(folderButton) {
+        const nextElement = folderButton ? folderButton.nextElementSibling : null;
+        return nextElement && nextElement.classList.contains('nested') ? nextElement : null;
+    }
+
+    function setFolderExpanded(folderButton, expanded) {
+        const nestedUl = getFolderList(folderButton);
+        if (!nestedUl) return;
+
+        const shouldExpand = Boolean(expanded);
+        nestedUl.classList.toggle('show', shouldExpand);
+        nestedUl.setAttribute('aria-hidden', shouldExpand ? 'false' : 'true');
+        folderButton.classList.toggle('is-open', shouldExpand);
+        folderButton.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+    }
+
+    function toggleFolder(folderButton, forceExpanded) {
+        const nestedUl = getFolderList(folderButton);
+        if (!nestedUl) return;
+
+        const shouldExpand = typeof forceExpanded === 'boolean'
+            ? forceExpanded
+            : !nestedUl.classList.contains('show');
+        setFolderExpanded(folderButton, shouldExpand);
+    }
+
+    function normalizeSidebarPath(value) {
+        if (!value) return '';
+
+        try {
+            const url = new URL(value, window.location.origin);
+            return decodeURIComponent(url.pathname).replace(/\/+$/, '');
+        } catch (error) {
+            return decodeURIComponent(String(value)).replace(/\/+$/, '');
         }
+    }
+
+    function getSidebarControls() {
+        return Array.from(document.querySelectorAll('.article-sidebar .folder-name, .article-sidebar .article-link'));
+    }
+
+    function openSidebarAncestors(activeLink) {
+        let nestedList = activeLink ? activeLink.closest('.nested') : null;
+
+        while (nestedList) {
+            const folderItem = nestedList.closest('.sidebar-tree-folder');
+            if (!folderItem) break;
+
+            const folderButton = folderItem.querySelector(':scope > .folder-name');
+            if (folderButton) {
+                setFolderExpanded(folderButton, true);
+                folderItem.classList.add('has-active');
+            }
+
+            nestedList = folderItem.parentElement ? folderItem.parentElement.closest('.nested') : null;
+        }
+    }
+
+    function ensureSidebarLinkVisible(activeLink) {
+        const scroller = activeLink ? activeLink.closest('.sidebar-tree-nav') : null;
+        if (!scroller) return;
+
+        const scrollerRect = scroller.getBoundingClientRect();
+        const linkRect = activeLink.getBoundingClientRect();
+        const padding = 14;
+
+        if (linkRect.top < scrollerRect.top + padding) {
+            scroller.scrollTop -= (scrollerRect.top + padding) - linkRect.top;
+        } else if (linkRect.bottom > scrollerRect.bottom - padding) {
+            scroller.scrollTop += linkRect.bottom - (scrollerRect.bottom - padding);
+        }
+    }
+
+    function syncSidebarActiveState(currentUrl, shouldScroll = true) {
+        const currentPath = normalizeSidebarPath(currentUrl || window.location.pathname);
+        const links = Array.from(document.querySelectorAll('.article-sidebar .article-link'));
+
+        document.querySelectorAll('.article-sidebar .active-file').forEach(link => {
+            link.classList.remove('active-file');
+            link.removeAttribute('aria-current');
+        });
+        document.querySelectorAll('.article-sidebar .sidebar-tree-file.is-active-item, .article-sidebar .sidebar-tree-folder.has-active')
+            .forEach(item => item.classList.remove('is-active-item', 'has-active'));
+
+        const currentLink = links.find(link => normalizeSidebarPath(link.href) === currentPath);
+        if (!currentLink) return;
+
+        currentLink.classList.add('active-file');
+        currentLink.setAttribute('aria-current', 'page');
+        currentLink.closest('.sidebar-tree-file')?.classList.add('is-active-item');
+        openSidebarAncestors(currentLink);
+
+        if (shouldScroll) {
+            ensureSidebarLinkVisible(currentLink);
+        }
+    }
+
+    function setArticleSidebarCollapsed(collapsed, shouldPersist = true) {
+        const isCollapsed = Boolean(collapsed);
+        document.body.classList.toggle('is-article-sidebar-collapsed', isCollapsed);
+
+        const toggle = document.querySelector('[data-sidebar-rail-toggle]');
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+            toggle.setAttribute('aria-label', isCollapsed ? '展开文章目录' : '收起文章目录');
+        }
+
+        if (shouldPersist) {
+            try {
+                localStorage.setItem(ARTICLE_SIDEBAR_COLLAPSED_KEY, isCollapsed ? '1' : '0');
+            } catch (error) {
+                // Ignore storage failures in private windows.
+            }
+        }
+    }
+
+    function initializeArticleSidebar() {
+        const sidebar = document.querySelector('.article-sidebar');
+        if (!sidebar || sidebar.dataset.sidebarReady === 'true') return;
+
+        sidebar.dataset.sidebarReady = 'true';
+        sidebar.querySelectorAll('.folder-name').forEach(button => {
+            setFolderExpanded(button, button.classList.contains('is-open') || button.getAttribute('aria-expanded') === 'true');
+        });
+
+        try {
+            setArticleSidebarCollapsed(localStorage.getItem(ARTICLE_SIDEBAR_COLLAPSED_KEY) === '1', false);
+        } catch (error) {
+            setArticleSidebarCollapsed(false, false);
+        }
+
+        syncSidebarActiveState(window.location.pathname, true);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeArticleSidebar);
+    } else {
+        initializeArticleSidebar();
     }
 
     document.addEventListener('click', function (e) {
         const target = e.target;
-        if (target.classList.contains('article-link') || target.closest('.article-link')) {
+        const sidebarToggle = target.closest('[data-sidebar-rail-toggle]');
+        if (sidebarToggle) {
             e.preventDefault();
+            setArticleSidebarCollapsed(!document.body.classList.contains('is-article-sidebar-collapsed'));
+            return;
+        }
+
+        const folderButton = target.closest('.article-sidebar .folder-name');
+        if (folderButton) {
+            e.preventDefault();
+            toggleFolder(folderButton);
+            return;
+        }
+
+        if (target.classList.contains('article-link') || target.closest('.article-link')) {
             const linkEl = target.closest('.article-link');
+            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || linkEl.target === '_blank') {
+                return;
+            }
+
+            e.preventDefault();
             const url = linkEl.getAttribute('href');
             fetch(url)
                 .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Request failed with ${response.status}`);
+                    }
                     return response.text();
                 })
                 .then(html => {
@@ -235,7 +388,7 @@
                     if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
                         window.MathJax.typesetPromise();
                     }
-                    updateActiveLink(url);
+                    syncSidebarActiveState(url);
                 })
                 .catch(err => {
                     console.error('Error fetching article:', err);
@@ -248,14 +401,40 @@
         location.reload();
     });
 
-    function updateActiveLink(currentUrl) {
-        const links = document.querySelectorAll('.article-link');
-        links.forEach(link => link.classList.remove('active-file'));
-        const currentLink = [...links].find(l => l.getAttribute('href') === currentUrl);
-        if (currentLink) {
-            currentLink.classList.add('active-file');
+    document.addEventListener('keydown', function (e) {
+        const focusedControl = document.activeElement;
+        if (!focusedControl || !focusedControl.closest('.article-sidebar')) return;
+
+        const controls = getSidebarControls().filter(control => control.offsetParent !== null);
+        const currentIndex = controls.indexOf(focusedControl);
+        if (currentIndex === -1) return;
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const nextIndex = e.key === 'ArrowDown'
+                ? Math.min(currentIndex + 1, controls.length - 1)
+                : Math.max(currentIndex - 1, 0);
+            controls[nextIndex]?.focus();
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            controls[0]?.focus();
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            controls[controls.length - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && focusedControl.classList.contains('folder-name')) {
+            e.preventDefault();
+            toggleFolder(focusedControl, true);
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            if (focusedControl.classList.contains('folder-name') && focusedControl.getAttribute('aria-expanded') === 'true') {
+                toggleFolder(focusedControl, false);
+                return;
+            }
+
+            const parentFolder = focusedControl.closest('.nested')?.closest('.sidebar-tree-folder')?.querySelector(':scope > .folder-name');
+            parentFolder?.focus();
         }
-    }
+    });
 
     function copyToClipboard(text) {
         return navigator.clipboard.writeText(text);

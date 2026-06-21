@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.urls import resolve, reverse
 
 from . import views
@@ -64,3 +64,21 @@ class ArticleDirectoryTreeTests(SimpleTestCase):
         self.assertEqual(current_collection["dirname"], "专栏1")
         self.assertEqual(current_collection["article_count"], 2)
         self.assertEqual(current_collection["first_article_path"], "专栏1/00-start.md")
+
+    def test_article_sidebar_marks_active_file_and_open_ancestors(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏" / "章节" / "子章节").mkdir(parents=True)
+            (root / "专栏" / "00-start.md").write_text("# start", encoding="utf-8")
+            (root / "专栏" / "章节" / "子章节" / "01-deep.md").write_text("# deep", encoding="utf-8")
+
+            with override_settings(CODEMARK_ARTICLES_DIR=root):
+                response = self.client.get(reverse("article", kwargs={"filename": "专栏/章节/子章节/01-deep.md"}))
+
+        html = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('data-article-path="专栏/章节/子章节/01-deep.md"', html)
+        self.assertIn('aria-current="page"', html)
+        self.assertRegex(html, r'data-folder-path="专栏/章节"\s+aria-expanded="true"')
+        self.assertRegex(html, r'data-folder-path="专栏/章节/子章节"\s+aria-expanded="true"')
