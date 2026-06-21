@@ -1,0 +1,16 @@
+.blog-vip-random-slug-button {
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.blog-vip-random-slug-message {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--body-quiet-color);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.blog-vip-random-slug-message.is-error {
+    color: var(--error-fg);
+}

@@ -58,6 +58,41 @@ class BlogUrlPatternTests(SimpleTestCase):
                 self.assertIs(resolve(path).func, view_func)
 
 
+class BlogVipPageAdminTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="test-password",
+        )
+        self.client.force_login(self.staff)
+
+    def test_vip_page_admin_form_loads_random_slug_button_assets(self):
+        response = self.client.get(reverse("admin:blog_blogvippage_add"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "admin_blog_vip_page.js")
+        self.assertContains(response, "admin-blog-vip-page.css")
+        self.assertContains(response, reverse("admin:blog_blogvippage_random_slug"))
+        self.assertContains(response, "data-random-slug-url", html=False)
+
+    def test_vip_page_admin_random_slug_endpoint_returns_unique_slug(self):
+        BlogVipPage.objects.create(
+            title="已存在随机链接",
+            slug="vip-0000000000",
+            status=BlogVipPage.STATUS_PUBLISHED,
+        )
+        url = reverse("admin:blog_blogvippage_random_slug")
+
+        generated_slugs = [self.client.get(url).json()["slug"] for _ in range(8)]
+
+        self.assertEqual(len(generated_slugs), len(set(generated_slugs)))
+        self.assertNotIn("vip-0000000000", generated_slugs)
+        for slug in generated_slugs:
+            self.assertRegex(slug, r"^vip-[0-9a-f]{10}$")
+
+
 class BlogPostFlowTests(TestCase):
     def setUp(self):
         User = get_user_model()

@@ -1,5 +1,8 @@
+import secrets
+
 from django.contrib import admin
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
+from django.urls import path, reverse
 from django.utils import timezone
 
 from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
@@ -67,6 +70,40 @@ class BlogVipPageAdmin(admin.ModelAdmin):
         ("发布设置", {"fields": ("status", "is_home", "show_in_nav", "sort_order", "published_at")}),
         ("时间", {"fields": ("created_at", "updated_at")}),
     )
+
+    class Media:
+        css = {"all": ("css/admin-blog-vip-page.css",)}
+        js = ("js/admin_blog_vip_page.js",)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "random-slug/",
+                self.admin_site.admin_view(self.random_slug_view),
+                name="blog_blogvippage_random_slug",
+            ),
+        ]
+        return custom_urls + urls
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if db_field.name == "slug":
+            formfield.widget.attrs["data-random-slug-url"] = reverse("admin:blog_blogvippage_random_slug")
+        return formfield
+
+    def random_slug_view(self, request):
+        if not (self.has_add_permission(request) or self.has_change_permission(request)):
+            return JsonResponse({"ok": False, "message": "没有权限生成 URL 标识"}, status=403)
+        return JsonResponse({"ok": True, "slug": self.generate_unique_random_slug()})
+
+    def generate_unique_random_slug(self):
+        for _ in range(32):
+            slug = f"vip-{secrets.token_hex(5)}"
+            if not BlogVipPage.objects.filter(slug=slug).exists():
+                return slug
+        timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
+        return f"vip-{timestamp}-{secrets.token_hex(3)}"
 
     @admin.action(description="发布选中的 VIP 页面")
     def publish_pages(self, request, queryset):
