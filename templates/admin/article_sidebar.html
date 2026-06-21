@@ -54,6 +54,81 @@
         gap: 6px;
     }
 
+    .article-sidebar-button,
+    .article-sidebar-card-action,
+    .article-sidebar-node-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-width: 0;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--body-bg);
+        color: var(--body-fg);
+        box-shadow: none;
+        font-family: inherit;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+        appearance: none;
+    }
+
+    .article-sidebar-button {
+        height: 30px;
+        padding: 0 11px;
+        font-size: 12px;
+    }
+
+    .article-sidebar-button-primary {
+        color: #fff;
+        background: var(--link-fg);
+        border-color: var(--link-fg);
+    }
+
+    .article-sidebar-button-secondary {
+        color: var(--link-fg);
+        background: color-mix(in srgb, var(--link-fg) 8%, var(--body-bg));
+        border-color: color-mix(in srgb, var(--link-fg) 22%, var(--border-color));
+    }
+
+    .article-sidebar-button-plain {
+        color: var(--body-quiet-color);
+        background: var(--body-bg);
+    }
+
+    .article-sidebar-button-danger {
+        color: #8a3a24;
+        background: #fff8f4;
+        border-color: #e4b49f;
+    }
+
+    .article-sidebar-button:hover,
+    .article-sidebar-card-action:hover,
+    .article-sidebar-node-button:hover {
+        color: #fff;
+        background: var(--link-fg);
+        border-color: var(--link-fg);
+        text-decoration: none;
+    }
+
+    .article-sidebar-button-danger:hover {
+        color: #fff;
+        background: #9b3d24;
+        border-color: #9b3d24;
+    }
+
+    .article-sidebar-button:focus-visible,
+    .article-sidebar-card-action:focus-visible,
+    .article-sidebar-node-button:focus-visible {
+        outline: 0;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-fg) 24%, transparent);
+    }
+
     .article-sidebar-collection-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -121,6 +196,15 @@
     .article-sidebar-collection-path {
         grid-column: 1 / -1;
         word-break: break-all;
+    }
+
+    .article-sidebar-card-action {
+        height: 28px;
+        padding: 0 10px;
+        color: var(--link-fg);
+        background: color-mix(in srgb, var(--link-fg) 7%, var(--body-bg));
+        border-color: color-mix(in srgb, var(--link-fg) 22%, var(--border-color));
+        font-size: 12px;
     }
 
     .article-sidebar-admin-editor {
@@ -263,30 +347,32 @@
         display: inline-flex;
         flex-wrap: wrap;
         justify-content: flex-end;
-        gap: 4px;
+        gap: 3px;
     }
 
-    .article-sidebar-mini-button {
-        min-height: 26px;
-        padding: 3px 7px;
+    .article-sidebar-node-button {
+        height: 26px;
+        padding: 0 8px;
+        color: var(--link-fg);
+        background: var(--body-bg);
+        border-color: color-mix(in srgb, var(--link-fg) 20%, var(--border-color));
         font-size: 12px;
-        line-height: 18px;
-        white-space: nowrap;
     }
 
-    .article-sidebar-row-actions .article-sidebar-mini-button,
-    .article-sidebar-collection-root-row .article-sidebar-mini-button {
-        color: var(--link-fg) !important;
-        background: var(--body-bg) !important;
-        border: 1px solid var(--border-color) !important;
-        box-shadow: none !important;
+    .article-sidebar-node-button-icon {
+        width: 26px;
+        padding: 0;
+        font-size: 13px;
     }
 
-    .article-sidebar-row-actions .article-sidebar-mini-button:hover,
-    .article-sidebar-collection-root-row .article-sidebar-mini-button:hover {
-        color: var(--body-bg) !important;
-        background: var(--link-fg) !important;
-        border-color: var(--link-fg) !important;
+    .article-sidebar-node-button-muted {
+        color: var(--body-quiet-color);
+        border-color: var(--border-color);
+        background: color-mix(in srgb, var(--darkened-bg) 56%, var(--body-bg));
+    }
+
+    .article-sidebar-node-button-preview {
+        background: color-mix(in srgb, var(--link-fg) 7%, var(--body-bg));
     }
 
     .article-sidebar-admin-empty {
@@ -339,7 +425,7 @@
         </div>
         <form class="article-sidebar-admin-actions" method="post">
             {% csrf_token %}
-            <button class="button"
+            <button class="article-sidebar-button article-sidebar-button-danger"
                     type="submit"
                     name="action"
                     value="reset"
@@ -361,7 +447,7 @@
                             </div>
                         </div>
                         <div class="article-sidebar-collection-path">{{ collection.path }}</div>
-                        <span class="button">配置</span>
+                        <span class="article-sidebar-card-action">配置</span>
                     </a>
                 {% endfor %}
             </div>
@@ -384,10 +470,10 @@
                     </div>
                 </div>
                 <div class="article-sidebar-admin-actions">
-                    <a class="button" href="{% url 'admin_article_sidebar' %}">返回列表</a>
-                    <button class="button" type="button" data-reset-all-titles>恢复默认</button>
-                    <button class="default" type="submit">保存</button>
-                    <button class="button"
+                    <a class="article-sidebar-button article-sidebar-button-plain" href="{% url 'admin_article_sidebar' %}">返回列表</a>
+                    <button class="article-sidebar-button article-sidebar-button-secondary" type="button" data-reset-all-titles>恢复默认</button>
+                    <button class="article-sidebar-button article-sidebar-button-primary" type="submit">保存</button>
+                    <button class="article-sidebar-button article-sidebar-button-danger"
                             type="submit"
                             name="action"
                             value="reset_collection"
@@ -413,7 +499,7 @@
                                aria-label="{{ selected_collection.path }} 标题">
                         <span class="article-sidebar-default-title">默认：{{ selected_collection.default_title }}</span>
                     </div>
-                    <button class="button article-sidebar-mini-button" type="button" data-reset-title title="恢复默认标题">默认</button>
+                    <button class="article-sidebar-node-button article-sidebar-node-button-muted" type="button" data-reset-title title="恢复默认标题">默认</button>
                     <span class="article-sidebar-node-path" title="{{ selected_collection.path }}">{{ selected_collection.path }}</span>
                 </div>
 

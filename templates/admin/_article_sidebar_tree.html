@@ -26,11 +26,11 @@
                 <span class="article-sidebar-default-title">默认：{{ node.default_title }}</span>
             </div>
             <div class="article-sidebar-row-actions">
-                <button class="button article-sidebar-mini-button" type="button" data-reset-title title="恢复默认标题">默认</button>
-                <button class="button article-sidebar-mini-button" type="button" data-move-item="up" title="上移">上</button>
-                <button class="button article-sidebar-mini-button" type="button" data-move-item="down" title="下移">下</button>
+                <button class="article-sidebar-node-button article-sidebar-node-button-muted" type="button" data-reset-title title="恢复默认标题">默认</button>
+                <button class="article-sidebar-node-button article-sidebar-node-button-icon" type="button" data-move-item="up" title="上移" aria-label="上移">↑</button>
+                <button class="article-sidebar-node-button article-sidebar-node-button-icon" type="button" data-move-item="down" title="下移" aria-label="下移">↓</button>
                 {% if node.node_type == "file" %}
-                    <a class="button article-sidebar-mini-button"
+                    <a class="article-sidebar-node-button article-sidebar-node-button-preview"
                        href="/article/{{ node.path }}"
                        target="_blank"
                        rel="noopener"
