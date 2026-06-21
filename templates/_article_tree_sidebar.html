@@ -7,7 +7,7 @@
             <span class="sidebar-node-icon file-node-icon" aria-hidden="true">
                 <i class="fas fa-file-lines"></i>
             </span>
-            <span class="sidebar-node-label">{{ file_info.title }}</span>
+            <span class="sidebar-node-label" title="{{ file_info.title }}">{{ file_info.title }}</span>
         </a>
     </li>
 {% endfor %}
@@ -21,7 +21,7 @@
             <span class="sidebar-node-icon folder-node-icon" aria-hidden="true">
                 <i class="fas fa-folder"></i>
             </span>
-            <span class="sidebar-node-label">{{ subdir.dirname }}</span>
+            <span class="sidebar-node-label" title="{{ subdir.dirname }}">{{ subdir.dirname }}</span>
             <span class="folder-count">{{ subdir.article_count }}</span>
             <i class="fas fa-angle-right arrow-icon" aria-hidden="true"></i>
         </button>

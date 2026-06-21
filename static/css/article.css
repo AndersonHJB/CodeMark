@@ -975,7 +975,7 @@ body.article-page {
 .article-page .article-sidebar-rail-toggle {
     position: absolute;
     top: 0;
-    left: calc(100% - 5px);
+    left: calc(100% - 16px);
     display: grid;
     place-items: center;
     width: 32px;
@@ -991,7 +991,7 @@ body.article-page {
 .article-page .article-sidebar-rail-toggle::before {
     content: "";
     position: absolute;
-    left: 0;
+    left: 50%;
     top: 50%;
     width: 1px;
     height: 100%;
@@ -999,12 +999,29 @@ body.article-page {
     transform: translateY(-50%);
 }
 
+.article-page .article-sidebar-rail-toggle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 24px;
+    height: 52px;
+    border: 1px solid var(--article-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 18px rgba(26, 55, 98, 0.12);
+    transform: translate(-50%, -50%);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
 .article-page .article-sidebar-rail-arrow {
-    width: 10px;
-    height: 10px;
-    border-left: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    transform: rotate(45deg);
+    position: relative;
+    z-index: 1;
+    width: 8px;
+    height: 8px;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: rotate(135deg);
     transition: transform 0.18s ease, color 0.18s ease;
 }
 
@@ -1012,6 +1029,13 @@ body.article-page {
 .article-page .article-sidebar-rail-toggle:focus-visible {
     color: var(--article-primary);
     outline: none;
+}
+
+.article-page .article-sidebar-rail-toggle:hover::after,
+.article-page .article-sidebar-rail-toggle:focus-visible::after {
+    border-color: rgba(7, 94, 234, 0.3);
+    background: #ffffff;
+    box-shadow: 0 10px 22px rgba(26, 55, 98, 0.17);
 }
 
 .article-page.is-article-sidebar-collapsed .page-container {
@@ -1040,8 +1064,12 @@ body.article-page {
     pointer-events: auto;
 }
 
+.article-page.is-article-sidebar-collapsed .article-sidebar-rail-toggle::before {
+    left: 0;
+}
+
 .article-page.is-article-sidebar-collapsed .article-sidebar-rail-arrow {
-    transform: rotate(225deg);
+    transform: rotate(-45deg);
 }
 
 .article-page .sidebar-panel-head {
@@ -1117,7 +1145,8 @@ body.article-page {
 .article-page .folder-name,
 .article-page .sidebar-tree-link {
     position: relative;
-    width: 100%;
+    box-sizing: border-box;
+    width: calc(100% - 1rem);
     min-height: 33px;
     border-radius: 6px;
     outline: none;
@@ -1125,7 +1154,8 @@ body.article-page {
 }
 
 .article-page .folder-name {
-    display: flex;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto 12px;
     gap: 0.34rem;
     align-items: center;
     margin: 0 0.5rem;
@@ -1142,13 +1172,13 @@ body.article-page {
 }
 
 .article-page .sidebar-tree-link {
-    display: flex;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
     gap: 0.34rem;
     align-items: center;
     margin: 0 0.5rem;
     padding: 0.25rem 0.5rem;
     border: 0;
-    overflow-wrap: anywhere;
     color: #3c3c43;
     font-size: 0.94rem;
     font-weight: 500;
@@ -1185,13 +1215,28 @@ body.article-page {
 .article-page .sidebar-node-label {
     flex: 1 1 auto;
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.article-page .folder-name .sidebar-node-label {
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.article-page .sidebar-tree-link .sidebar-node-label {
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .article-page .folder-count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    justify-self: end;
     min-width: 24px;
     height: 22px;
     padding: 0 0.38rem;
@@ -1204,9 +1249,12 @@ body.article-page {
 
 .article-page .arrow-icon {
     flex: 0 0 auto;
-    margin-left: auto;
+    justify-self: center;
+    width: 12px;
+    margin-left: 0;
     color: var(--article-muted);
     font-size: 0.76rem;
+    text-align: center;
     transition: transform 0.16s ease, color 0.16s ease;
 }
 
