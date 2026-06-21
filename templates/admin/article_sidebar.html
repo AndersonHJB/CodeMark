@@ -291,6 +291,12 @@
         box-shadow: inset 3px 0 0 var(--link-fg);
     }
 
+    .article-sidebar-admin-list.is-drop-list {
+        outline: 2px solid color-mix(in srgb, var(--link-fg) 28%, transparent);
+        outline-offset: -2px;
+        background: color-mix(in srgb, var(--link-fg) 4%, var(--body-bg));
+    }
+
     .article-sidebar-drag-handle {
         display: inline-flex;
         align-items: center;
@@ -554,6 +560,36 @@
             return Array.from(item.children).find(child => child.matches && child.matches('[data-sidebar-admin-list]'));
         }
 
+        function getCollectionPath(path) {
+            return (path || '').split('/')[0] || '';
+        }
+
+        function canDropInList(item, list) {
+            if (!item || !list) return false;
+
+            const parentPath = list.dataset.parentPath || '';
+            const itemPath = item.dataset.path || '';
+            if (!itemPath || !parentPath) return false;
+            if (parentPath === itemPath || parentPath.startsWith(`${itemPath}/`)) return false;
+
+            return getCollectionPath(parentPath) === getCollectionPath(itemPath);
+        }
+
+        function getDropListFromTarget(target) {
+            const folderRow = target.closest('.article-sidebar-admin-node.is-dir > .article-sidebar-admin-row');
+            if (folderRow) {
+                const folderItem = folderRow.closest('[data-sidebar-admin-item]');
+                if (folderItem && folderItem !== dragItem) {
+                    const childList = getDirectChildList(folderItem);
+                    if (childList && canDropInList(dragItem, childList)) {
+                        return childList;
+                    }
+                }
+            }
+
+            return target.closest('[data-sidebar-admin-list]');
+        }
+
         function getTitleInput(item) {
             if (!item) return null;
             const row = item.matches('[data-collection-root-item]') ? item : getDirectRow(item);
@@ -638,6 +674,7 @@
 
         editorForm.addEventListener('dragend', () => {
             editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
+            editorForm.querySelectorAll('.is-drop-list').forEach(list => list.classList.remove('is-drop-list'));
             if (dragItem) {
                 dragItem.classList.remove('is-dragging');
             }
@@ -645,22 +682,27 @@
             dragList = null;
         });
 
-        editorForm.querySelectorAll('[data-sidebar-admin-list]').forEach(list => {
-            list.addEventListener('dragover', event => {
-                if (!dragItem || list !== dragList) return;
+        editorForm.addEventListener('dragover', event => {
+            if (!dragItem) return;
 
-                event.preventDefault();
-                const afterElement = getDragAfterElement(list, event.clientY);
-                if (afterElement) {
-                    list.insertBefore(dragItem, afterElement);
-                } else {
-                    list.appendChild(dragItem);
-                }
+            const list = getDropListFromTarget(event.target);
+            if (!canDropInList(dragItem, list)) return;
 
-                editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
-                const row = getDirectRow(dragItem);
-                if (row) row.classList.add('is-drop-target');
-            });
+            event.preventDefault();
+            const afterElement = getDragAfterElement(list, event.clientY);
+            if (afterElement) {
+                list.insertBefore(dragItem, afterElement);
+            } else {
+                list.appendChild(dragItem);
+            }
+
+            dragList = list;
+            dragItem.dataset.parentPath = list.dataset.parentPath || '';
+            editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
+            editorForm.querySelectorAll('.is-drop-list').forEach(dropList => dropList.classList.remove('is-drop-list'));
+            list.classList.add('is-drop-list');
+            const row = getDirectRow(dragItem);
+            if (row) row.classList.add('is-drop-target');
         });
 
         editorForm.addEventListener('click', event => {
