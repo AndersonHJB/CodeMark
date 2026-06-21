@@ -14,7 +14,7 @@ from apps.accounts.models import UserProfile
 
 from . import views
 from .exporters import build_blog_posts_markdown_archive
-from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogPost, BlogReaction, BlogTag
+from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogPost, BlogReaction, BlogTag, BlogVipPage
 
 
 TINY_PNG_BYTES = (
@@ -33,6 +33,7 @@ class BlogUrlPatternTests(SimpleTestCase):
         expected_routes = {
             "blog_list": (reverse("blog_list"), views.blog_list),
             "blog_vip_guide": (reverse("blog_vip_guide"), views.blog_vip_guide),
+            "blog_vip_page": (reverse("blog_vip_page", kwargs={"slug": "api"}), views.blog_vip_guide),
             "blog_write": (reverse("blog_write"), views.blog_write),
             "blog_mine": (reverse("blog_mine"), views.blog_mine),
             "blog_user_home": (reverse("blog_user_home", kwargs={"author_username": "demo"}), views.blog_user_home),
@@ -191,7 +192,7 @@ class BlogPostFlowTests(TestCase):
         self.assertEqual(denied_response.status_code, 403)
         self.assertFalse(BlogArticleApiAccess.objects.exists())
 
-    def test_vip_guide_requires_vip_and_renders_tutorial(self):
+    def test_vip_guide_requires_vip_and_renders_multi_page_content(self):
         post = BlogPost.objects.create(
             author=self.user,
             title="VIP 教程示例文章",
@@ -199,6 +200,7 @@ class BlogPostFlowTests(TestCase):
             status=BlogPost.STATUS_PUBLISHED,
         )
         guide_url = reverse("blog_vip_guide")
+        api_guide_url = reverse("blog_vip_page", kwargs={"slug": "api"})
         api_url = reverse("blog_article_api", kwargs={"slug": post.slug})
 
         denied_response = self.client.get(guide_url)
@@ -206,23 +208,30 @@ class BlogPostFlowTests(TestCase):
 
         UserProfile.objects.update_or_create(user=self.user, defaults={"is_vip": True})
         guide_response = self.client.get(guide_url)
+        api_guide_response = self.client.get(api_guide_url)
         list_response = self.client.get(reverse("blog_list"))
         session_cookie = self.client.cookies[settings.SESSION_COOKIE_NAME].value
 
         self.assertEqual(guide_response.status_code, 200)
-        self.assertContains(guide_response, "VIP API 教程")
-        self.assertContains(guide_response, "账号权限")
-        self.assertContains(guide_response, "请求示例")
-        self.assertContains(guide_response, "获取 Cookies")
-        self.assertContains(guide_response, "复制 Cookies")
-        self.assertContains(guide_response, "sessionid")
-        self.assertContains(guide_response, f"{settings.SESSION_COOKIE_NAME}={session_cookie}", html=False)
-        self.assertContains(guide_response, "language-javascript")
-        self.assertContains(guide_response, "language-python")
-        self.assertContains(guide_response, 'data-code-run="false"', html=False)
-        self.assertContains(guide_response, "返回数据")
-        self.assertContains(guide_response, f"http://testserver{api_url}")
-        self.assertContains(guide_response, 'data-copy-link="http://testserver', html=False)
+        self.assertContains(guide_response, "会员说明")
+        self.assertContains(guide_response, "API 教程")
+        self.assertContains(guide_response, "使用规范")
+        self.assertContains(guide_response, "VIP 访问已启用")
+        self.assertContains(guide_response, api_guide_url)
+        self.assertEqual(api_guide_response.status_code, 200)
+        self.assertContains(api_guide_response, "账号权限")
+        self.assertContains(api_guide_response, "请求示例")
+        self.assertContains(api_guide_response, "获取 Cookies")
+        self.assertContains(api_guide_response, "复制 Cookies")
+        self.assertContains(api_guide_response, "sessionid")
+        self.assertContains(api_guide_response, f"{settings.SESSION_COOKIE_NAME}={session_cookie}", html=False)
+        self.assertContains(api_guide_response, "language-javascript")
+        self.assertContains(api_guide_response, "language-python")
+        self.assertContains(api_guide_response, "data-blog-static-code", html=False)
+        self.assertContains(api_guide_response, "返回数据")
+        self.assertContains(api_guide_response, f"http://testserver{api_url}")
+        self.assertContains(api_guide_response, 'data-copy-link="http://testserver', html=False)
+        self.assertEqual(BlogVipPage.objects.filter(status=BlogVipPage.STATUS_PUBLISHED).count(), 3)
         self.assertContains(list_response, guide_url)
 
     def test_vip_article_api_returns_full_payload_and_rate_limits_per_article(self):

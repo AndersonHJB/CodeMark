@@ -1,184 +1,67 @@
 {% extends "blog/base.html" %}
 
-{% block title %}VIP API 教程 - CodeMark 博客{% endblock %}
+{% block title %}{{ vip_page.title }} - VIP 会员中心 - CodeMark 博客{% endblock %}
 
 {% block content %}
 <section class="blog-command blog-vip-hero" aria-labelledby="vipGuideTitle">
     <div class="blog-command-copy">
-        <h1 id="vipGuideTitle">VIP API 教程</h1>
-        <p>使用 VIP 账号读取文章完整数据，适合自动化请求、AI 分析、内容归档和数据看板。</p>
+        <h1 id="vipGuideTitle">{{ vip_page.title }}</h1>
+        {% if vip_page.summary %}
+            <p>{{ vip_page.summary }}</p>
+        {% else %}
+            <p>查看 VIP 会员权益、文章 API 使用方式和服务规范。</p>
+        {% endif %}
     </div>
     <div class="blog-command-actions">
-        {% if sample_api_url %}
+        {% if api_vip_page and api_vip_page.pk != vip_page.pk %}
+            <a class="blog-btn blog-btn-primary" href="{{ api_vip_page.get_absolute_url }}">查看 API 教程</a>
+        {% endif %}
+        {% if api_vip_page and api_vip_page.pk == vip_page.pk and sample_api_url %}
             <button class="blog-btn blog-btn-primary" type="button" data-copy-link="{{ sample_api_url }}" data-copy-label="复制示例 API 链接">复制示例 API</button>
         {% endif %}
-        {% if current_cookie_header %}
+        {% if api_vip_page and api_vip_page.pk == vip_page.pk and current_cookie_header %}
             <button class="blog-btn blog-btn-ghost" type="button" data-copy-link="{{ current_cookie_header }}" data-copy-label="复制当前 Cookies">复制 Cookies</button>
         {% endif %}
         <a class="blog-btn blog-btn-ghost" href="{% url 'blog_list' %}">浏览文章</a>
     </div>
 </section>
 
-<section class="blog-detail blog-vip-guide">
-    <div class="blog-section-head">
-        <h2>账号权限</h2>
-        <span>{{ display_name }} · VIP 访问已启用</span>
-    </div>
-    <div class="blog-vip-grid" aria-label="VIP API 使用说明">
-        <article class="blog-vip-card">
-            <h3>1. 复制文章 API 链接</h3>
-            <p>打开任意文章详情页，点击 <strong>API 数据</strong> 按钮。按钮会自动复制当前文章的 API 链接，不会打开新页面。</p>
-        </article>
-        <article class="blog-vip-card">
-            <h3>2. 使用 VIP 账号请求</h3>
-            <p>API 读取依赖当前登录态。请先在浏览器登录 VIP 账号，或在你的请求工具里携带同一账号的会话 Cookie。</p>
-        </article>
-        <article class="blog-vip-card">
-            <h3>3. 控制请求次数</h3>
-            <p>每个 VIP 账号对每篇文章在 {{ api_window_days }} 天内最多请求 {{ api_limit }} 次。管理员不受次数限制。</p>
-        </article>
-    </div>
+<section class="blog-vip-nav-panel" aria-label="VIP 页面导航">
+    <nav class="blog-vip-tabs">
+        {% for page in vip_pages %}
+            <a class="blog-vip-tab{% if page.pk == vip_page.pk %} is-active{% endif %}"
+               href="{{ page.get_absolute_url }}"
+               {% if page.pk == vip_page.pk %}aria-current="page"{% endif %}>
+                <span class="blog-vip-tab-title">{{ page.title }}</span>
+                {% if page.summary %}
+                    <span class="blog-vip-tab-summary">{{ page.summary }}</span>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </nav>
 </section>
 
 <section class="blog-detail blog-vip-guide">
     <div class="blog-section-head">
-        <h2>接口地址</h2>
-        {% if sample_post %}
-            <span>示例文章：{{ sample_post.title }}</span>
-        {% else %}
-            <span>发布文章后会出现真实示例</span>
-        {% endif %}
+        <h2>{{ vip_page.title }}</h2>
+        <span>更新于 {{ vip_page.updated_at|date:"Y-m-d H:i" }}</span>
     </div>
-    <div class="blog-prose">
-        <p>每篇文章的 API 地址格式如下：</p>
-        <pre><code class="language-http">GET /blog/&lt;文章 slug&gt;/api/</code></pre>
-        {% if sample_api_url %}
-            <p>当前可用示例：</p>
-            <pre><code class="language-plaintext">{{ sample_api_url }}</code></pre>
-        {% else %}
-            <p>当前还没有已发布文章。发布文章后，文章页会显示可复制的 API 链接。</p>
-        {% endif %}
+    <div class="blog-vip-current" aria-label="当前 VIP 状态">
+        <div>
+            <span>当前账号</span>
+            <strong>{{ display_name }}</strong>
+        </div>
+        <div>
+            <span>权限状态</span>
+            <strong>VIP 访问已启用</strong>
+        </div>
+        <div>
+            <span>API 配额</span>
+            <strong>{{ api_window_days }} 天 {{ api_limit }} 次 / 篇文章</strong>
+        </div>
     </div>
-</section>
-
-<section class="blog-detail blog-vip-guide">
-    <div class="blog-section-head">
-        <h2>请求示例</h2>
-        <span>复制后可直接替换 URL</span>
-    </div>
-    <div class="blog-prose">
-        <h3>浏览器或 Cookie 请求</h3>
-        <pre><code class="language-javascript">fetch("{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}", {
-  method: "GET",
-  credentials: "include",
-  headers: {
-    "Accept": "application/json"
-  }
-})
-  .then(response =&gt; response.json())
-  .then(data =&gt; console.log(data.article.title));</code></pre>
-
-        <h3>Python 分析脚本</h3>
-        <pre><code class="language-python no-run" data-code-run="false">import requests
-
-url = "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}"
-cookies = {{ current_cookie_python }}
-
-response = requests.get(url, cookies=cookies, headers={"Accept": "application/json"})
-response.raise_for_status()
-
-payload = response.json()
-article = payload["article"]
-
-print(article["title"])
-print(article["content"])
-print(article["stats"])</code></pre>
-    </div>
-</section>
-
-<section class="blog-detail blog-vip-guide">
-    <div class="blog-section-head">
-        <h2>获取 Cookies</h2>
-        <span>用于脚本或请求工具保持 VIP 登录态</span>
-    </div>
-    <div class="blog-prose">
-        <p>文章 API 使用当前登录会话识别 VIP 权限。浏览器中点击文章页的 <strong>API 数据</strong> 按钮只会复制链接；如果要在脚本、Postman 或 curl 中请求，需要携带同一账号的 Cookie。</p>
-
-        <h3>当前登录 Cookies</h3>
-        {% if current_cookie_header %}
-            <p>下面是当前账号可直接用于文章 API 的 Cookie 请求头：</p>
-            <pre><code class="language-http">Cookie: {{ current_cookie_header }}</code></pre>
-            <div class="blog-vip-cookie-actions">
-                <button class="blog-btn blog-btn-primary" type="button" data-copy-link="{{ current_cookie_header }}" data-copy-label="复制当前 Cookies">复制 Cookies</button>
-                <button class="blog-btn blog-btn-ghost" type="button" data-copy-link="Cookie: {{ current_cookie_header }}" data-copy-label="复制 Cookie 请求头">复制 Cookie 请求头</button>
-            </div>
-
-            <p>Python <code>requests</code> 可直接使用这个 cookies 字典：</p>
-            <pre><code class="language-python no-run" data-code-run="false">cookies = {{ current_cookie_python }}</code></pre>
-        {% else %}
-            <p>当前请求没有读取到登录 Cookie。请重新登录后刷新此页面，或按下面的方法手动复制。</p>
-        {% endif %}
-
-        <h3>备用方法一：浏览器开发者工具</h3>
-        <ol>
-            <li>先在网站登录你的 VIP 账号。</li>
-            <li>打开开发者工具，进入 <code>Application</code> 或 <code>应用</code> 面板。</li>
-            <li>在 <code>Cookies</code> 中选择当前站点域名。</li>
-            <li>复制 <code>sessionid</code> 的值。这个值就是服务端识别登录态的关键 Cookie。</li>
-        </ol>
-        <pre><code class="language-http">Cookie: sessionid=你的-sessionid-值</code></pre>
-
-        <h3>备用方法二：复制为 cURL</h3>
-        <ol>
-            <li>登录 VIP 账号后，在浏览器打开任意文章 API 链接。</li>
-            <li>打开开发者工具的 <code>Network</code> 面板，选中这次 API 请求。</li>
-            <li>右键选择 <code>Copy as cURL</code>。复制出的命令会自动带上 Cookie。</li>
-        </ol>
-        <pre><code class="language-bash">curl "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}" \
-  -H "Accept: application/json" \
-  -H "Cookie: sessionid=你的-sessionid-值"</code></pre>
-
-        <h3>备用方法三：Python requests</h3>
-        <pre><code class="language-python no-run" data-code-run="false">import requests
-
-url = "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}"
-cookies = {{ current_cookie_python }}
-
-response = requests.get(url, cookies=cookies, headers={"Accept": "application/json"})
-response.raise_for_status()
-
-payload = response.json()
-print(payload["article"]["title"])</code></pre>
-
-        <p>Cookie 相当于登录凭证，只应保存在自己的本地环境或服务器密钥管理中，不要放进公开仓库、公开网页或分享给他人。</p>
-    </div>
-</section>
-
-<section class="blog-detail blog-vip-guide">
-    <div class="blog-section-head">
-        <h2>返回数据</h2>
-        <span>适合 AI 分析和结构化处理</span>
-    </div>
-    <div class="blog-prose">
-        <p>成功返回时，JSON 中会包含以下核心字段：</p>
-        <ul>
-            <li><code>usage</code>：当前请求窗口、次数上限、已用次数、剩余次数、重置时间。</li>
-            <li><code>article.title</code>：文章标题。</li>
-            <li><code>article.author</code>：作者账号、展示名和主页链接。</li>
-            <li><code>article.content</code>：原始正文，保留 Markdown 或富文本内容。</li>
-            <li><code>article.content_html</code>：服务端渲染并清洗后的 HTML。</li>
-            <li><code>article.stats</code>：阅读量、API 请求总次数、点赞、收藏、评论、字数和阅读时长。</li>
-            <li><code>article.comments</code>：评论和回复列表，包含作者、内容、置顶状态和时间。</li>
-        </ul>
-
-        <h3>状态码</h3>
-        <ul>
-            <li><code>200</code>：请求成功。</li>
-            <li><code>401</code>：未登录。</li>
-            <li><code>403</code>：账号不是 VIP 或管理员。</li>
-            <li><code>404</code>：文章不存在，或当前账号不可见。</li>
-            <li><code>429</code>：{{ api_window_days }} 天内 {{ api_limit }} 次请求额度已用完。</li>
-        </ul>
+    <div class="blog-prose" data-blog-static-code>
+        {{ vip_body_html }}
     </div>
 </section>
 {% endblock %}

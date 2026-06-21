@@ -3,7 +3,7 @@ from django.http import FileResponse
 from django.utils import timezone
 
 from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
-from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
+from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag, BlogVipPage
 
 
 @admin.register(BlogTag)
@@ -41,6 +41,49 @@ class BlogPostAdmin(admin.ModelAdmin):
             filename=build_blog_export_filename(),
             content_type="application/zip",
         )
+
+
+@admin.register(BlogVipPage)
+class BlogVipPageAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "slug",
+        "status",
+        "is_home",
+        "show_in_nav",
+        "sort_order",
+        "published_at",
+        "updated_at",
+    )
+    list_filter = ("status", "is_home", "show_in_nav", "published_at")
+    list_editable = ("status", "is_home", "show_in_nav", "sort_order")
+    search_fields = ("title", "slug", "summary", "content")
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("published_at", "created_at", "updated_at")
+    actions = ("publish_pages", "unpublish_pages")
+    fieldsets = (
+        ("页面信息", {"fields": ("title", "slug", "summary")}),
+        ("正文内容", {"fields": ("content_format", "content")}),
+        ("发布设置", {"fields": ("status", "is_home", "show_in_nav", "sort_order", "published_at")}),
+        ("时间", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.action(description="发布选中的 VIP 页面")
+    def publish_pages(self, request, queryset):
+        now = timezone.now()
+        queryset.filter(published_at__isnull=True).update(
+            status=BlogVipPage.STATUS_PUBLISHED,
+            published_at=now,
+            updated_at=now,
+        )
+        queryset.filter(published_at__isnull=False).update(
+            status=BlogVipPage.STATUS_PUBLISHED,
+            updated_at=now,
+        )
+
+    @admin.action(description="下架选中的 VIP 页面")
+    def unpublish_pages(self, request, queryset):
+        queryset.update(status=BlogVipPage.STATUS_DRAFT, updated_at=timezone.now())
 
 
 @admin.register(BlogImage)

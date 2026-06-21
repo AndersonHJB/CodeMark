@@ -24,7 +24,7 @@ from PIL import Image
 
 from .exporters import build_blog_export_filename, build_blog_posts_markdown_archive
 from .forms import validate_blog_image, BlogPostForm
-from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag
+from .models import BlogArticleApiAccess, BlogBookmark, BlogComment, BlogImage, BlogPost, BlogReaction, BlogTag, BlogVipPage
 from .sanitizer import sanitize_rich_text
 from apps.accounts.avatars import DEFAULT_AVATAR_STATIC_PATH, normalize_default_avatar_path
 from apps.accounts.models import membership_payload_for_user
@@ -303,6 +303,46 @@ def render_post_body(post):
     return mark_safe(_render_markdown(post.content))
 
 
+VIP_PLACEHOLDER_RE = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
+
+
+def _published_vip_pages():
+    return BlogVipPage.objects.filter(status=BlogVipPage.STATUS_PUBLISHED).order_by("sort_order", "title")
+
+
+def _vip_placeholder_values(request, sample_post, sample_api_url):
+    cookie_header = _article_api_cookie_header(request)
+    api_url_for_docs = sample_api_url or "https://example.com/blog/article-slug/api/"
+    cookie_header_for_docs = cookie_header or f"{settings.SESSION_COOKIE_NAME}=你的-sessionid-值"
+    return {
+        "display_name": _display_name(request.user),
+        "sample_post_title": sample_post.title if sample_post else "暂无已发布文章",
+        "sample_api_url": api_url_for_docs,
+        "current_cookie_header": cookie_header_for_docs,
+        "current_cookie_request_header": f"Cookie: {cookie_header_for_docs}",
+        "current_cookie_python": _article_api_cookie_python(request),
+        "api_window_days": ARTICLE_API_WINDOW_DAYS,
+        "api_limit": ARTICLE_API_LIMIT,
+    }
+
+
+def _replace_vip_placeholders(content, values):
+    def replace(match):
+        key = match.group(1)
+        if key not in values:
+            return match.group(0)
+        return str(values[key])
+
+    return VIP_PLACEHOLDER_RE.sub(replace, content or "")
+
+
+def render_vip_page_body(page, placeholder_values):
+    content = _replace_vip_placeholders(page.content, placeholder_values)
+    if page.content_format == BlogPost.FORMAT_RICH_TEXT:
+        return mark_safe(sanitize_rich_text(content))
+    return mark_safe(_render_markdown(content))
+
+
 def _sidebar_context():
     categories = (
         BlogPost.objects.filter(status=BlogPost.STATUS_PUBLISHED)
@@ -444,19 +484,36 @@ def blog_list(request, tag_slug=None, author_username=None):
 
 
 @blog_login_required
-def blog_vip_guide(request):
+def blog_vip_guide(request, slug=None):
     if not _user_can_use_article_api(request.user):
         return HttpResponseForbidden("仅 VIP 用户或管理员可以阅读此页面")
 
+    vip_pages = list(_published_vip_pages())
+    if slug:
+        vip_page = get_object_or_404(_published_vip_pages(), slug=slug)
+    else:
+        vip_page = next((page for page in vip_pages if page.is_home), vip_pages[0] if vip_pages else None)
+        if vip_page is None:
+            raise Http404("VIP 页面还没有发布")
+
+    nav_pages = [page for page in vip_pages if page.show_in_nav]
+    if not nav_pages:
+        nav_pages = [vip_page]
+    api_vip_page = next((page for page in vip_pages if page.slug in {"api", "api-guide"}), None)
     sample_post = _public_posts().order_by("-published_at", "-created_at").first()
     sample_api_url = ""
     if sample_post:
         sample_api_url = request.build_absolute_uri(reverse("blog_article_api", kwargs={"slug": sample_post.slug}))
+    placeholder_values = _vip_placeholder_values(request, sample_post, sample_api_url)
 
     return render(
         request,
         "blog/vip_guide.html",
         {
+            "vip_page": vip_page,
+            "vip_pages": nav_pages,
+            "api_vip_page": api_vip_page,
+            "vip_body_html": render_vip_page_body(vip_page, placeholder_values),
             "sample_post": sample_post,
             "sample_api_url": sample_api_url,
             "current_cookie_header": _article_api_cookie_header(request),

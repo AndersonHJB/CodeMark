@@ -367,6 +367,86 @@
     margin-top: 18px;
 }
 
+.blog-vip-nav-panel {
+    margin-bottom: 18px;
+    padding: 14px;
+    border: 1px solid rgba(22, 32, 51, 0.09);
+    border-radius: var(--blog-radius);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 14px 34px rgba(22, 32, 51, 0.06);
+}
+
+.blog-vip-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.blog-vip-tab {
+    min-width: 0;
+    min-height: 84px;
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    padding: 14px;
+    border: 1px solid var(--blog-line);
+    border-radius: var(--blog-radius);
+    color: var(--blog-ink);
+    background: #ffffff;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.blog-vip-tab:hover,
+.blog-vip-tab.is-active {
+    border-color: rgba(15, 118, 110, 0.34);
+    background: #eef8f6;
+    transform: translateY(-1px);
+}
+
+.blog-vip-tab-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.blog-vip-tab-summary {
+    color: var(--blog-muted);
+    font-size: 0.84rem;
+    font-weight: 600;
+    line-height: 1.55;
+}
+
+.blog-vip-current {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.blog-vip-current div {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--blog-line);
+    border-radius: var(--blog-radius);
+    background: #f8fbfc;
+}
+
+.blog-vip-current span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--blog-muted);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.blog-vip-current strong {
+    display: block;
+    color: var(--blog-ink);
+    font-size: 1rem;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
 .blog-vip-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2753,6 +2833,15 @@
     .blog-editor-head,
     .blog-detail {
         padding: 18px;
+    }
+
+    .blog-vip-nav-panel {
+        padding: 10px;
+    }
+
+    .blog-vip-tabs,
+    .blog-vip-current {
+        grid-template-columns: 1fr;
     }
 
     .blog-command,

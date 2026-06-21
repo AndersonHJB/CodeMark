@@ -278,6 +278,9 @@
     }
 
     function canRunBlogCode(codeElement, language) {
+        if (codeElement.closest("[data-blog-static-code]")) {
+            return false;
+        }
         const pre = codeElement.parentElement;
         const runValue = (codeElement.dataset.codeRun || (pre && pre.dataset.codeRun) || "").toLowerCase();
         if (runValue === "false" || runValue === "0" || runValue === "off") {

@@ -156,6 +156,59 @@ class BlogPost(models.Model):
         return self.author_id == user.id or user.is_staff
 
 
+class BlogVipPage(models.Model):
+    STATUS_DRAFT = BlogPost.STATUS_DRAFT
+    STATUS_PUBLISHED = BlogPost.STATUS_PUBLISHED
+    STATUS_CHOICES = BlogPost.STATUS_CHOICES
+
+    title = models.CharField("页面标题", max_length=80)
+    slug = models.SlugField("URL 标识", max_length=80, unique=True, allow_unicode=True, blank=True)
+    summary = models.TextField("页面摘要", max_length=240, blank=True)
+    content = models.TextField(
+        "页面正文",
+        blank=True,
+        help_text=(
+            "支持 Markdown 或富文本。Markdown 可使用占位符：{{ display_name }}、{{ sample_api_url }}、"
+            "{{ sample_post_title }}、{{ current_cookie_header }}、{{ current_cookie_python }}、"
+            "{{ api_window_days }}、{{ api_limit }}。"
+        ),
+    )
+    content_format = models.CharField("编辑器类型", max_length=16, choices=BlogPost.FORMAT_CHOICES, default=BlogPost.FORMAT_MARKDOWN)
+    status = models.CharField("状态", max_length=16, choices=STATUS_CHOICES, default=STATUS_DRAFT, db_index=True)
+    is_home = models.BooleanField("作为 VIP 首页", default=False, db_index=True)
+    show_in_nav = models.BooleanField("显示在 VIP 导航", default=True)
+    sort_order = models.PositiveSmallIntegerField("排序", default=100, db_index=True)
+    published_at = models.DateTimeField("发布时间", null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+        verbose_name = "VIP 内容页"
+        verbose_name_plural = "VIP 内容页"
+        indexes = [
+            models.Index(fields=["status", "sort_order"], name="blog_vip_status_order_idx"),
+            models.Index(fields=["status", "is_home"], name="blog_vip_status_home_idx"),
+        ]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = _unique_slug(BlogVipPage, self.title, self.pk, max_length=80)
+        if self.status == self.STATUS_PUBLISHED and not self.published_at:
+            self.published_at = timezone.now()
+        super().save(*args, **kwargs)
+        if self.is_home:
+            BlogVipPage.objects.exclude(pk=self.pk).update(is_home=False)
+
+    def get_absolute_url(self):
+        if self.is_home:
+            return reverse("blog_vip_guide")
+        return reverse("blog_vip_page", kwargs={"slug": self.slug})
+
+
 class BlogImage(models.Model):
     uploader = models.ForeignKey(
         settings.AUTH_USER_MODEL,
