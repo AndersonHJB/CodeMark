@@ -732,6 +732,55 @@ class AdminAvatarGalleryViewTests(TestCase):
         self.assertContains(response, "登录方式设置")
         self.assertContains(response, reverse("admin:accounts_accountloginsettings_changelist"))
 
+    def test_login_settings_admin_opens_singleton_config(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="login-settings-singleton-admin",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(reverse("admin:accounts_accountloginsettings_changelist"))
+
+        settings = AccountLoginSettings.objects.get(pk=1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            reverse("admin:accounts_accountloginsettings_change", args=[settings.pk]),
+        )
+
+    def test_login_settings_admin_can_toggle_methods(self):
+        settings = AccountLoginSettings.load()
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="login-settings-toggle-admin",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.post(
+            reverse("admin:accounts_accountloginsettings_change", args=[settings.pk]),
+            {
+                "enable_email_password": "on",
+                "_save": "保存",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        settings.refresh_from_db()
+        self.assertTrue(settings.enable_email_password)
+        self.assertFalse(settings.enable_email_code)
+        self.assertFalse(settings.enable_username_password)
+        payload = self.client.get(reverse("index")).content.decode()
+        self.assertNotIn('data-account-login-mode="email_code"', payload)
+        self.assertNotIn("data-account-login-send-code", payload)
+
     def test_avatar_gallery_admin_entry_redirects_to_gallery(self):
         User = get_user_model()
         user = User.objects.create_user(

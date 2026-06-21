@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.shortcuts import redirect
+from django.urls import reverse
 
 from .models import AccountLoginSettings, AvatarGalleryAdminEntry, EmailVerificationCode, UserProfile
 
@@ -49,6 +50,10 @@ class AccountLoginSettingsAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def changelist_view(self, request, extra_context=None):
+        settings = AccountLoginSettings.load()
+        return redirect(reverse("admin:accounts_accountloginsettings_change", args=[settings.pk]))
 
 
 @admin.register(AvatarGalleryAdminEntry)
