@@ -1,15 +1,41 @@
 {% for node in tree.children %}
     {% if node.node_type == "file" %}
-        <li class="sidebar-tree-item sidebar-tree-file">
-            <a class="article-link sidebar-tree-link {% if node.is_active %}active-file{% endif %}"
-               href="/article/{{ node.path }}"
-               data-article-path="{{ node.path }}"
-               {% if node.is_active %}aria-current="page"{% endif %}>
-                <span class="sidebar-node-icon file-node-icon" aria-hidden="true">
-                    <i class="fas fa-file-lines"></i>
-                </span>
-                <span class="sidebar-node-label" title="{{ node.title }}">{{ node.title }}</span>
-            </a>
+        <li class="sidebar-tree-item sidebar-tree-file {% if node.tree.children %}sidebar-tree-file-parent{% endif %}">
+            {% if node.tree.children %}
+                <div class="sidebar-tree-file-parent-row">
+                    <a class="article-link sidebar-tree-link {% if node.is_active %}active-file{% endif %}"
+                       href="/article/{{ node.path }}"
+                       data-article-path="{{ node.path }}"
+                       {% if node.is_active %}aria-current="page"{% endif %}>
+                        <span class="sidebar-node-icon file-node-icon" aria-hidden="true">
+                            <i class="fas fa-file-lines"></i>
+                        </span>
+                        <span class="sidebar-node-label" title="{{ node.title }}">{{ node.title }}</span>
+                    </a>
+                    <button class="folder-name sidebar-tree-article-toggle {% if node.is_open %}is-open{% endif %}"
+                            type="button"
+                            data-sidebar-folder
+                            data-folder-path="{{ node.path }}"
+                            aria-expanded="{% if node.is_open %}true{% else %}false{% endif %}"
+                            aria-label="展开子文章：{{ node.title }}">
+                        <span class="folder-count">{{ node.tree.article_count }}</span>
+                        <i class="fas fa-angle-right arrow-icon" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <ul class="nested {% if node.is_open %}show{% endif %}">
+                    {% include "_article_tree_sidebar.html" with tree=node.tree %}
+                </ul>
+            {% else %}
+                <a class="article-link sidebar-tree-link {% if node.is_active %}active-file{% endif %}"
+                   href="/article/{{ node.path }}"
+                   data-article-path="{{ node.path }}"
+                   {% if node.is_active %}aria-current="page"{% endif %}>
+                    <span class="sidebar-node-icon file-node-icon" aria-hidden="true">
+                        <i class="fas fa-file-lines"></i>
+                    </span>
+                    <span class="sidebar-node-label" title="{{ node.title }}">{{ node.title }}</span>
+                </a>
+            {% endif %}
         </li>
     {% else %}
         <li class="sidebar-tree-item sidebar-tree-folder">

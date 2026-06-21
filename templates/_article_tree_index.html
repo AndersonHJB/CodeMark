@@ -4,6 +4,11 @@
             <a href="/article/{{ node.path }}">
                 {{ node.title }}
             </a>
+            {% if node.tree.children %}
+                <ul class="article-list nested-list">
+                    {% include "_article_tree_index.html" with tree=node.tree %}
+                </ul>
+            {% endif %}
         </li>
     {% else %}
         <li class="branch-item">

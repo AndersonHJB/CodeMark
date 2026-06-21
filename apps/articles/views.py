@@ -129,7 +129,7 @@ def get_first_article_path(children):
     for child in children:
         if child["node_type"] == "file":
             return child["path"]
-        first_article_path = child["tree"].get("first_article_path", "")
+        first_article_path = child.get("tree", {}).get("first_article_path", "")
         if first_article_path:
             return first_article_path
     return ""
@@ -139,7 +139,7 @@ def flatten_directory_tree(tree):
     items = {}
     for child in tree.get("children", []):
         items[child["path"]] = child
-        if child["node_type"] == "dir":
+        if child.get("tree"):
             items.update(flatten_directory_tree(child["tree"]))
     return items
 
@@ -148,7 +148,7 @@ def get_sidebar_collection_path(path):
     return path.split("/", 1)[0] if path else ""
 
 
-def can_use_sidebar_parent(item, parent_path, directory_paths):
+def can_use_sidebar_parent(item, parent_path, node_paths):
     item_path = item.get("path", "")
     if not item_path:
         return False
@@ -156,9 +156,9 @@ def can_use_sidebar_parent(item, parent_path, directory_paths):
     if not parent_path:
         return "/" not in item_path
 
-    if parent_path not in directory_paths:
+    if parent_path not in node_paths:
         return False
-    if parent_path == item_path or parent_path.startswith(f"{item_path}/"):
+    if parent_path == item_path:
         return False
     if get_sidebar_collection_path(parent_path) != get_sidebar_collection_path(item_path):
         return False
@@ -166,18 +166,43 @@ def can_use_sidebar_parent(item, parent_path, directory_paths):
     return True
 
 
-def get_valid_sidebar_parent_path(raw_parent_path, valid_item, valid_items):
-    parent_path = raw_parent_path if isinstance(raw_parent_path, str) else ""
-    directory_paths = {
-        path
-        for path, item in valid_items.items()
-        if item.get("node_type") == ArticleSidebarItem.NODE_DIR
-    }
-    directory_paths.add("")
-
-    if can_use_sidebar_parent(valid_item, parent_path, directory_paths):
+def get_effective_sidebar_parent(path, parent_map, valid_items):
+    parent_path = parent_map.get(path)
+    if parent_path is not None:
         return parent_path
-    return valid_item.get("parent_path", "")
+    valid_item = valid_items.get(path)
+    return valid_item.get("parent_path", "") if valid_item else ""
+
+
+def creates_sidebar_parent_cycle(item_path, parent_path, parent_map, valid_items):
+    seen_paths = {item_path}
+    current_parent = parent_path
+
+    while current_parent:
+        if current_parent in seen_paths:
+            return True
+
+        seen_paths.add(current_parent)
+        current_parent = get_effective_sidebar_parent(current_parent, parent_map, valid_items)
+
+    return False
+
+
+def make_empty_sidebar_tree(dirname="", path=""):
+    return {
+        "dirname": dirname,
+        "path": path,
+        "node_type": ArticleSidebarItem.NODE_DIR,
+        "default_title": dirname,
+        "title": dirname,
+        "title_override": "",
+        "subdirs": {},
+        "subdirs_list": [],
+        "files": [],
+        "children": [],
+        "article_count": 0,
+        "first_article_path": "",
+    }
 
 
 def reset_directory_tree_summary(tree):
@@ -194,22 +219,37 @@ def apply_custom_sidebar_hierarchy(tree, config_map, current_file=""):
         return tree
 
     flat_items = flatten_directory_tree(tree)
-    directory_trees = {"": tree}
+    node_trees = {"": tree}
     for path, item in flat_items.items():
-        if item.get("node_type") == ArticleSidebarItem.NODE_DIR:
-            directory_trees[path] = item["tree"]
+        item_tree = item.get("tree")
+        if item_tree:
+            node_trees[path] = item_tree
 
-    for directory_tree in directory_trees.values():
-        reset_directory_tree_summary(directory_tree)
+    node_paths = set(node_trees.keys())
+    parent_map = {}
 
     for path, item in flat_items.items():
         config_item = config_map.get(path)
         configured_parent = config_item.parent_path if config_item else item.get("parent_path", "")
-        parent_path = configured_parent if can_use_sidebar_parent(item, configured_parent, set(directory_trees.keys())) else item.get("parent_path", "")
-        parent_tree = directory_trees.get(parent_path)
+        parent_map[path] = (
+            configured_parent
+            if can_use_sidebar_parent(item, configured_parent, node_paths)
+            else item.get("parent_path", "")
+        )
+
+    for path, item in flat_items.items():
+        if creates_sidebar_parent_cycle(path, parent_map.get(path, ""), parent_map, flat_items):
+            parent_map[path] = item.get("parent_path", "")
+
+    for node_tree in node_trees.values():
+        reset_directory_tree_summary(node_tree)
+
+    for path, item in flat_items.items():
+        parent_path = parent_map.get(path, item.get("parent_path", ""))
+        parent_tree = node_trees.get(parent_path)
         if not parent_tree:
             parent_path = item.get("parent_path", "")
-            parent_tree = directory_trees.get(parent_path, tree)
+            parent_tree = node_trees.get(parent_path, tree)
 
         item["parent_path"] = parent_path
         parent_tree["children"].append(item)
@@ -223,16 +263,22 @@ def apply_custom_sidebar_hierarchy(tree, config_map, current_file=""):
 
         for child_index, child in enumerate(current_tree["children"]):
             child["delay_ms"] = 240 + child_index * 80
+            child_tree = child.get("tree")
             if child["node_type"] == ArticleSidebarItem.NODE_FILE:
+                if child_tree:
+                    refresh_tree_summary(child_tree)
                 child["is_active"] = child["path"] == current_file
+                child["article_count"] = 1 + (child_tree.get("article_count", 0) if child_tree else 0)
+                child["first_article_path"] = child["path"]
+                child["is_open"] = child["is_active"] or (contains_sidebar_path(child_tree, current_file) if child_tree else False)
                 current_tree["files"].append(child)
-                current_tree["article_count"] += 1
+                current_tree["article_count"] += child["article_count"]
             else:
-                refresh_tree_summary(child["tree"])
-                child["article_count"] = child["tree"]["article_count"]
-                child["first_article_path"] = child["tree"]["first_article_path"]
-                child["is_open"] = contains_sidebar_path(child["tree"], current_file)
-                current_tree["subdirs"][child["dirname"]] = child["tree"]
+                refresh_tree_summary(child_tree)
+                child["article_count"] = child_tree["article_count"]
+                child["first_article_path"] = child_tree["first_article_path"]
+                child["is_open"] = contains_sidebar_path(child_tree, current_file)
+                current_tree["subdirs"][child["dirname"]] = child_tree
                 current_tree["subdirs_list"].append(child)
                 current_tree["article_count"] += child["article_count"]
 
@@ -249,7 +295,7 @@ def contains_sidebar_path(tree, target_path):
     for child in tree.get("children", []):
         if child["path"] == target_path:
             return True
-        if child["node_type"] == ArticleSidebarItem.NODE_DIR and contains_sidebar_path(child["tree"], target_path):
+        if child.get("tree") and contains_sidebar_path(child["tree"], target_path):
             return True
     return False
 
@@ -273,20 +319,11 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
     """
     dirname = os.path.basename(root_dir)
     node_config = config_map.get(relative_path) if config_map and relative_path else None
-    tree = {
-        'dirname': os.path.basename(root_dir),
-        'path': relative_path,
-        'node_type': 'dir',
-        'default_title': dirname,
+    tree = make_empty_sidebar_tree(dirname, relative_path)
+    tree.update({
         'title': get_configured_title(node_config, dirname),
         'title_override': node_config.title_override if node_config else '',
-        'subdirs': {},
-        'subdirs_list': [],
-        'files': [],
-        'children': [],
-        'article_count': 0,
-        'first_article_path': '',
-    }
+    })
 
     if not os.path.isdir(root_dir):
         return tree
@@ -316,6 +353,10 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
             'sort_order': file_config.sort_order if file_config and file_config.sort_order is not None else natural_order,
             'is_active': file_path == current_file,
             'natural_order': natural_order,
+            'tree': make_empty_sidebar_tree(default_title, file_path),
+            'article_count': 1,
+            'first_article_path': file_path,
+            'is_open': file_path == current_file,
         }
         tree['children'].append(file_info)
         natural_order += 1
@@ -358,7 +399,7 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
         child['delay_ms'] = 240 + child_index * 80
         if child['node_type'] == 'file':
             tree['files'].append(child)
-            tree['article_count'] += 1
+            tree['article_count'] += child.get('article_count', 1)
         else:
             tree['subdirs_list'].append(child)
             tree['article_count'] += child['article_count']
@@ -407,6 +448,29 @@ def save_article_sidebar_payload(payload, valid_items):
 
     valid_paths = set(valid_items.keys())
     saved_count = 0
+    raw_parent_map = {}
+    if isinstance(payload, list):
+        for raw_item in payload:
+            if not isinstance(raw_item, dict):
+                continue
+
+            path = raw_item.get("path", "")
+            if path in valid_items:
+                raw_parent = raw_item.get("parent_path", "")
+                raw_parent_map[path] = raw_parent if isinstance(raw_parent, str) else ""
+
+    parent_map = {}
+    for path, valid_item in valid_items.items():
+        raw_parent = raw_parent_map.get(path, valid_item.get("parent_path", ""))
+        parent_map[path] = (
+            raw_parent
+            if can_use_sidebar_parent(valid_item, raw_parent, valid_paths | {""})
+            else valid_item.get("parent_path", "")
+        )
+
+    for path, valid_item in valid_items.items():
+        if creates_sidebar_parent_cycle(path, parent_map.get(path, ""), parent_map, valid_items):
+            parent_map[path] = valid_item.get("parent_path", "")
 
     with transaction.atomic():
         ArticleSidebarItem.objects.exclude(path__in=valid_paths).delete()
@@ -428,11 +492,7 @@ def save_article_sidebar_payload(payload, valid_items):
             except (TypeError, ValueError):
                 sort_order = 0
 
-            parent_path = get_valid_sidebar_parent_path(
-                raw_item.get("parent_path", ""),
-                valid_item,
-                valid_items,
-            )
+            parent_path = parent_map.get(path, valid_item.get("parent_path", ""))
 
             ArticleSidebarItem.objects.update_or_create(
                 path=path,

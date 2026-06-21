@@ -153,6 +153,68 @@ class ArticleDirectoryTreeTests(TestCase):
         self.assertEqual([item["path"] for item in second_chapter["tree"]["subdirs_list"]], ["专栏/第一章"])
         self.assertEqual(second_chapter["article_count"], 1)
 
+    def test_sidebar_config_can_reparent_article_under_article_with_multiple_levels(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-parent.md").write_text("# parent", encoding="utf-8")
+            (root / "专栏" / "02-child.md").write_text("# child", encoding="utf-8")
+            (root / "专栏" / "03-grandchild.md").write_text("# grandchild", encoding="utf-8")
+
+            ArticleSidebarItem.objects.create(
+                path="专栏/02-child.md",
+                parent_path="专栏/01-parent.md",
+                node_type=ArticleSidebarItem.NODE_FILE,
+                sort_order=0,
+            )
+            ArticleSidebarItem.objects.create(
+                path="专栏/03-grandchild.md",
+                parent_path="专栏/02-child.md",
+                node_type=ArticleSidebarItem.NODE_FILE,
+                sort_order=0,
+            )
+
+            tree = views.build_directory_tree(root, config_map=views.get_article_sidebar_config_map())
+
+        collection_tree = views.get_article_collections(tree)[0]["tree"]
+        parent_article = next(item for item in collection_tree["files"] if item["path"] == "专栏/01-parent.md")
+        child_article = parent_article["tree"]["files"][0]
+
+        self.assertEqual(collection_tree["article_count"], 3)
+        self.assertEqual([item["path"] for item in collection_tree["files"]], ["专栏/01-parent.md"])
+        self.assertEqual(child_article["path"], "专栏/02-child.md")
+        self.assertEqual(child_article["tree"]["files"][0]["path"], "专栏/03-grandchild.md")
+        self.assertEqual(parent_article["article_count"], 3)
+
+    def test_sidebar_parent_validation_rejects_article_cycle(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-a.md").write_text("# a", encoding="utf-8")
+            (root / "专栏" / "02-b.md").write_text("# b", encoding="utf-8")
+
+            generated_tree = views.build_directory_tree(root)
+            valid_items = views.flatten_directory_tree(generated_tree)
+            views.save_article_sidebar_payload([
+                {
+                    "path": "专栏/01-a.md",
+                    "node_type": ArticleSidebarItem.NODE_FILE,
+                    "parent_path": "专栏/02-b.md",
+                    "sort_order": 0,
+                    "title": "a",
+                },
+                {
+                    "path": "专栏/02-b.md",
+                    "node_type": ArticleSidebarItem.NODE_FILE,
+                    "parent_path": "专栏/01-a.md",
+                    "sort_order": 0,
+                    "title": "b",
+                },
+            ], valid_items)
+
+        self.assertEqual(ArticleSidebarItem.objects.get(path="专栏/01-a.md").parent_path, "专栏")
+        self.assertEqual(ArticleSidebarItem.objects.get(path="专栏/02-b.md").parent_path, "专栏/01-a.md")
+
     def test_sidebar_parent_validation_rejects_folder_cycle(self):
         with TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

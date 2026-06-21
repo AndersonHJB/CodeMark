@@ -257,6 +257,10 @@
         border-radius: 0;
     }
 
+    .article-sidebar-admin-list .article-sidebar-admin-list[data-empty-child-list] {
+        display: none;
+    }
+
     .article-sidebar-admin-node {
         display: grid;
         gap: 0;
@@ -564,23 +568,30 @@
             return (path || '').split('/')[0] || '';
         }
 
+        function refreshEmptyChildListState(list) {
+            if (!list || list.matches('[data-sidebar-admin-root]')) return;
+
+            const hasItems = Array.from(list.children).some(isSidebarItem);
+            list.toggleAttribute('data-empty-child-list', !hasItems);
+        }
+
         function canDropInList(item, list) {
             if (!item || !list) return false;
 
             const parentPath = list.dataset.parentPath || '';
             const itemPath = item.dataset.path || '';
             if (!itemPath || !parentPath) return false;
-            if (parentPath === itemPath || parentPath.startsWith(`${itemPath}/`)) return false;
+            if (parentPath === itemPath || item.contains(list)) return false;
 
             return getCollectionPath(parentPath) === getCollectionPath(itemPath);
         }
 
         function getDropListFromTarget(target) {
-            const folderRow = target.closest('.article-sidebar-admin-node.is-dir > .article-sidebar-admin-row');
-            if (folderRow) {
-                const folderItem = folderRow.closest('[data-sidebar-admin-item]');
-                if (folderItem && folderItem !== dragItem) {
-                    const childList = getDirectChildList(folderItem);
+            const nodeRow = target.closest('.article-sidebar-admin-node > .article-sidebar-admin-row');
+            if (nodeRow) {
+                const parentItem = nodeRow.closest('[data-sidebar-admin-item]');
+                if (parentItem && parentItem !== dragItem) {
+                    const childList = getDirectChildList(parentItem);
                     if (childList && canDropInList(dragItem, childList)) {
                         return childList;
                     }
@@ -689,6 +700,7 @@
             if (!canDropInList(dragItem, list)) return;
 
             event.preventDefault();
+            const previousList = dragItem.parentElement;
             const afterElement = getDragAfterElement(list, event.clientY);
             if (afterElement) {
                 list.insertBefore(dragItem, afterElement);
@@ -696,12 +708,15 @@
                 list.appendChild(dragItem);
             }
 
+            refreshEmptyChildListState(previousList);
+            refreshEmptyChildListState(list);
             dragList = list;
             dragItem.dataset.parentPath = list.dataset.parentPath || '';
             editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
             editorForm.querySelectorAll('.is-drop-list').forEach(dropList => dropList.classList.remove('is-drop-list'));
             list.classList.add('is-drop-list');
-            const row = getDirectRow(dragItem);
+            const parentItem = list.closest('[data-sidebar-admin-item]');
+            const row = parentItem ? getDirectRow(parentItem) : getDirectRow(dragItem);
             if (row) row.classList.add('is-drop-target');
         });
 

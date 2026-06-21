@@ -189,9 +189,16 @@
 
     const ARTICLE_SIDEBAR_COLLAPSED_KEY = 'codemark:article-sidebar-collapsed:v1';
 
+    function getDirectFolderButton(item) {
+        if (!item) return null;
+        return item.querySelector(':scope > .folder-name, :scope > .sidebar-tree-file-parent-row > .folder-name');
+    }
+
     function getFolderList(folderButton) {
-        const nextElement = folderButton ? folderButton.nextElementSibling : null;
-        return nextElement && nextElement.classList.contains('nested') ? nextElement : null;
+        const item = folderButton ? folderButton.closest('.sidebar-tree-item') : null;
+        if (!item) return null;
+
+        return Array.from(item.children).find(child => child.classList && child.classList.contains('nested')) || null;
     }
 
     function setFolderExpanded(folderButton, expanded) {
@@ -234,10 +241,10 @@
         let nestedList = activeLink ? activeLink.closest('.nested') : null;
 
         while (nestedList) {
-            const folderItem = nestedList.closest('.sidebar-tree-folder');
+            const folderItem = nestedList.parentElement ? nestedList.parentElement.closest('.sidebar-tree-item') : null;
             if (!folderItem) break;
 
-            const folderButton = folderItem.querySelector(':scope > .folder-name');
+            const folderButton = getDirectFolderButton(folderItem);
             if (folderButton) {
                 setFolderExpanded(folderButton, true);
                 folderItem.classList.add('has-active');
@@ -270,7 +277,7 @@
             link.classList.remove('active-file');
             link.removeAttribute('aria-current');
         });
-        document.querySelectorAll('.article-sidebar .sidebar-tree-file.is-active-item, .article-sidebar .sidebar-tree-folder.has-active')
+        document.querySelectorAll('.article-sidebar .sidebar-tree-file.is-active-item, .article-sidebar .sidebar-tree-item.has-active')
             .forEach(item => item.classList.remove('is-active-item', 'has-active'));
 
         const currentLink = links.find(link => normalizeSidebarPath(link.href) === currentPath);
@@ -278,7 +285,12 @@
 
         currentLink.classList.add('active-file');
         currentLink.setAttribute('aria-current', 'page');
-        currentLink.closest('.sidebar-tree-file')?.classList.add('is-active-item');
+        const activeItem = currentLink.closest('.sidebar-tree-file');
+        activeItem?.classList.add('is-active-item');
+        const activeItemToggle = getDirectFolderButton(activeItem);
+        if (activeItemToggle) {
+            setFolderExpanded(activeItemToggle, true);
+        }
         openSidebarAncestors(currentLink);
 
         if (shouldScroll) {
@@ -431,7 +443,8 @@
                 return;
             }
 
-            const parentFolder = focusedControl.closest('.nested')?.closest('.sidebar-tree-folder')?.querySelector(':scope > .folder-name');
+            const parentItem = focusedControl.closest('.nested')?.parentElement?.closest('.sidebar-tree-item');
+            const parentFolder = getDirectFolderButton(parentItem);
             parentFolder?.focus();
         }
     });
