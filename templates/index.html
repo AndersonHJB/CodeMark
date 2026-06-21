@@ -199,13 +199,13 @@
                         <header class="column-head">
                             <span class="column-index">{{ forloop.counter|stringformat:"02d" }}</span>
                             <div class="column-title">
-                                <h3>{{ collection.dirname }}</h3>
+                                <h3>{{ collection.title }}</h3>
                                 <span>{{ collection.article_count }} 篇文章</span>
                             </div>
                             {% if collection.first_article_path %}
                                 <a class="column-open"
                                    href="/article/{{ collection.first_article_path }}"
-                                   aria-label="打开 {{ collection.dirname }}">
+                                   aria-label="打开 {{ collection.title }}">
                                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <path d="M5 12h14"></path>
                                         <path d="m13 6 6 6-6 6"></path>

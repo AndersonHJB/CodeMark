@@ -1,9 +1,10 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
 
+from .models import ArticleSidebarItem
 from . import views
 
 
@@ -19,7 +20,7 @@ class ArticleUrlPatternTests(SimpleTestCase):
                 self.assertIs(resolve(path).func, view_func)
 
 
-class SiteNavigationTests(SimpleTestCase):
+class SiteNavigationTests(TestCase):
     def test_home_navigation_includes_public_page_links(self):
         response = self.client.get(reverse("index"))
 
@@ -43,7 +44,7 @@ class SiteNavigationTests(SimpleTestCase):
         self.assertContains(response, "C++ 编辑器")
 
 
-class ArticleDirectoryTreeTests(SimpleTestCase):
+class ArticleDirectoryTreeTests(TestCase):
     def test_top_level_directories_are_collections_with_own_tree(self):
         with TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -64,6 +65,48 @@ class ArticleDirectoryTreeTests(SimpleTestCase):
         self.assertEqual(current_collection["dirname"], "专栏1")
         self.assertEqual(current_collection["article_count"], 2)
         self.assertEqual(current_collection["first_article_path"], "专栏1/00-start.md")
+
+    def test_markdown_title_is_used_as_default_sidebar_title(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-a.md").write_text(
+                "---\ntitle: Markdown 标题\n---\n\n# 文档标题\n",
+                encoding="utf-8",
+            )
+
+            tree = views.build_directory_tree(root)
+
+        collection = views.get_article_collections(tree)[0]
+        self.assertEqual(collection["tree"]["files"][0]["default_title"], "Markdown 标题")
+        self.assertEqual(collection["tree"]["files"][0]["title"], "Markdown 标题")
+
+    def test_sidebar_config_overrides_titles_and_sibling_order(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-a.md").write_text("---\ntitle: A\n---\n", encoding="utf-8")
+            (root / "专栏" / "02-b.md").write_text("---\ntitle: B\n---\n", encoding="utf-8")
+
+            ArticleSidebarItem.objects.create(
+                path="专栏/01-a.md",
+                parent_path="专栏",
+                node_type=ArticleSidebarItem.NODE_FILE,
+                title_override="自定义 A",
+                sort_order=1,
+            )
+            ArticleSidebarItem.objects.create(
+                path="专栏/02-b.md",
+                parent_path="专栏",
+                node_type=ArticleSidebarItem.NODE_FILE,
+                sort_order=0,
+            )
+
+            tree = views.build_directory_tree(root, config_map=views.get_article_sidebar_config_map())
+
+        collection_tree = views.get_article_collections(tree)[0]["tree"]
+        self.assertEqual([item["path"] for item in collection_tree["files"]], ["专栏/02-b.md", "专栏/01-a.md"])
+        self.assertEqual(collection_tree["files"][1]["title"], "自定义 A")
 
     def test_article_sidebar_marks_active_file_and_open_ancestors(self):
         with TemporaryDirectory() as tmp_dir:

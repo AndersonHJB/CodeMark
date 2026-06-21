@@ -1,17 +1,18 @@
-{% for file_info in tree.files %}
-    <li class="article-item">
-        <a href="/article/{{ file_info.path }}">
-            {{ file_info.title }}
-        </a>
-    </li>
-{% endfor %}
-{% for subdir in tree.subdirs_list %}
-    <li class="branch-item">
-        <details class="branch">
-            <summary>{{ subdir.dirname }}</summary>
-            <ul class="article-list nested-list">
-                {% include "_article_tree_index.html" with tree=subdir.tree %}
-            </ul>
-        </details>
-    </li>
+{% for node in tree.children %}
+    {% if node.node_type == "file" %}
+        <li class="article-item">
+            <a href="/article/{{ node.path }}">
+                {{ node.title }}
+            </a>
+        </li>
+    {% else %}
+        <li class="branch-item">
+            <details class="branch">
+                <summary>{{ node.title }}</summary>
+                <ul class="article-list nested-list">
+                    {% include "_article_tree_index.html" with tree=node.tree %}
+                </ul>
+            </details>
+        </li>
+    {% endif %}
 {% endfor %}

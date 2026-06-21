@@ -1,0 +1,342 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .article-sidebar-admin-shell {
+        display: grid;
+        gap: 16px;
+    }
+
+    .article-sidebar-admin-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    .article-sidebar-admin-summary {
+        color: var(--body-quiet-color);
+        line-height: 1.6;
+    }
+
+    .article-sidebar-admin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .article-sidebar-admin-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 8px 0 8px 24px;
+        list-style: none;
+    }
+
+    .article-sidebar-admin-root {
+        padding: 12px;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    .article-sidebar-admin-node {
+        display: grid;
+        gap: 8px;
+    }
+
+    .article-sidebar-admin-node.is-dragging {
+        opacity: 0.5;
+    }
+
+    .article-sidebar-admin-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 8px;
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+    }
+
+    .article-sidebar-drag-handle {
+        flex: 0 0 auto;
+        cursor: grab;
+        user-select: none;
+        padding: 5px 8px;
+        color: var(--body-quiet-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--body-bg);
+        font-size: 12px;
+    }
+
+    .article-sidebar-drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .article-sidebar-node-type {
+        flex: 0 0 auto;
+        min-width: 42px;
+        color: var(--body-quiet-color);
+        font-size: 12px;
+        text-align: center;
+    }
+
+    .article-sidebar-title-input {
+        flex: 1 1 260px;
+        min-width: 180px;
+        max-width: 520px;
+    }
+
+    .article-sidebar-mini-button {
+        white-space: nowrap;
+    }
+
+    .article-sidebar-node-path {
+        flex: 1 1 260px;
+        min-width: 180px;
+        color: var(--body-quiet-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        word-break: break-all;
+    }
+
+    .article-sidebar-admin-empty {
+        padding: 20px;
+        color: var(--body-quiet-color);
+        background: var(--darkened-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    @media (max-width: 960px) {
+        .article-sidebar-admin-row {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .article-sidebar-node-type,
+        .article-sidebar-title-input,
+        .article-sidebar-node-path {
+            width: 100%;
+            max-width: none;
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">首页</a>
+    &rsaquo; 文章侧边栏配置
+</div>
+{% endblock %}
+
+{% block content %}
+<form class="article-sidebar-admin-shell" method="post" data-sidebar-admin-form>
+    {% csrf_token %}
+    <input type="hidden" name="sidebar_payload" data-sidebar-payload>
+
+    <div class="article-sidebar-admin-toolbar">
+        <div class="article-sidebar-admin-summary">
+            <div>文章根目录：{{ article_root }}</div>
+            <div>当前节点 {{ node_count }} 个，已保存配置 {{ config_count }} 个</div>
+        </div>
+        <div class="article-sidebar-admin-actions">
+            <button class="button" type="button" data-reset-all-titles>恢复当前页默认标题</button>
+            <button class="default" type="submit">保存排序和标题</button>
+            <button class="button"
+                    type="submit"
+                    name="action"
+                    value="reset"
+                    data-confirm-reset>重置全部定制</button>
+        </div>
+    </div>
+
+    {% if directory_tree.children %}
+        <ol class="article-sidebar-admin-list article-sidebar-admin-root"
+            data-sidebar-admin-root
+            data-sidebar-admin-list
+            data-parent-path="">
+            {% include "admin/_article_sidebar_tree.html" with tree=directory_tree %}
+        </ol>
+    {% else %}
+        <div class="article-sidebar-admin-empty">
+            暂时没有检测到 Markdown 文章。
+        </div>
+    {% endif %}
+</form>
+
+<script>
+    (function () {
+        const form = document.querySelector('[data-sidebar-admin-form]');
+        if (!form) return;
+
+        const payloadInput = form.querySelector('[data-sidebar-payload]');
+        let dragItem = null;
+        let dragList = null;
+
+        function isSidebarItem(element) {
+            return element && element.matches && element.matches('[data-sidebar-admin-item]');
+        }
+
+        function getDirectRow(item) {
+            return Array.from(item.children).find(child => child.classList.contains('article-sidebar-admin-row'));
+        }
+
+        function getDirectChildList(item) {
+            return Array.from(item.children).find(child => child.matches && child.matches('[data-sidebar-admin-list]'));
+        }
+
+        function getTitleInput(item) {
+            const row = getDirectRow(item);
+            return row ? row.querySelector('[data-title-input]') : null;
+        }
+
+        function getDragAfterElement(list, y) {
+            const draggableItems = Array.from(list.children).filter(child => {
+                return isSidebarItem(child) && child !== dragItem && !child.classList.contains('is-dragging');
+            });
+
+            return draggableItems.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return {offset: offset, element: child};
+                }
+                return closest;
+            }, {offset: Number.NEGATIVE_INFINITY, element: null}).element;
+        }
+
+        function moveItem(item, direction) {
+            const list = item.parentElement;
+            if (!list) return;
+
+            if (direction === 'up') {
+                const previous = item.previousElementSibling;
+                if (previous && isSidebarItem(previous)) {
+                    list.insertBefore(item, previous);
+                }
+                return;
+            }
+
+            const next = item.nextElementSibling;
+            if (next && isSidebarItem(next)) {
+                list.insertBefore(next, item);
+            }
+        }
+
+        function collectList(list, payload) {
+            Array.from(list.children).filter(isSidebarItem).forEach((item, index) => {
+                const input = getTitleInput(item);
+                payload.push({
+                    path: item.dataset.path,
+                    node_type: item.dataset.nodeType,
+                    parent_path: item.dataset.parentPath || '',
+                    sort_order: index,
+                    title: input ? input.value.trim() : '',
+                });
+
+                const childList = getDirectChildList(item);
+                if (childList) {
+                    collectList(childList, payload);
+                }
+            });
+        }
+
+        form.addEventListener('dragstart', event => {
+            const handle = event.target.closest('[data-drag-handle]');
+            const item = event.target.closest('[data-sidebar-admin-item]');
+            if (!handle || !item) {
+                event.preventDefault();
+                return;
+            }
+
+            dragItem = item;
+            dragList = item.parentElement;
+            item.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', item.dataset.path || '');
+        });
+
+        form.addEventListener('dragend', () => {
+            if (dragItem) {
+                dragItem.classList.remove('is-dragging');
+            }
+            dragItem = null;
+            dragList = null;
+        });
+
+        form.querySelectorAll('[data-sidebar-admin-list]').forEach(list => {
+            list.addEventListener('dragover', event => {
+                if (!dragItem || list !== dragList) return;
+
+                event.preventDefault();
+                const afterElement = getDragAfterElement(list, event.clientY);
+                if (afterElement) {
+                    list.insertBefore(dragItem, afterElement);
+                } else {
+                    list.appendChild(dragItem);
+                }
+            });
+        });
+
+        form.addEventListener('click', event => {
+            const resetAllTitles = event.target.closest('[data-reset-all-titles]');
+            if (resetAllTitles) {
+                form.querySelectorAll('[data-title-input]').forEach(input => {
+                    input.value = input.dataset.defaultTitle || '';
+                });
+                return;
+            }
+
+            const resetTitle = event.target.closest('[data-reset-title]');
+            if (resetTitle) {
+                const item = resetTitle.closest('[data-sidebar-admin-item]');
+                const input = item ? getTitleInput(item) : null;
+                if (input) {
+                    input.value = input.dataset.defaultTitle || '';
+                    input.focus();
+                }
+                return;
+            }
+
+            const moveButton = event.target.closest('[data-move-item]');
+            if (moveButton) {
+                const item = moveButton.closest('[data-sidebar-admin-item]');
+                if (item) {
+                    moveItem(item, moveButton.dataset.moveItem);
+                }
+                return;
+            }
+
+            const resetButton = event.target.closest('[data-confirm-reset]');
+            if (resetButton && !window.confirm('确定要重置全部文章侧边栏定制吗？')) {
+                event.preventDefault();
+            }
+        });
+
+        form.addEventListener('submit', event => {
+            const submitter = event.submitter;
+            if (submitter && submitter.matches('[data-confirm-reset]')) {
+                return;
+            }
+
+            const rootList = form.querySelector('[data-sidebar-admin-root]');
+            const payload = [];
+            if (rootList) {
+                collectList(rootList, payload);
+            }
+            payloadInput.value = JSON.stringify(payload);
+        });
+    })();
+</script>
+{% endblock %}

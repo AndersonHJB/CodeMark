@@ -1,0 +1,44 @@
+{% for node in tree.children %}
+    <li class="article-sidebar-admin-node is-{{ node.node_type }}"
+        data-sidebar-admin-item
+        data-path="{{ node.path }}"
+        data-node-type="{{ node.node_type }}"
+        data-parent-path="{{ node.parent_path }}"
+        draggable="true">
+        <div class="article-sidebar-admin-row">
+            <span class="article-sidebar-drag-handle"
+                  data-drag-handle
+                  role="button"
+                  tabindex="0"
+                  title="拖动排序"
+                  aria-label="拖动排序">拖动</span>
+            <span class="article-sidebar-node-type">
+                {% if node.node_type == "file" %}文章{% else %}目录{% endif %}
+            </span>
+            <input class="article-sidebar-title-input"
+                   type="text"
+                   value="{{ node.title }}"
+                   placeholder="{{ node.default_title }}"
+                   data-title-input
+                   data-default-title="{{ node.default_title }}"
+                   aria-label="{{ node.path }} 标题">
+            <button class="button article-sidebar-mini-button" type="button" data-reset-title>默认标题</button>
+            <button class="button article-sidebar-mini-button" type="button" data-move-item="up">上移</button>
+            <button class="button article-sidebar-mini-button" type="button" data-move-item="down">下移</button>
+            {% if node.node_type == "file" %}
+                <a class="button article-sidebar-mini-button"
+                   href="/article/{{ node.path }}"
+                   target="_blank"
+                   rel="noopener">预览</a>
+            {% endif %}
+            <span class="article-sidebar-node-path">{{ node.path }}</span>
+        </div>
+        {% if node.node_type == "dir" %}
+            <ol class="article-sidebar-admin-list"
+                data-sidebar-admin-list
+                data-parent-path="{{ node.path }}">
+                {% include "admin/_article_sidebar_tree.html" with tree=node.tree %}
+            </ol>
+        {% endif %}
+    </li>
+{% endfor %}

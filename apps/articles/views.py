@@ -1,11 +1,17 @@
 import os
+import json
 import re
 
 from django.conf import settings
+from django.contrib import admin, messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db import transaction
 from django.http import HttpResponse
+from django.shortcuts import redirect, render
 import markdown
 
-from apps.common.runtime import django_view, render_page
+from apps.common.runtime import django_view, render_page, request
+from .models import ArticleSidebarItem
 
 
 def parse_sort_key(filename):
@@ -41,7 +47,102 @@ def get_title_from_filename(filename):
     return name
 
 
-def build_directory_tree(root_dir, relative_path="", current_file=""):
+def normalize_markdown_title(raw_title):
+    if not raw_title:
+        return ""
+
+    title = str(raw_title).strip().strip('"\'')
+    return title.strip()
+
+
+def get_title_from_markdown_content(content):
+    lines = content.splitlines()
+    if not lines:
+        return ""
+
+    first_line = lines[0].strip()
+    if first_line == "---":
+        for line in lines[1:]:
+            stripped = line.strip()
+            if stripped in {"---", "..."}:
+                break
+            title_match = re.match(r"^title\s*:\s*(.+?)\s*$", line, re.IGNORECASE)
+            if title_match:
+                return normalize_markdown_title(title_match.group(1))
+    else:
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                break
+            title_match = re.match(r"^title\s*:\s*(.+?)\s*$", line, re.IGNORECASE)
+            if title_match:
+                return normalize_markdown_title(title_match.group(1))
+
+    for line in lines:
+        heading_match = re.match(r"^\s*#\s+(.+?)\s*#*\s*$", line)
+        if heading_match:
+            return normalize_markdown_title(heading_match.group(1))
+
+    return ""
+
+
+def get_title_from_markdown_file(file_path, filename):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            title = get_title_from_markdown_content(f.read())
+    except OSError:
+        title = ""
+
+    return title or get_title_from_filename(filename)
+
+
+def get_article_sidebar_config_map():
+    return {item.path: item for item in ArticleSidebarItem.objects.all()}
+
+
+def get_configured_title(config_item, default_title):
+    if config_item and config_item.title_override:
+        return config_item.title_override
+    return default_title
+
+
+def get_configured_sort_order(config_map, path):
+    if not config_map:
+        return None
+    config_item = config_map.get(path)
+    return config_item.sort_order if config_item else None
+
+
+def sort_sidebar_children(children, config_map):
+    def sort_key(child):
+        configured_order = get_configured_sort_order(config_map, child["path"])
+        if configured_order is not None:
+            return 0, configured_order, child["natural_order"], child["path"].casefold()
+        return 1, child["natural_order"], child["path"].casefold()
+
+    return sorted(children, key=sort_key)
+
+
+def get_first_article_path(children):
+    for child in children:
+        if child["node_type"] == "file":
+            return child["path"]
+        first_article_path = child["tree"].get("first_article_path", "")
+        if first_article_path:
+            return first_article_path
+    return ""
+
+
+def flatten_directory_tree(tree):
+    items = {}
+    for child in tree.get("children", []):
+        items[child["path"]] = child
+        if child["node_type"] == "dir":
+            items.update(flatten_directory_tree(child["tree"]))
+    return items
+
+
+def build_directory_tree(root_dir, relative_path="", current_file="", config_map=None):
     """
     递归地构建目录树数据结构：
     返回示例:
@@ -58,11 +159,19 @@ def build_directory_tree(root_dir, relative_path="", current_file=""):
       'files': [{'filename': 'readme.md','title': 'readme'}, ...]
     }
     """
+    dirname = os.path.basename(root_dir)
+    node_config = config_map.get(relative_path) if config_map and relative_path else None
     tree = {
         'dirname': os.path.basename(root_dir),
+        'path': relative_path,
+        'node_type': 'dir',
+        'default_title': dirname,
+        'title': get_configured_title(node_config, dirname),
+        'title_override': node_config.title_override if node_config else '',
         'subdirs': {},
         'subdirs_list': [],
         'files': [],
+        'children': [],
         'article_count': 0,
         'first_article_path': '',
     }
@@ -76,40 +185,64 @@ def build_directory_tree(root_dir, relative_path="", current_file=""):
     dirs = sorted([d for d in entries if os.path.isdir(os.path.join(root_dir, d))], key=parse_sort_key)
     files = [f for f in entries if os.path.isfile(os.path.join(root_dir, f)) and f.endswith('.md')]
 
+    natural_order = 0
+
     # 排序文件
     files_sorted = sorted(files, key=parse_sort_key)
     for f in files_sorted:
         file_path = "/".join(part for part in (relative_path, f) if part)
-        tree['files'].append({
+        file_config = config_map.get(file_path) if config_map else None
+        default_title = get_title_from_markdown_file(os.path.join(root_dir, f), f)
+        file_info = {
+            'node_type': 'file',
             'filename': f,
             'path': file_path,
-            'title': get_title_from_filename(f),
+            'parent_path': relative_path,
+            'default_title': default_title,
+            'title': get_configured_title(file_config, default_title),
+            'title_override': file_config.title_override if file_config else '',
             'is_active': file_path == current_file,
-        })
-
-    tree['article_count'] = len(tree['files'])
-    if tree['files']:
-        tree['first_article_path'] = tree['files'][0]['path']
+            'natural_order': natural_order,
+        }
+        tree['children'].append(file_info)
+        natural_order += 1
 
     # 递归处理子目录
     for d in dirs:
         subdir_path = os.path.join(root_dir, d)
         subdir_relative_path = "/".join(part for part in (relative_path, d) if part)
         # 这里直接递归构建子目录结构
-        subdir_tree = build_directory_tree(subdir_path, subdir_relative_path, current_file)
+        subdir_tree = build_directory_tree(subdir_path, subdir_relative_path, current_file, config_map)
         tree['subdirs'][d] = subdir_tree
-        tree['subdirs_list'].append({
+        subdir_info = {
+            'node_type': 'dir',
             'dirname': d,
             'path': subdir_relative_path,
+            'parent_path': relative_path,
+            'default_title': d,
+            'title': subdir_tree['title'],
+            'title_override': subdir_tree.get('title_override', ''),
             'tree': subdir_tree,
             'is_open': is_path_under(current_file, subdir_relative_path),
-            'delay_ms': 240 + len(tree['subdirs_list']) * 80,
             'article_count': subdir_tree['article_count'],
             'first_article_path': subdir_tree['first_article_path'],
-        })
-        tree['article_count'] += subdir_tree['article_count']
-        if not tree['first_article_path'] and subdir_tree['first_article_path']:
-            tree['first_article_path'] = subdir_tree['first_article_path']
+            'natural_order': natural_order,
+        }
+        tree['children'].append(subdir_info)
+        natural_order += 1
+
+    tree['children'] = sort_sidebar_children(tree['children'], config_map)
+
+    for child_index, child in enumerate(tree['children']):
+        child['delay_ms'] = 240 + child_index * 80
+        if child['node_type'] == 'file':
+            tree['files'].append(child)
+            tree['article_count'] += 1
+        else:
+            tree['subdirs_list'].append(child)
+            tree['article_count'] += child['article_count']
+
+    tree['first_article_path'] = get_first_article_path(tree['children'])
 
     return tree
 
@@ -144,12 +277,54 @@ def build_article_meta(meta):
     }
 
 
+def save_article_sidebar_payload(payload, valid_items):
+    if not isinstance(payload, list):
+        raise ValueError("提交的数据格式不正确。")
+
+    valid_paths = set(valid_items.keys())
+    saved_count = 0
+
+    with transaction.atomic():
+        ArticleSidebarItem.objects.exclude(path__in=valid_paths).delete()
+        for raw_item in payload:
+            if not isinstance(raw_item, dict):
+                continue
+
+            path = raw_item.get("path", "")
+            if path not in valid_items:
+                continue
+
+            valid_item = valid_items[path]
+            raw_title = normalize_markdown_title(raw_item.get("title", ""))
+            default_title = valid_item.get("default_title", "")
+            title_override = raw_title if raw_title and raw_title != default_title else ""
+
+            try:
+                sort_order = int(raw_item.get("sort_order", 0))
+            except (TypeError, ValueError):
+                sort_order = 0
+
+            ArticleSidebarItem.objects.update_or_create(
+                path=path,
+                defaults={
+                    "parent_path": valid_item.get("parent_path", ""),
+                    "node_type": valid_item.get("node_type", ArticleSidebarItem.NODE_FILE),
+                    "title_override": title_override,
+                    "sort_order": max(sort_order, 0),
+                },
+            )
+            saved_count += 1
+
+    return saved_count
+
+
 @django_view
 def index():
     """
     新版主页：遍历文章内容目录，将一级目录作为专栏展示。
     """
-    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR)
+    config_map = get_article_sidebar_config_map()
+    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, config_map=config_map)
     return render_page('index.html',
                        directory_tree=directory_tree,
                        article_collections=get_article_collections(directory_tree))
@@ -191,11 +366,12 @@ def article(filename):
         meta = md.Meta if hasattr(md, 'Meta') else {}
 
     # 构建目录树；文章页左侧只渲染当前专栏自己的目录树。
-    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, current_file=filename)
+    config_map = get_article_sidebar_config_map()
+    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, current_file=filename, config_map=config_map)
     article_collections = get_article_collections(directory_tree)
     current_collection = get_current_collection(directory_tree, filename)
     sidebar_tree = current_collection['tree'] if current_collection else directory_tree
-    sidebar_title = current_collection['dirname'] if current_collection else '未归入专栏'
+    sidebar_title = current_collection['title'] if current_collection else '未归入专栏'
 
     return render_page('article.html',
                        content=html_content,
@@ -208,3 +384,43 @@ def article(filename):
                        sidebar_article_count=sidebar_tree.get('article_count', 0),
                        current_file=filename,
                        meta=build_article_meta(meta))
+
+
+@staff_member_required
+@django_view
+def admin_article_sidebar():
+    django_request = request._current()
+
+    if django_request.method == "POST":
+        if request.POST.get("action") == "reset":
+            ArticleSidebarItem.objects.all().delete()
+            messages.success(django_request, "已清空侧边栏定制，当前会使用 Markdown 标题和默认目录顺序。")
+            return redirect("admin_article_sidebar")
+
+        generated_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR)
+        valid_items = flatten_directory_tree(generated_tree)
+        raw_payload = request.POST.get("sidebar_payload", "[]")
+
+        try:
+            payload = json.loads(raw_payload)
+            saved_count = save_article_sidebar_payload(payload, valid_items)
+        except (json.JSONDecodeError, ValueError) as exc:
+            messages.error(django_request, str(exc))
+        else:
+            messages.success(django_request, f"已保存 {saved_count} 个侧边栏节点的标题和排序。")
+
+        return redirect("admin_article_sidebar")
+
+    config_map = get_article_sidebar_config_map()
+    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, config_map=config_map)
+    flat_items = flatten_directory_tree(directory_tree)
+
+    context = admin.site.each_context(django_request)
+    context.update({
+        "title": "文章侧边栏配置",
+        "directory_tree": directory_tree,
+        "node_count": len(flat_items),
+        "config_count": len(config_map),
+        "article_root": settings.CODEMARK_ARTICLES_DIR,
+    })
+    return render(django_request, "admin/article_sidebar.html", context)
