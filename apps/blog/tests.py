@@ -3,6 +3,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, SimpleTestCase, TestCase, override_settings
@@ -205,13 +206,16 @@ class BlogPostFlowTests(TestCase):
         UserProfile.objects.update_or_create(user=self.user, defaults={"is_vip": True})
         guide_response = self.client.get(guide_url)
         list_response = self.client.get(reverse("blog_list"))
+        session_cookie = self.client.cookies[settings.SESSION_COOKIE_NAME].value
 
         self.assertEqual(guide_response.status_code, 200)
         self.assertContains(guide_response, "VIP API 教程")
         self.assertContains(guide_response, "账号权限")
         self.assertContains(guide_response, "请求示例")
         self.assertContains(guide_response, "获取 Cookies")
+        self.assertContains(guide_response, "复制 Cookies")
         self.assertContains(guide_response, "sessionid")
+        self.assertContains(guide_response, f"{settings.SESSION_COOKIE_NAME}={session_cookie}", html=False)
         self.assertContains(guide_response, "返回数据")
         self.assertContains(guide_response, f"http://testserver{api_url}")
         self.assertContains(guide_response, 'data-copy-link="http://testserver', html=False)

@@ -12,6 +12,9 @@
         {% if sample_api_url %}
             <button class="blog-btn blog-btn-primary" type="button" data-copy-link="{{ sample_api_url }}" data-copy-label="复制示例 API 链接">复制示例 API</button>
         {% endif %}
+        {% if current_cookie_header %}
+            <button class="blog-btn blog-btn-ghost" type="button" data-copy-link="{{ current_cookie_header }}" data-copy-label="复制当前 Cookies">复制 Cookies</button>
+        {% endif %}
         <a class="blog-btn blog-btn-ghost" href="{% url 'blog_list' %}">浏览文章</a>
     </div>
 </section>
@@ -79,7 +82,7 @@
         <pre><code>import requests
 
 url = "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}"
-cookies = {"sessionid": "你的登录会话"}
+cookies = {{ current_cookie_python }}
 
 response = requests.get(url, cookies=cookies, headers={"Accept": "application/json"})
 response.raise_for_status()
@@ -101,7 +104,22 @@ print(article["stats"])</code></pre>
     <div class="blog-prose">
         <p>文章 API 使用当前登录会话识别 VIP 权限。浏览器中点击文章页的 <strong>API 数据</strong> 按钮只会复制链接；如果要在脚本、Postman 或 curl 中请求，需要携带同一账号的 Cookie。</p>
 
-        <h3>方法一：浏览器开发者工具</h3>
+        <h3>当前登录 Cookies</h3>
+        {% if current_cookie_header %}
+            <p>下面是当前账号可直接用于文章 API 的 Cookie 请求头：</p>
+            <pre><code>Cookie: {{ current_cookie_header }}</code></pre>
+            <div class="blog-vip-cookie-actions">
+                <button class="blog-btn blog-btn-primary" type="button" data-copy-link="{{ current_cookie_header }}" data-copy-label="复制当前 Cookies">复制 Cookies</button>
+                <button class="blog-btn blog-btn-ghost" type="button" data-copy-link="Cookie: {{ current_cookie_header }}" data-copy-label="复制 Cookie 请求头">复制 Cookie 请求头</button>
+            </div>
+
+            <p>Python <code>requests</code> 可直接使用这个 cookies 字典：</p>
+            <pre><code>cookies = {{ current_cookie_python }}</code></pre>
+        {% else %}
+            <p>当前请求没有读取到登录 Cookie。请重新登录后刷新此页面，或按下面的方法手动复制。</p>
+        {% endif %}
+
+        <h3>备用方法一：浏览器开发者工具</h3>
         <ol>
             <li>先在网站登录你的 VIP 账号。</li>
             <li>打开开发者工具，进入 <code>Application</code> 或 <code>应用</code> 面板。</li>
@@ -110,7 +128,7 @@ print(article["stats"])</code></pre>
         </ol>
         <pre><code>Cookie: sessionid=你的-sessionid-值</code></pre>
 
-        <h3>方法二：复制为 cURL</h3>
+        <h3>备用方法二：复制为 cURL</h3>
         <ol>
             <li>登录 VIP 账号后，在浏览器打开任意文章 API 链接。</li>
             <li>打开开发者工具的 <code>Network</code> 面板，选中这次 API 请求。</li>
@@ -120,11 +138,11 @@ print(article["stats"])</code></pre>
   -H "Accept: application/json" \
   -H "Cookie: sessionid=你的-sessionid-值"</code></pre>
 
-        <h3>方法三：Python requests</h3>
+        <h3>备用方法三：Python requests</h3>
         <pre><code>import requests
 
 url = "{{ sample_api_url|default:'https://example.com/blog/article-slug/api/' }}"
-cookies = {"sessionid": "你的-sessionid-值"}
+cookies = {{ current_cookie_python }}
 
 response = requests.get(url, cookies=cookies, headers={"Accept": "application/json"})
 response.raise_for_status()

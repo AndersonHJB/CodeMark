@@ -395,6 +395,13 @@
     line-height: 1.7;
 }
 
+.blog-vip-cookie-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 12px 0 18px;
+}
+
 .blog-card {
     display: grid;
     grid-template-columns: 190px minmax(0, 1fr);

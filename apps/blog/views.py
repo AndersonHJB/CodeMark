@@ -1,8 +1,10 @@
+import json
 import re
 from datetime import timedelta
 from functools import wraps
 
 import markdown
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
@@ -115,6 +117,31 @@ def _user_can_use_article_api(user):
         return True
     profile = _profile_for_user(user)
     return membership_payload_for_user(user, profile)["can_use_article_api"]
+
+
+def _article_api_cookie_pairs(request):
+    cookie_names = [settings.SESSION_COOKIE_NAME]
+    csrf_cookie_name = getattr(settings, "CSRF_COOKIE_NAME", "")
+    if csrf_cookie_name and csrf_cookie_name not in cookie_names:
+        cookie_names.append(csrf_cookie_name)
+
+    pairs = []
+    for name in cookie_names:
+        value = request.COOKIES.get(name)
+        if value:
+            pairs.append((name, value))
+    return pairs
+
+
+def _article_api_cookie_header(request):
+    return "; ".join(f"{name}={value}" for name, value in _article_api_cookie_pairs(request))
+
+
+def _article_api_cookie_python(request):
+    pairs = _article_api_cookie_pairs(request)
+    if not pairs:
+        return json.dumps({settings.SESSION_COOKIE_NAME: "你的-sessionid-值"}, ensure_ascii=False, indent=4)
+    return json.dumps(dict(pairs), ensure_ascii=False, indent=4)
 
 
 def _json_time(value):
@@ -432,6 +459,8 @@ def blog_vip_guide(request):
         {
             "sample_post": sample_post,
             "sample_api_url": sample_api_url,
+            "current_cookie_header": _article_api_cookie_header(request),
+            "current_cookie_python": _article_api_cookie_python(request),
             "api_window_days": ARTICLE_API_WINDOW_DAYS,
             "api_limit": ARTICLE_API_LIMIT,
             "display_name": _display_name(request.user),
