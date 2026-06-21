@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -8,6 +9,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 import markdown
 
 from apps.common.runtime import django_view, render_page, request
@@ -201,6 +203,7 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
             'default_title': default_title,
             'title': get_configured_title(file_config, default_title),
             'title_override': file_config.title_override if file_config else '',
+            'sort_order': file_config.sort_order if file_config and file_config.sort_order is not None else natural_order,
             'is_active': file_path == current_file,
             'natural_order': natural_order,
         }
@@ -213,6 +216,7 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
         subdir_relative_path = "/".join(part for part in (relative_path, d) if part)
         # 这里直接递归构建子目录结构
         subdir_tree = build_directory_tree(subdir_path, subdir_relative_path, current_file, config_map)
+        subdir_config = config_map.get(subdir_relative_path) if config_map else None
         tree['subdirs'][d] = subdir_tree
         subdir_info = {
             'node_type': 'dir',
@@ -222,6 +226,7 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
             'default_title': d,
             'title': subdir_tree['title'],
             'title_override': subdir_tree.get('title_override', ''),
+            'sort_order': subdir_config.sort_order if subdir_config and subdir_config.sort_order is not None else natural_order,
             'tree': subdir_tree,
             'is_open': is_path_under(current_file, subdir_relative_path),
             'article_count': subdir_tree['article_count'],
@@ -318,6 +323,33 @@ def save_article_sidebar_payload(payload, valid_items):
     return saved_count
 
 
+def get_sidebar_admin_redirect(collection_path=""):
+    url = reverse("admin_article_sidebar")
+    if collection_path:
+        return f"{url}?{urlencode({'collection': collection_path})}"
+    return url
+
+
+def get_selected_sidebar_collection(directory_tree, collection_path):
+    if not collection_path:
+        return None
+
+    for collection in get_article_collections(directory_tree):
+        if collection.get("path") == collection_path:
+            return collection
+    return None
+
+
+def delete_sidebar_collection_config(collection_path):
+    if not collection_path:
+        return 0
+
+    deleted_count, _ = ArticleSidebarItem.objects.filter(path=collection_path).delete()
+    subtree_deleted_count, _ = ArticleSidebarItem.objects.filter(parent_path=collection_path).delete()
+    descendant_deleted_count, _ = ArticleSidebarItem.objects.filter(parent_path__startswith=f"{collection_path}/").delete()
+    return deleted_count + subtree_deleted_count + descendant_deleted_count
+
+
 @django_view
 def index():
     """
@@ -390,12 +422,17 @@ def article(filename):
 @django_view
 def admin_article_sidebar():
     django_request = request._current()
+    selected_collection_path = request.POST.get("collection_path") or request.GET.get("collection", "")
 
     if django_request.method == "POST":
         if request.POST.get("action") == "reset":
             ArticleSidebarItem.objects.all().delete()
             messages.success(django_request, "已清空侧边栏定制，当前会使用 Markdown 标题和默认目录顺序。")
             return redirect("admin_article_sidebar")
+        if request.POST.get("action") == "reset_collection":
+            deleted_count = delete_sidebar_collection_config(selected_collection_path)
+            messages.success(django_request, f"已重置当前专栏的 {deleted_count} 条侧边栏定制。")
+            return redirect(get_sidebar_admin_redirect(selected_collection_path))
 
         generated_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR)
         valid_items = flatten_directory_tree(generated_tree)
@@ -409,16 +446,21 @@ def admin_article_sidebar():
         else:
             messages.success(django_request, f"已保存 {saved_count} 个侧边栏节点的标题和排序。")
 
-        return redirect("admin_article_sidebar")
+        return redirect(get_sidebar_admin_redirect(selected_collection_path))
 
     config_map = get_article_sidebar_config_map()
     directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, config_map=config_map)
     flat_items = flatten_directory_tree(directory_tree)
+    article_collections = get_article_collections(directory_tree)
+    selected_collection = get_selected_sidebar_collection(directory_tree, selected_collection_path)
 
     context = admin.site.each_context(django_request)
     context.update({
         "title": "文章侧边栏配置",
         "directory_tree": directory_tree,
+        "article_collections": article_collections,
+        "selected_collection": selected_collection,
+        "selected_collection_path": selected_collection_path if selected_collection else "",
         "node_count": len(flat_items),
         "config_count": len(config_map),
         "article_root": settings.CODEMARK_ARTICLES_DIR,

@@ -4,7 +4,16 @@
 <style>
     .article-sidebar-admin-shell {
         display: grid;
-        gap: 16px;
+        gap: 18px;
+        max-width: 1280px;
+    }
+
+    .article-sidebar-admin-toolbar,
+    .article-sidebar-admin-editor {
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     .article-sidebar-admin-toolbar {
@@ -12,14 +21,27 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 14px;
-        background: var(--darkened-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        gap: 14px;
+        padding: 16px 18px;
+    }
+
+    .article-sidebar-admin-kicker {
+        margin: 0 0 4px;
+        color: var(--body-quiet-color);
+        font-size: 12px;
+        letter-spacing: 0;
+    }
+
+    .article-sidebar-admin-title {
+        margin: 0;
+        color: var(--body-fg);
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.35;
     }
 
     .article-sidebar-admin-summary {
+        margin-top: 6px;
         color: var(--body-quiet-color);
         line-height: 1.6;
     }
@@ -27,54 +49,157 @@
     .article-sidebar-admin-actions {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 8px;
+    }
+
+    .article-sidebar-collection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+    }
+
+    .article-sidebar-collection-card {
+        display: grid;
+        gap: 12px;
+        min-height: 150px;
+        padding: 16px;
+        color: var(--body-fg);
+        text-decoration: none;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .article-sidebar-collection-card:hover {
+        border-color: var(--link-fg);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .article-sidebar-collection-card h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .article-sidebar-collection-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--body-quiet-color);
+        font-size: 12px;
+    }
+
+    .article-sidebar-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 2px 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 999px;
+        background: var(--darkened-bg);
+    }
+
+    .article-sidebar-collection-path,
+    .article-sidebar-node-path {
+        color: var(--body-quiet-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        word-break: break-all;
+    }
+
+    .article-sidebar-admin-editor {
+        overflow: hidden;
+    }
+
+    .article-sidebar-editor-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 18px;
+        background: var(--darkened-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .article-sidebar-editor-head h2 {
+        margin: 0;
+        color: var(--body-fg);
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .article-sidebar-editor-body {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
     }
 
     .article-sidebar-admin-list {
         display: grid;
-        gap: 8px;
+        gap: 10px;
         margin: 0;
-        padding: 8px 0 8px 24px;
+        padding: 0;
         list-style: none;
     }
 
-    .article-sidebar-admin-root {
-        padding: 12px;
+    .article-sidebar-admin-list .article-sidebar-admin-list {
+        margin-left: 32px;
+        padding-left: 14px;
+        border-left: 2px solid var(--hairline-color);
+    }
+
+    .article-sidebar-admin-node {
+        display: grid;
+        gap: 10px;
+    }
+
+    .article-sidebar-admin-node.is-dragging {
+        opacity: 0.45;
+    }
+
+    .article-sidebar-admin-row,
+    .article-sidebar-collection-root-row {
+        display: grid;
+        grid-template-columns: auto 72px minmax(240px, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 48px;
+        padding: 10px;
         background: var(--body-bg);
         border: 1px solid var(--border-color);
         border-radius: 8px;
     }
 
-    .article-sidebar-admin-node {
-        display: grid;
-        gap: 8px;
+    .article-sidebar-collection-root-row {
+        grid-template-columns: 72px minmax(240px, 1fr) auto minmax(180px, 0.6fr);
+        background: color-mix(in srgb, var(--primary) 8%, var(--body-bg));
+        border-color: color-mix(in srgb, var(--primary) 32%, var(--border-color));
     }
 
-    .article-sidebar-admin-node.is-dragging {
-        opacity: 0.5;
-    }
-
-    .article-sidebar-admin-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 42px;
-        padding: 8px;
-        background: var(--darkened-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
+    .article-sidebar-admin-row.is-drop-target {
+        border-color: var(--link-fg);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--link-fg) 18%, transparent);
     }
 
     .article-sidebar-drag-handle {
-        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
         cursor: grab;
         user-select: none;
-        padding: 5px 8px;
         color: var(--body-quiet-color);
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: var(--body-bg);
-        font-size: 12px;
+        border-radius: 6px;
+        background: var(--darkened-bg);
+        font-size: 16px;
+        line-height: 1;
     }
 
     .article-sidebar-drag-handle:active {
@@ -82,30 +207,50 @@
     }
 
     .article-sidebar-node-type {
-        flex: 0 0 auto;
-        min-width: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: 2px 8px;
         color: var(--body-quiet-color);
+        border: 1px solid var(--border-color);
+        border-radius: 999px;
+        background: var(--darkened-bg);
         font-size: 12px;
-        text-align: center;
-    }
-
-    .article-sidebar-title-input {
-        flex: 1 1 260px;
-        min-width: 180px;
-        max-width: 520px;
-    }
-
-    .article-sidebar-mini-button {
         white-space: nowrap;
     }
 
-    .article-sidebar-node-path {
-        flex: 1 1 260px;
-        min-width: 180px;
+    .article-sidebar-title-field {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .article-sidebar-title-input {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+
+    .article-sidebar-default-title {
         color: var(--body-quiet-color);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         font-size: 12px;
-        word-break: break-all;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .article-sidebar-row-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .article-sidebar-mini-button {
+        min-height: 30px;
+        padding: 4px 8px;
+        white-space: nowrap;
     }
 
     .article-sidebar-admin-empty {
@@ -116,18 +261,21 @@
         border-radius: 8px;
     }
 
-    @media (max-width: 960px) {
-        .article-sidebar-admin-row {
+    @media (max-width: 1100px) {
+        .article-sidebar-admin-row,
+        .article-sidebar-collection-root-row,
+        .article-sidebar-editor-head {
+            grid-template-columns: 1fr;
             align-items: stretch;
-            flex-direction: column;
         }
 
-        .article-sidebar-node-type,
-        .article-sidebar-title-input,
-        .article-sidebar-node-path {
-            width: 100%;
-            max-width: none;
-            text-align: left;
+        .article-sidebar-row-actions,
+        .article-sidebar-admin-actions {
+            justify-content: flex-start;
+        }
+
+        .article-sidebar-admin-list .article-sidebar-admin-list {
+            margin-left: 14px;
         }
     }
 </style>
@@ -136,51 +284,139 @@
 {% block breadcrumbs %}
 <div class="breadcrumbs">
     <a href="{% url 'admin:index' %}">首页</a>
-    &rsaquo; 文章侧边栏配置
+    &rsaquo; <a href="{% url 'admin_article_sidebar' %}">文章侧边栏配置</a>
+    {% if selected_collection %}
+        &rsaquo; {{ selected_collection.title }}
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block content %}
-<form class="article-sidebar-admin-shell" method="post" data-sidebar-admin-form>
-    {% csrf_token %}
-    <input type="hidden" name="sidebar_payload" data-sidebar-payload>
-
+<div class="article-sidebar-admin-shell">
     <div class="article-sidebar-admin-toolbar">
-        <div class="article-sidebar-admin-summary">
-            <div>文章根目录：{{ article_root }}</div>
-            <div>当前节点 {{ node_count }} 个，已保存配置 {{ config_count }} 个</div>
+        <div>
+            <p class="article-sidebar-admin-kicker">文章根目录：{{ article_root }}</p>
+            <h1 class="article-sidebar-admin-title">文章侧边栏配置</h1>
+            <div class="article-sidebar-admin-summary">
+                共 {{ article_collections|length }} 个专栏，{{ node_count }} 个侧边栏节点，已保存配置 {{ config_count }} 个。
+            </div>
         </div>
-        <div class="article-sidebar-admin-actions">
-            <button class="button" type="button" data-reset-all-titles>恢复当前页默认标题</button>
-            <button class="default" type="submit">保存排序和标题</button>
+        <form class="article-sidebar-admin-actions" method="post">
+            {% csrf_token %}
             <button class="button"
                     type="submit"
                     name="action"
                     value="reset"
                     data-confirm-reset>重置全部定制</button>
-        </div>
+        </form>
     </div>
 
-    {% if directory_tree.children %}
-        <ol class="article-sidebar-admin-list article-sidebar-admin-root"
-            data-sidebar-admin-root
-            data-sidebar-admin-list
-            data-parent-path="">
-            {% include "admin/_article_sidebar_tree.html" with tree=directory_tree %}
-        </ol>
+    {% if not selected_collection %}
+        {% if article_collections %}
+            <div class="article-sidebar-collection-grid">
+                {% for collection in article_collections %}
+                    <a class="article-sidebar-collection-card"
+                       href="{% url 'admin_article_sidebar' %}?collection={{ collection.path|urlencode }}">
+                        <div>
+                            <h3>{{ collection.title }}</h3>
+                            <div class="article-sidebar-collection-meta">
+                                <span class="article-sidebar-pill">{{ collection.article_count }} 篇文章</span>
+                                <span class="article-sidebar-pill">{{ collection.tree.children|length }} 个一级节点</span>
+                            </div>
+                        </div>
+                        <div class="article-sidebar-collection-path">{{ collection.path }}</div>
+                        <span class="button">配置这个专栏</span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="article-sidebar-admin-empty">
+                暂时没有检测到专栏目录，请先在文章根目录中添加 Markdown 文档。
+            </div>
+        {% endif %}
     {% else %}
-        <div class="article-sidebar-admin-empty">
-            暂时没有检测到 Markdown 文章。
-        </div>
+        <form class="article-sidebar-admin-editor" method="post" data-sidebar-admin-form>
+            {% csrf_token %}
+            <input type="hidden" name="collection_path" value="{{ selected_collection.path }}">
+            <input type="hidden" name="sidebar_payload" data-sidebar-payload>
+
+            <div class="article-sidebar-editor-head">
+                <div>
+                    <h2>{{ selected_collection.title }}</h2>
+                    <div class="article-sidebar-admin-summary">
+                        {{ selected_collection.article_count }} 篇文章，{{ selected_collection.tree.children|length }} 个一级节点。拖动行首手柄或使用上移/下移调整同级顺序。
+                    </div>
+                </div>
+                <div class="article-sidebar-admin-actions">
+                    <a class="button" href="{% url 'admin_article_sidebar' %}">返回专栏列表</a>
+                    <button class="button" type="button" data-reset-all-titles>恢复当前页默认标题</button>
+                    <button class="default" type="submit">保存当前专栏</button>
+                    <button class="button"
+                            type="submit"
+                            name="action"
+                            value="reset_collection"
+                            data-confirm-reset-current>重置当前专栏</button>
+                </div>
+            </div>
+
+            <div class="article-sidebar-editor-body">
+                <div class="article-sidebar-collection-root-row"
+                     data-collection-root-item
+                     data-path="{{ selected_collection.path }}"
+                     data-node-type="{{ selected_collection.node_type }}"
+                     data-parent-path="{{ selected_collection.parent_path }}"
+                     data-sort-order="{{ selected_collection.sort_order }}">
+                    <span class="article-sidebar-node-type">专栏</span>
+                    <div class="article-sidebar-title-field">
+                        <input class="article-sidebar-title-input"
+                               type="text"
+                               value="{{ selected_collection.title }}"
+                               placeholder="{{ selected_collection.default_title }}"
+                               data-title-input
+                               data-default-title="{{ selected_collection.default_title }}"
+                               aria-label="{{ selected_collection.path }} 标题">
+                        <span class="article-sidebar-default-title">默认：{{ selected_collection.default_title }}</span>
+                    </div>
+                    <button class="button article-sidebar-mini-button" type="button" data-reset-title>默认标题</button>
+                    <span class="article-sidebar-node-path">{{ selected_collection.path }}</span>
+                </div>
+
+                {% if selected_collection.tree.children %}
+                    <ol class="article-sidebar-admin-list article-sidebar-admin-root"
+                        data-sidebar-admin-root
+                        data-sidebar-admin-list
+                        data-parent-path="{{ selected_collection.path }}">
+                        {% include "admin/_article_sidebar_tree.html" with tree=selected_collection.tree %}
+                    </ol>
+                {% else %}
+                    <div class="article-sidebar-admin-empty">
+                        当前专栏下暂时没有可配置的文章节点。
+                    </div>
+                {% endif %}
+            </div>
+        </form>
     {% endif %}
-</form>
+</div>
 
 <script>
     (function () {
-        const form = document.querySelector('[data-sidebar-admin-form]');
-        if (!form) return;
+        const editorForm = document.querySelector('[data-sidebar-admin-form]');
 
-        const payloadInput = form.querySelector('[data-sidebar-payload]');
+        document.addEventListener('click', event => {
+            const resetAllButton = event.target.closest('[data-confirm-reset]');
+            if (resetAllButton && !window.confirm('确定要重置全部文章侧边栏定制吗？')) {
+                event.preventDefault();
+            }
+
+            const resetCurrentButton = event.target.closest('[data-confirm-reset-current]');
+            if (resetCurrentButton && !window.confirm('确定要重置当前专栏的侧边栏定制吗？')) {
+                event.preventDefault();
+            }
+        });
+
+        if (!editorForm) return;
+
+        const payloadInput = editorForm.querySelector('[data-sidebar-payload]');
         let dragItem = null;
         let dragList = null;
 
@@ -197,17 +433,19 @@
         }
 
         function getTitleInput(item) {
-            const row = getDirectRow(item);
+            if (!item) return null;
+            const row = item.matches('[data-collection-root-item]') ? item : getDirectRow(item);
             return row ? row.querySelector('[data-title-input]') : null;
         }
 
         function getDragAfterElement(list, y) {
-            const draggableItems = Array.from(list.children).filter(child => {
+            const items = Array.from(list.children).filter(child => {
                 return isSidebarItem(child) && child !== dragItem && !child.classList.contains('is-dragging');
             });
 
-            return draggableItems.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
+            return items.reduce((closest, child) => {
+                const row = getDirectRow(child);
+                const box = (row || child).getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
                 if (offset < 0 && offset > closest.offset) {
                     return {offset: offset, element: child};
@@ -234,16 +472,23 @@
             }
         }
 
+        function collectItem(item, sortOrder, payload) {
+            const input = getTitleInput(item);
+            const itemSortOrder = typeof sortOrder === 'number'
+                ? sortOrder
+                : Number.parseInt(item.dataset.sortOrder || '0', 10) || 0;
+            payload.push({
+                path: item.dataset.path,
+                node_type: item.dataset.nodeType,
+                parent_path: item.dataset.parentPath || '',
+                sort_order: itemSortOrder,
+                title: input ? input.value.trim() : '',
+            });
+        }
+
         function collectList(list, payload) {
             Array.from(list.children).filter(isSidebarItem).forEach((item, index) => {
-                const input = getTitleInput(item);
-                payload.push({
-                    path: item.dataset.path,
-                    node_type: item.dataset.nodeType,
-                    parent_path: item.dataset.parentPath || '',
-                    sort_order: index,
-                    title: input ? input.value.trim() : '',
-                });
+                collectItem(item, index, payload);
 
                 const childList = getDirectChildList(item);
                 if (childList) {
@@ -252,10 +497,12 @@
             });
         }
 
-        form.addEventListener('dragstart', event => {
-            const handle = event.target.closest('[data-drag-handle]');
+        editorForm.addEventListener('dragstart', event => {
             const item = event.target.closest('[data-sidebar-admin-item]');
-            if (!handle || !item) {
+            if (!item) return;
+
+            const interactiveTarget = event.target.closest('input, textarea, select, button, a');
+            if (interactiveTarget && !event.target.closest('[data-drag-handle]')) {
                 event.preventDefault();
                 return;
             }
@@ -267,7 +514,8 @@
             event.dataTransfer.setData('text/plain', item.dataset.path || '');
         });
 
-        form.addEventListener('dragend', () => {
+        editorForm.addEventListener('dragend', () => {
+            editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
             if (dragItem) {
                 dragItem.classList.remove('is-dragging');
             }
@@ -275,7 +523,7 @@
             dragList = null;
         });
 
-        form.querySelectorAll('[data-sidebar-admin-list]').forEach(list => {
+        editorForm.querySelectorAll('[data-sidebar-admin-list]').forEach(list => {
             list.addEventListener('dragover', event => {
                 if (!dragItem || list !== dragList) return;
 
@@ -286,13 +534,17 @@
                 } else {
                     list.appendChild(dragItem);
                 }
+
+                editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
+                const row = getDirectRow(dragItem);
+                if (row) row.classList.add('is-drop-target');
             });
         });
 
-        form.addEventListener('click', event => {
+        editorForm.addEventListener('click', event => {
             const resetAllTitles = event.target.closest('[data-reset-all-titles]');
             if (resetAllTitles) {
-                form.querySelectorAll('[data-title-input]').forEach(input => {
+                editorForm.querySelectorAll('[data-title-input]').forEach(input => {
                     input.value = input.dataset.defaultTitle || '';
                 });
                 return;
@@ -300,8 +552,8 @@
 
             const resetTitle = event.target.closest('[data-reset-title]');
             if (resetTitle) {
-                const item = resetTitle.closest('[data-sidebar-admin-item]');
-                const input = item ? getTitleInput(item) : null;
+                const item = resetTitle.closest('[data-sidebar-admin-item], [data-collection-root-item]');
+                const input = getTitleInput(item);
                 if (input) {
                     input.value = input.dataset.defaultTitle || '';
                     input.focus();
@@ -315,23 +567,22 @@
                 if (item) {
                     moveItem(item, moveButton.dataset.moveItem);
                 }
-                return;
-            }
-
-            const resetButton = event.target.closest('[data-confirm-reset]');
-            if (resetButton && !window.confirm('确定要重置全部文章侧边栏定制吗？')) {
-                event.preventDefault();
             }
         });
 
-        form.addEventListener('submit', event => {
+        editorForm.addEventListener('submit', event => {
             const submitter = event.submitter;
-            if (submitter && submitter.matches('[data-confirm-reset]')) {
+            if (submitter && submitter.matches('[data-confirm-reset-current]')) {
                 return;
             }
 
-            const rootList = form.querySelector('[data-sidebar-admin-root]');
             const payload = [];
+            const collectionRoot = editorForm.querySelector('[data-collection-root-item]');
+            if (collectionRoot) {
+                collectItem(collectionRoot, null, payload);
+            }
+
+            const rootList = editorForm.querySelector('[data-sidebar-admin-root]');
             if (rootList) {
                 collectList(rootList, payload);
             }

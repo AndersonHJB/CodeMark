@@ -11,26 +11,31 @@
                   role="button"
                   tabindex="0"
                   title="拖动排序"
-                  aria-label="拖动排序">拖动</span>
+                  aria-label="拖动排序">::</span>
             <span class="article-sidebar-node-type">
                 {% if node.node_type == "file" %}文章{% else %}目录{% endif %}
             </span>
-            <input class="article-sidebar-title-input"
-                   type="text"
-                   value="{{ node.title }}"
-                   placeholder="{{ node.default_title }}"
-                   data-title-input
-                   data-default-title="{{ node.default_title }}"
-                   aria-label="{{ node.path }} 标题">
-            <button class="button article-sidebar-mini-button" type="button" data-reset-title>默认标题</button>
-            <button class="button article-sidebar-mini-button" type="button" data-move-item="up">上移</button>
-            <button class="button article-sidebar-mini-button" type="button" data-move-item="down">下移</button>
-            {% if node.node_type == "file" %}
-                <a class="button article-sidebar-mini-button"
-                   href="/article/{{ node.path }}"
-                   target="_blank"
-                   rel="noopener">预览</a>
-            {% endif %}
+            <div class="article-sidebar-title-field">
+                <input class="article-sidebar-title-input"
+                       type="text"
+                       value="{{ node.title }}"
+                       placeholder="{{ node.default_title }}"
+                       data-title-input
+                       data-default-title="{{ node.default_title }}"
+                       aria-label="{{ node.path }} 标题">
+                <span class="article-sidebar-default-title">默认：{{ node.default_title }}</span>
+            </div>
+            <div class="article-sidebar-row-actions">
+                <button class="button article-sidebar-mini-button" type="button" data-reset-title>默认标题</button>
+                <button class="button article-sidebar-mini-button" type="button" data-move-item="up">上移</button>
+                <button class="button article-sidebar-mini-button" type="button" data-move-item="down">下移</button>
+                {% if node.node_type == "file" %}
+                    <a class="button article-sidebar-mini-button"
+                       href="/article/{{ node.path }}"
+                       target="_blank"
+                       rel="noopener">预览</a>
+                {% endif %}
+            </div>
             <span class="article-sidebar-node-path">{{ node.path }}</span>
         </div>
         {% if node.node_type == "dir" %}
