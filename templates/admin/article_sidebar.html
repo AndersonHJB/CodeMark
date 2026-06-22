@@ -122,6 +122,23 @@
         border-color: #9b3d24;
     }
 
+    .article-sidebar-button:disabled,
+    .article-sidebar-node-button:disabled {
+        color: var(--body-quiet-color);
+        background: color-mix(in srgb, var(--darkened-bg) 72%, var(--body-bg));
+        border-color: var(--border-color);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.58;
+    }
+
+    .article-sidebar-button:disabled:hover,
+    .article-sidebar-node-button:disabled:hover {
+        color: var(--body-quiet-color);
+        background: color-mix(in srgb, var(--darkened-bg) 72%, var(--body-bg));
+        border-color: var(--border-color);
+    }
+
     .article-sidebar-button:focus-visible,
     .article-sidebar-card-action:focus-visible,
     .article-sidebar-node-button:focus-visible {
@@ -546,6 +563,11 @@
                 </div>
                 <div class="article-sidebar-admin-actions">
                     <a class="article-sidebar-button article-sidebar-button-plain" href="{% url 'admin_article_sidebar' %}">返回列表</a>
+                    <button class="article-sidebar-button article-sidebar-button-secondary"
+                            type="button"
+                            data-undo-sidebar
+                            disabled
+                            title="没有可撤销的操作">撤销</button>
                     <button class="article-sidebar-button article-sidebar-button-secondary" type="button" data-reset-all-titles>恢复默认</button>
                     <button class="article-sidebar-button article-sidebar-button-primary" type="submit">保存</button>
                     <button class="article-sidebar-button article-sidebar-button-danger"
@@ -624,8 +646,14 @@
         if (!editorForm) return;
 
         const payloadInput = editorForm.querySelector('[data-sidebar-payload]');
+        const undoButton = editorForm.querySelector('[data-undo-sidebar]');
+        const MAX_UNDO_STEPS = 100;
+        const undoStack = [];
         let dragItem = null;
         let dragList = null;
+        let dragUndoSnapshot = null;
+        let dragUndoRecorded = false;
+        let restoringHistory = false;
 
         function isSidebarItem(element) {
             return element && element.matches && element.matches('[data-sidebar-admin-item]');
@@ -826,6 +854,135 @@
             });
         }
 
+        function collectState() {
+            const payload = [];
+            const collectionRoot = editorForm.querySelector('[data-collection-root-item]');
+            if (collectionRoot) {
+                collectItem(collectionRoot, null, payload);
+            }
+
+            const rootList = editorForm.querySelector('[data-sidebar-admin-root]');
+            if (rootList) {
+                collectList(rootList, payload);
+            }
+            return payload;
+        }
+
+        function serializeState(state) {
+            return JSON.stringify(state || []);
+        }
+
+        function cloneState(state) {
+            return JSON.parse(serializeState(state));
+        }
+
+        function updateUndoButtonState() {
+            if (!undoButton) return;
+
+            const hasUndo = undoStack.length > 0;
+            undoButton.disabled = !hasUndo;
+            undoButton.title = hasUndo ? '撤销上一步' : '没有可撤销的操作';
+        }
+
+        function pushUndoSnapshot(snapshot) {
+            if (restoringHistory || !snapshot) return;
+
+            const nextSnapshot = cloneState(snapshot);
+            const lastSnapshot = undoStack[undoStack.length - 1];
+            if (lastSnapshot && serializeState(lastSnapshot) === serializeState(nextSnapshot)) {
+                return;
+            }
+
+            undoStack.push(nextSnapshot);
+            if (undoStack.length > MAX_UNDO_STEPS) {
+                undoStack.shift();
+            }
+            updateUndoButtonState();
+        }
+
+        function pushUndoState() {
+            pushUndoSnapshot(collectState());
+        }
+
+        function runWithUndo(mutator) {
+            const beforeState = collectState();
+            mutator();
+            if (serializeState(beforeState) !== serializeState(collectState())) {
+                pushUndoSnapshot(beforeState);
+            }
+        }
+
+        function restoreState(state) {
+            const collectionRoot = editorForm.querySelector('[data-collection-root-item]');
+            const rootList = editorForm.querySelector('[data-sidebar-admin-root]');
+            const collectionPath = collectionRoot ? collectionRoot.dataset.path || '' : '';
+            const itemMap = new Map();
+
+            if (collectionRoot) {
+                itemMap.set(collectionRoot.dataset.path || '', collectionRoot);
+            }
+
+            editorForm.querySelectorAll('[data-sidebar-admin-item]').forEach(item => {
+                itemMap.set(item.dataset.path || '', item);
+            });
+
+            restoringHistory = true;
+            try {
+                state.forEach(entry => {
+                    const item = itemMap.get(entry.path || '');
+                    if (!item) return;
+
+                    item.dataset.parentPath = entry.parent_path || '';
+                    item.dataset.sortOrder = String(entry.sort_order || 0);
+                    item.dataset.hidden = entry.is_hidden ? 'true' : 'false';
+
+                    const input = getTitleInput(item);
+                    if (input) {
+                        input.value = entry.title || '';
+                    }
+                });
+
+                state.forEach(entry => {
+                    if (!rootList || entry.path === collectionPath) return;
+
+                    const item = itemMap.get(entry.path || '');
+                    if (!item || item.matches('[data-collection-root-item]')) return;
+
+                    const parentPath = entry.parent_path || '';
+                    const parentItem = itemMap.get(parentPath);
+                    const parentList = parentItem && !parentItem.matches('[data-collection-root-item]')
+                        ? getDirectChildList(parentItem)
+                        : rootList;
+                    if (parentList) {
+                        parentList.appendChild(item);
+                    }
+                });
+
+                editorForm.querySelectorAll('[data-sidebar-admin-list]').forEach(refreshEmptyChildListState);
+                syncHiddenState();
+            } finally {
+                restoringHistory = false;
+                updateUndoButtonState();
+            }
+        }
+
+        function undoLastChange() {
+            const previousState = undoStack.pop();
+            if (!previousState) {
+                updateUndoButtonState();
+                return;
+            }
+            restoreState(previousState);
+        }
+
+        function recordDragMutationIfNeeded() {
+            if (dragUndoRecorded || !dragUndoSnapshot) return;
+            if (serializeState(dragUndoSnapshot) === serializeState(collectState())) return;
+
+            pushUndoSnapshot(dragUndoSnapshot);
+            dragUndoRecorded = true;
+        }
+
         editorForm.addEventListener('dragstart', event => {
             const item = event.target.closest('[data-sidebar-admin-item]');
             if (!item) return;
@@ -843,6 +1000,8 @@
 
             dragItem = item;
             dragList = item.parentElement;
+            dragUndoSnapshot = collectState();
+            dragUndoRecorded = false;
             item.classList.add('is-dragging');
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', item.dataset.path || '');
@@ -856,6 +1015,8 @@
             }
             dragItem = null;
             dragList = null;
+            dragUndoSnapshot = null;
+            dragUndoRecorded = false;
         });
 
         editorForm.addEventListener('dragover', event => {
@@ -877,6 +1038,7 @@
             refreshEmptyChildListState(list);
             dragList = list;
             dragItem.dataset.parentPath = list.dataset.parentPath || '';
+            recordDragMutationIfNeeded();
             editorForm.querySelectorAll('.is-drop-target').forEach(row => row.classList.remove('is-drop-target'));
             editorForm.querySelectorAll('.is-drop-list').forEach(dropList => dropList.classList.remove('is-drop-list'));
             list.classList.add('is-drop-list');
@@ -886,10 +1048,18 @@
         });
 
         editorForm.addEventListener('click', event => {
+            const undoTrigger = event.target.closest('[data-undo-sidebar]');
+            if (undoTrigger) {
+                undoLastChange();
+                return;
+            }
+
             const resetAllTitles = event.target.closest('[data-reset-all-titles]');
             if (resetAllTitles) {
-                editorForm.querySelectorAll('[data-title-input]').forEach(input => {
-                    input.value = input.dataset.defaultTitle || '';
+                runWithUndo(() => {
+                    editorForm.querySelectorAll('[data-title-input]').forEach(input => {
+                        input.value = input.dataset.defaultTitle || '';
+                    });
                 });
                 return;
             }
@@ -898,8 +1068,10 @@
             if (toggleHidden) {
                 const item = toggleHidden.closest('[data-sidebar-admin-item], [data-collection-root-item]');
                 if (item && !toggleHidden.disabled) {
-                    item.dataset.hidden = isHidden(item) ? 'false' : 'true';
-                    syncHiddenState();
+                    runWithUndo(() => {
+                        item.dataset.hidden = isHidden(item) ? 'false' : 'true';
+                        syncHiddenState();
+                    });
                 }
                 return;
             }
@@ -909,7 +1081,9 @@
                 const item = resetTitle.closest('[data-sidebar-admin-item], [data-collection-root-item]');
                 const input = getTitleInput(item);
                 if (input) {
-                    input.value = input.dataset.defaultTitle || '';
+                    runWithUndo(() => {
+                        input.value = input.dataset.defaultTitle || '';
+                    });
                     input.focus();
                 }
                 return;
@@ -919,9 +1093,25 @@
             if (moveButton) {
                 const item = moveButton.closest('[data-sidebar-admin-item]');
                 if (item) {
-                    moveItem(item, moveButton.dataset.moveItem);
+                    runWithUndo(() => {
+                        moveItem(item, moveButton.dataset.moveItem);
+                    });
                 }
             }
+        });
+
+        editorForm.addEventListener('beforeinput', event => {
+            if (event.target.matches('[data-title-input]') && !event.target.disabled) {
+                pushUndoState();
+            }
+        });
+
+        editorForm.addEventListener('keydown', event => {
+            const isUndoShortcut = (event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z';
+            if (!isUndoShortcut) return;
+
+            event.preventDefault();
+            undoLastChange();
         });
 
         editorForm.addEventListener('submit', event => {
@@ -930,20 +1120,11 @@
                 return;
             }
 
-            const payload = [];
-            const collectionRoot = editorForm.querySelector('[data-collection-root-item]');
-            if (collectionRoot) {
-                collectItem(collectionRoot, null, payload);
-            }
-
-            const rootList = editorForm.querySelector('[data-sidebar-admin-root]');
-            if (rootList) {
-                collectList(rootList, payload);
-            }
-            payloadInput.value = JSON.stringify(payload);
+            payloadInput.value = JSON.stringify(collectState());
         });
 
         syncHiddenState();
+        updateUndoButtonState();
     })();
 </script>
 {% endblock %}
