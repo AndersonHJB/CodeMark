@@ -14,6 +14,7 @@ class ArticleSidebarItem(models.Model):
     node_type = models.CharField("类型", max_length=12, choices=NODE_TYPE_CHOICES)
     title_override = models.CharField("自定义标题", max_length=255, blank=True)
     sort_order = models.PositiveIntegerField("排序", null=True, blank=True)
+    is_hidden = models.BooleanField("隐藏", default=False, db_index=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     class Meta:

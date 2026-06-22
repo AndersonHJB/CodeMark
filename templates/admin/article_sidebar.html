@@ -155,6 +155,17 @@
         background: var(--darkened-bg);
     }
 
+    .article-sidebar-collection-card.is-hidden {
+        color: var(--body-quiet-color);
+        background: color-mix(in srgb, var(--darkened-bg) 78%, var(--body-bg));
+        border-style: dashed;
+    }
+
+    .article-sidebar-collection-card.is-hidden:hover {
+        color: var(--body-fg);
+        background: color-mix(in srgb, var(--darkened-bg) 88%, var(--body-bg));
+    }
+
     .article-sidebar-collection-card h3 {
         margin: 0;
         font-size: 15px;
@@ -179,6 +190,12 @@
         border: 1px solid var(--border-color);
         border-radius: 999px;
         background: var(--darkened-bg);
+    }
+
+    .article-sidebar-pill-hidden {
+        color: #7a5a44;
+        background: #f6eee8;
+        border-color: #d8c5b7;
     }
 
     .article-sidebar-collection-path,
@@ -268,6 +285,33 @@
 
     .article-sidebar-admin-node.is-dragging {
         opacity: 0.5;
+    }
+
+    .article-sidebar-admin-node.is-hidden > .article-sidebar-admin-row,
+    .article-sidebar-collection-root-row.is-hidden {
+        color: var(--body-quiet-color);
+        background: color-mix(in srgb, var(--darkened-bg) 78%, var(--body-bg));
+    }
+
+    .article-sidebar-admin-node.is-inherited-hidden > .article-sidebar-admin-row {
+        background: color-mix(in srgb, var(--darkened-bg) 88%, var(--body-bg));
+    }
+
+    .article-sidebar-admin-node.is-hidden > .article-sidebar-admin-row .article-sidebar-title-input,
+    .article-sidebar-collection-root-row.is-hidden .article-sidebar-title-input {
+        color: var(--body-quiet-color);
+        background: color-mix(in srgb, var(--darkened-bg) 78%, var(--body-bg));
+        border-color: var(--hairline-color);
+    }
+
+    .article-sidebar-admin-node.is-hidden > .article-sidebar-admin-row .article-sidebar-drag-handle {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    .article-sidebar-admin-node.is-hidden > .article-sidebar-admin-row .article-sidebar-node-path,
+    .article-sidebar-collection-root-row.is-hidden .article-sidebar-node-path {
+        color: color-mix(in srgb, var(--body-quiet-color) 76%, var(--body-bg));
     }
 
     .article-sidebar-admin-row,
@@ -381,8 +425,26 @@
         background: color-mix(in srgb, var(--darkened-bg) 56%, var(--body-bg));
     }
 
+    .article-sidebar-node-button-hidden {
+        color: #8a3a24;
+        background: #fff8f4;
+        border-color: #e4b49f;
+    }
+
+    .article-sidebar-node-button-hidden[aria-pressed="true"] {
+        color: var(--link-fg);
+        background: color-mix(in srgb, var(--link-fg) 7%, var(--body-bg));
+        border-color: color-mix(in srgb, var(--link-fg) 22%, var(--border-color));
+    }
+
     .article-sidebar-node-button-preview {
         background: color-mix(in srgb, var(--link-fg) 7%, var(--body-bg));
+    }
+
+    .article-sidebar-admin-row [aria-disabled="true"],
+    .article-sidebar-collection-root-row [aria-disabled="true"] {
+        pointer-events: none;
+        opacity: 0.55;
     }
 
     .article-sidebar-admin-empty {
@@ -447,13 +509,16 @@
         {% if article_collections %}
             <div class="article-sidebar-collection-grid">
                 {% for collection in article_collections %}
-                    <a class="article-sidebar-collection-card"
+                    <a class="article-sidebar-collection-card{% if collection.is_hidden %} is-hidden{% endif %}"
                        href="{% url 'admin_article_sidebar' %}?collection={{ collection.path|urlencode }}">
                         <div>
                             <h3>{{ collection.title }}</h3>
                             <div class="article-sidebar-collection-meta">
                                 <span class="article-sidebar-pill">{{ collection.article_count }} 篇文章</span>
                                 <span class="article-sidebar-pill">{{ collection.tree.children|length }} 个一级节点</span>
+                                {% if collection.is_hidden %}
+                                    <span class="article-sidebar-pill article-sidebar-pill-hidden">已隐藏</span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="article-sidebar-collection-path">{{ collection.path }}</div>
@@ -492,12 +557,13 @@
             </div>
 
             <div class="article-sidebar-editor-body">
-                <div class="article-sidebar-collection-root-row"
+                <div class="article-sidebar-collection-root-row{% if selected_collection.is_hidden %} is-hidden{% endif %}"
                      data-collection-root-item
                      data-path="{{ selected_collection.path }}"
                      data-node-type="{{ selected_collection.node_type }}"
                      data-parent-path="{{ selected_collection.parent_path }}"
-                     data-sort-order="{{ selected_collection.sort_order }}">
+                     data-sort-order="{{ selected_collection.sort_order }}"
+                     data-hidden="{% if selected_collection.is_hidden %}true{% else %}false{% endif %}">
                     <span class="article-sidebar-node-type">专栏</span>
                     <div class="article-sidebar-title-field">
                         <input class="article-sidebar-title-input"
@@ -509,7 +575,16 @@
                                aria-label="{{ selected_collection.path }} 标题">
                         <span class="article-sidebar-default-title">默认：{{ selected_collection.default_title }}</span>
                     </div>
-                    <button class="article-sidebar-node-button article-sidebar-node-button-muted" type="button" data-reset-title title="恢复默认标题">默认</button>
+                    <div class="article-sidebar-row-actions">
+                        <button class="article-sidebar-node-button article-sidebar-node-button-muted" type="button" data-reset-title title="恢复默认标题">默认</button>
+                        <button class="article-sidebar-node-button article-sidebar-node-button-hidden"
+                                type="button"
+                                data-toggle-hidden
+                                aria-pressed="{% if selected_collection.is_hidden %}true{% else %}false{% endif %}"
+                                title="{% if selected_collection.is_hidden %}显示此专栏{% else %}隐藏此专栏{% endif %}">
+                            {% if selected_collection.is_hidden %}显示{% else %}隐藏{% endif %}
+                        </button>
+                    </div>
                     <span class="article-sidebar-node-path" title="{{ selected_collection.path }}">{{ selected_collection.path }}</span>
                 </div>
 
@@ -607,6 +682,90 @@
             return row ? row.querySelector('[data-title-input]') : null;
         }
 
+        function getItemRow(item) {
+            if (!item) return null;
+            return item.matches('[data-collection-root-item]') ? item : getDirectRow(item);
+        }
+
+        function isHidden(item) {
+            return item && item.dataset.hidden === 'true';
+        }
+
+        function updateHiddenButton(button, hidden) {
+            if (!button) return;
+
+            button.textContent = hidden ? '显示' : '隐藏';
+            button.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+            button.title = hidden ? '显示此节点' : '隐藏此节点';
+        }
+
+        function setControlDisabled(control, disabled) {
+            if (!control) return;
+
+            if (control.matches('input, textarea, select, button')) {
+                control.disabled = disabled;
+                return;
+            }
+
+            if (disabled) {
+                control.setAttribute('aria-disabled', 'true');
+                control.setAttribute('tabindex', '-1');
+            } else {
+                control.removeAttribute('aria-disabled');
+                control.removeAttribute('tabindex');
+            }
+        }
+
+        function syncRowDisabledState(item, inheritedHidden) {
+            const row = getItemRow(item);
+            if (!row) return;
+
+            const directHidden = isHidden(item);
+            const effectiveHidden = inheritedHidden || directHidden;
+            const canToggle = !inheritedHidden;
+            item.dataset.effectiveHidden = effectiveHidden ? 'true' : 'false';
+            item.classList.toggle('is-hidden', effectiveHidden);
+            item.classList.toggle('is-inherited-hidden', inheritedHidden);
+
+            if (item.matches('[data-sidebar-admin-item]')) {
+                item.setAttribute('draggable', effectiveHidden ? 'false' : 'true');
+            }
+
+            row.querySelectorAll('input, textarea, select, button, a, [data-drag-handle]').forEach(control => {
+                const isToggle = control.matches('[data-toggle-hidden]');
+                setControlDisabled(control, effectiveHidden && (!isToggle || !canToggle));
+            });
+
+            updateHiddenButton(row.querySelector('[data-toggle-hidden]'), directHidden);
+        }
+
+        function syncHiddenBranch(item, inheritedHidden) {
+            const nextInheritedHidden = inheritedHidden || isHidden(item);
+            syncRowDisabledState(item, inheritedHidden);
+
+            const childList = getDirectChildList(item);
+            if (!childList) return;
+
+            Array.from(childList.children).filter(isSidebarItem).forEach(child => {
+                syncHiddenBranch(child, nextInheritedHidden);
+            });
+        }
+
+        function syncHiddenState() {
+            const collectionRoot = editorForm.querySelector('[data-collection-root-item]');
+            const rootHidden = isHidden(collectionRoot);
+            if (collectionRoot) {
+                syncRowDisabledState(collectionRoot, false);
+            }
+
+            const rootList = editorForm.querySelector('[data-sidebar-admin-root]');
+            if (!rootList) return;
+
+            Array.from(rootList.children).filter(isSidebarItem).forEach(item => {
+                syncHiddenBranch(item, rootHidden);
+            });
+        }
+
         function getDragAfterElement(list, y) {
             const items = Array.from(list.children).filter(child => {
                 return isSidebarItem(child) && child !== dragItem && !child.classList.contains('is-dragging');
@@ -652,6 +811,7 @@
                 parent_path: item.dataset.parentPath || '',
                 sort_order: itemSortOrder,
                 title: input ? input.value.trim() : '',
+                is_hidden: isHidden(item),
             });
         }
 
@@ -669,6 +829,11 @@
         editorForm.addEventListener('dragstart', event => {
             const item = event.target.closest('[data-sidebar-admin-item]');
             if (!item) return;
+
+            if (item.dataset.effectiveHidden === 'true') {
+                event.preventDefault();
+                return;
+            }
 
             const interactiveTarget = event.target.closest('input, textarea, select, button, a');
             if (interactiveTarget && !event.target.closest('[data-drag-handle]')) {
@@ -729,6 +894,16 @@
                 return;
             }
 
+            const toggleHidden = event.target.closest('[data-toggle-hidden]');
+            if (toggleHidden) {
+                const item = toggleHidden.closest('[data-sidebar-admin-item], [data-collection-root-item]');
+                if (item && !toggleHidden.disabled) {
+                    item.dataset.hidden = isHidden(item) ? 'false' : 'true';
+                    syncHiddenState();
+                }
+                return;
+            }
+
             const resetTitle = event.target.closest('[data-reset-title]');
             if (resetTitle) {
                 const item = resetTitle.closest('[data-sidebar-admin-item], [data-collection-root-item]');
@@ -767,6 +942,8 @@
             }
             payloadInput.value = JSON.stringify(payload);
         });
+
+        syncHiddenState();
     })();
 </script>
 {% endblock %}

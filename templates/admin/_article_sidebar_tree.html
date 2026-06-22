@@ -1,9 +1,10 @@
 {% for node in tree.children %}
-    <li class="article-sidebar-admin-node is-{{ node.node_type }}"
+    <li class="article-sidebar-admin-node is-{{ node.node_type }}{% if node.is_hidden %} is-hidden{% endif %}"
         data-sidebar-admin-item
         data-path="{{ node.path }}"
         data-node-type="{{ node.node_type }}"
         data-parent-path="{{ node.parent_path }}"
+        data-hidden="{% if node.is_hidden %}true{% else %}false{% endif %}"
         draggable="true">
         <div class="article-sidebar-admin-row">
             <span class="article-sidebar-drag-handle"
@@ -27,6 +28,13 @@
             </div>
             <div class="article-sidebar-row-actions">
                 <button class="article-sidebar-node-button article-sidebar-node-button-muted" type="button" data-reset-title title="恢复默认标题">默认</button>
+                <button class="article-sidebar-node-button article-sidebar-node-button-hidden"
+                        type="button"
+                        data-toggle-hidden
+                        aria-pressed="{% if node.is_hidden %}true{% else %}false{% endif %}"
+                        title="{% if node.is_hidden %}显示此节点{% else %}隐藏此节点{% endif %}">
+                    {% if node.is_hidden %}显示{% else %}隐藏{% endif %}
+                </button>
                 <button class="article-sidebar-node-button article-sidebar-node-button-icon" type="button" data-move-item="up" title="上移" aria-label="上移">↑</button>
                 <button class="article-sidebar-node-button article-sidebar-node-button-icon" type="button" data-move-item="down" title="下移" aria-label="下移">↓</button>
                 {% if node.node_type == "file" %}

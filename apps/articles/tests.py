@@ -186,6 +186,80 @@ class ArticleDirectoryTreeTests(TestCase):
         self.assertEqual(child_article["tree"]["files"][0]["path"], "专栏/03-grandchild.md")
         self.assertEqual(parent_article["article_count"], 3)
 
+    def test_hidden_article_is_filtered_from_public_tree_but_kept_for_admin_tree(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-visible.md").write_text("# visible", encoding="utf-8")
+            (root / "专栏" / "02-hidden.md").write_text("# hidden", encoding="utf-8")
+
+            ArticleSidebarItem.objects.create(
+                path="专栏/02-hidden.md",
+                parent_path="专栏",
+                node_type=ArticleSidebarItem.NODE_FILE,
+                sort_order=1,
+                is_hidden=True,
+            )
+
+            config_map = views.get_article_sidebar_config_map()
+            admin_tree = views.build_directory_tree(root, config_map=config_map)
+            public_tree = views.build_directory_tree(root, config_map=config_map, hide_hidden=True)
+
+        admin_paths = views.flatten_directory_tree(admin_tree)
+        collection_tree = views.get_article_collections(public_tree)[0]["tree"]
+
+        self.assertIn("专栏/02-hidden.md", admin_paths)
+        self.assertFalse(views.contains_sidebar_path(public_tree, "专栏/02-hidden.md"))
+        self.assertEqual([item["path"] for item in collection_tree["files"]], ["专栏/01-visible.md"])
+        self.assertEqual(collection_tree["article_count"], 1)
+
+    def test_hidden_folder_filters_descendant_articles(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏" / "章节").mkdir(parents=True)
+            (root / "专栏" / "章节" / "01-hidden-child.md").write_text("# hidden child", encoding="utf-8")
+            (root / "专栏" / "02-visible.md").write_text("# visible", encoding="utf-8")
+
+            ArticleSidebarItem.objects.create(
+                path="专栏/章节",
+                parent_path="专栏",
+                node_type=ArticleSidebarItem.NODE_DIR,
+                sort_order=0,
+                is_hidden=True,
+            )
+
+            public_tree = views.build_directory_tree(
+                root,
+                config_map=views.get_article_sidebar_config_map(),
+                hide_hidden=True,
+            )
+
+        collection_tree = views.get_article_collections(public_tree)[0]["tree"]
+
+        self.assertFalse(views.contains_sidebar_path(public_tree, "专栏/章节"))
+        self.assertFalse(views.contains_sidebar_path(public_tree, "专栏/章节/01-hidden-child.md"))
+        self.assertEqual([item["path"] for item in collection_tree["files"]], ["专栏/02-visible.md"])
+        self.assertEqual(collection_tree["article_count"], 1)
+
+    def test_save_sidebar_payload_persists_hidden_state(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-a.md").write_text("# a", encoding="utf-8")
+
+            generated_tree = views.build_directory_tree(root)
+            valid_items = views.flatten_directory_tree(generated_tree)
+            views.save_article_sidebar_payload([{
+                "path": "专栏/01-a.md",
+                "node_type": ArticleSidebarItem.NODE_FILE,
+                "parent_path": "专栏",
+                "sort_order": 0,
+                "title": "a",
+                "is_hidden": True,
+            }], valid_items)
+
+        self.assertTrue(ArticleSidebarItem.objects.get(path="专栏/01-a.md").is_hidden)
+
     def test_sidebar_parent_validation_rejects_article_cycle(self):
         with TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -250,3 +324,22 @@ class ArticleDirectoryTreeTests(TestCase):
         self.assertIn('aria-current="page"', html)
         self.assertRegex(html, r'data-folder-path="专栏/章节"\s+aria-expanded="true"')
         self.assertRegex(html, r'data-folder-path="专栏/章节/子章节"\s+aria-expanded="true"')
+
+    def test_hidden_article_url_returns_404(self):
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "专栏").mkdir()
+            (root / "专栏" / "01-hidden.md").write_text("# hidden", encoding="utf-8")
+
+            ArticleSidebarItem.objects.create(
+                path="专栏/01-hidden.md",
+                parent_path="专栏",
+                node_type=ArticleSidebarItem.NODE_FILE,
+                sort_order=0,
+                is_hidden=True,
+            )
+
+            with override_settings(CODEMARK_ARTICLES_DIR=root):
+                response = self.client.get(reverse("article", kwargs={"filename": "专栏/01-hidden.md"}))
+
+        self.assertEqual(response.status_code, 404)

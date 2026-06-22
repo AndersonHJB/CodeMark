@@ -115,6 +115,10 @@ def get_configured_sort_order(config_map, path):
     return config_item.sort_order if config_item else None
 
 
+def get_configured_hidden(config_item):
+    return bool(config_item and config_item.is_hidden)
+
+
 def sort_sidebar_children(children, config_map):
     def sort_key(child):
         configured_order = get_configured_sort_order(config_map, child["path"])
@@ -196,6 +200,8 @@ def make_empty_sidebar_tree(dirname="", path=""):
         "default_title": dirname,
         "title": dirname,
         "title_override": "",
+        "is_hidden": False,
+        "is_effectively_hidden": False,
         "subdirs": {},
         "subdirs_list": [],
         "files": [],
@@ -212,6 +218,38 @@ def reset_directory_tree_summary(tree):
     tree["subdirs"] = {}
     tree["article_count"] = 0
     tree["first_article_path"] = ""
+
+
+def refresh_sidebar_tree_summary(current_tree, config_map=None, current_file=""):
+    current_tree["children"] = sort_sidebar_children(current_tree.get("children", []), config_map)
+    current_tree["files"] = []
+    current_tree["subdirs_list"] = []
+    current_tree["subdirs"] = {}
+    current_tree["article_count"] = 0
+
+    for child_index, child in enumerate(current_tree["children"]):
+        child["delay_ms"] = 240 + child_index * 80
+        child_tree = child.get("tree")
+        if child["node_type"] == ArticleSidebarItem.NODE_FILE:
+            if child_tree:
+                refresh_sidebar_tree_summary(child_tree, config_map, current_file)
+            child["is_active"] = child["path"] == current_file
+            child["article_count"] = 1 + (child_tree.get("article_count", 0) if child_tree else 0)
+            child["first_article_path"] = child["path"]
+            child["is_open"] = child["is_active"] or (contains_sidebar_path(child_tree, current_file) if child_tree else False)
+            current_tree["files"].append(child)
+            current_tree["article_count"] += child["article_count"]
+        else:
+            refresh_sidebar_tree_summary(child_tree, config_map, current_file)
+            child["article_count"] = child_tree["article_count"]
+            child["first_article_path"] = child_tree["first_article_path"]
+            child["is_open"] = contains_sidebar_path(child_tree, current_file)
+            current_tree["subdirs"][child["dirname"]] = child_tree
+            current_tree["subdirs_list"].append(child)
+            current_tree["article_count"] += child["article_count"]
+
+    current_tree["first_article_path"] = get_first_article_path(current_tree["children"])
+    return current_tree
 
 
 def apply_custom_sidebar_hierarchy(tree, config_map, current_file=""):
@@ -254,38 +292,25 @@ def apply_custom_sidebar_hierarchy(tree, config_map, current_file=""):
         item["parent_path"] = parent_path
         parent_tree["children"].append(item)
 
-    def refresh_tree_summary(current_tree):
-        current_tree["children"] = sort_sidebar_children(current_tree.get("children", []), config_map)
-        current_tree["files"] = []
-        current_tree["subdirs_list"] = []
-        current_tree["subdirs"] = {}
-        current_tree["article_count"] = 0
-
-        for child_index, child in enumerate(current_tree["children"]):
-            child["delay_ms"] = 240 + child_index * 80
-            child_tree = child.get("tree")
-            if child["node_type"] == ArticleSidebarItem.NODE_FILE:
-                if child_tree:
-                    refresh_tree_summary(child_tree)
-                child["is_active"] = child["path"] == current_file
-                child["article_count"] = 1 + (child_tree.get("article_count", 0) if child_tree else 0)
-                child["first_article_path"] = child["path"]
-                child["is_open"] = child["is_active"] or (contains_sidebar_path(child_tree, current_file) if child_tree else False)
-                current_tree["files"].append(child)
-                current_tree["article_count"] += child["article_count"]
-            else:
-                refresh_tree_summary(child_tree)
-                child["article_count"] = child_tree["article_count"]
-                child["first_article_path"] = child_tree["first_article_path"]
-                child["is_open"] = contains_sidebar_path(child_tree, current_file)
-                current_tree["subdirs"][child["dirname"]] = child_tree
-                current_tree["subdirs_list"].append(child)
-                current_tree["article_count"] += child["article_count"]
-
-        current_tree["first_article_path"] = get_first_article_path(current_tree["children"])
-
-    refresh_tree_summary(tree)
+    refresh_sidebar_tree_summary(tree, config_map, current_file)
     return tree
+
+
+def filter_hidden_sidebar_tree(tree, current_file="", config_map=None):
+    visible_children = []
+
+    for child in tree.get("children", []):
+        child["is_effectively_hidden"] = bool(child.get("is_hidden"))
+        if child["is_effectively_hidden"]:
+            continue
+
+        child_tree = child.get("tree")
+        if child_tree:
+            filter_hidden_sidebar_tree(child_tree, current_file=current_file, config_map=config_map)
+        visible_children.append(child)
+
+    tree["children"] = visible_children
+    return refresh_sidebar_tree_summary(tree, config_map, current_file)
 
 
 def contains_sidebar_path(tree, target_path):
@@ -300,7 +325,14 @@ def contains_sidebar_path(tree, target_path):
     return False
 
 
-def build_directory_tree(root_dir, relative_path="", current_file="", config_map=None, apply_custom_hierarchy=True):
+def build_directory_tree(
+    root_dir,
+    relative_path="",
+    current_file="",
+    config_map=None,
+    apply_custom_hierarchy=True,
+    hide_hidden=False,
+):
     """
     递归地构建目录树数据结构：
     返回示例:
@@ -323,6 +355,8 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
     tree.update({
         'title': get_configured_title(node_config, dirname),
         'title_override': node_config.title_override if node_config else '',
+        'is_hidden': get_configured_hidden(node_config),
+        'is_effectively_hidden': get_configured_hidden(node_config),
     })
 
     if not os.path.isdir(root_dir):
@@ -351,6 +385,8 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
             'title': get_configured_title(file_config, default_title),
             'title_override': file_config.title_override if file_config else '',
             'sort_order': file_config.sort_order if file_config and file_config.sort_order is not None else natural_order,
+            'is_hidden': get_configured_hidden(file_config),
+            'is_effectively_hidden': get_configured_hidden(file_config),
             'is_active': file_path == current_file,
             'natural_order': natural_order,
             'tree': make_empty_sidebar_tree(default_title, file_path),
@@ -372,6 +408,7 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
             current_file,
             config_map,
             apply_custom_hierarchy=False,
+            hide_hidden=False,
         )
         subdir_config = config_map.get(subdir_relative_path) if config_map else None
         tree['subdirs'][d] = subdir_tree
@@ -384,6 +421,8 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
             'title': subdir_tree['title'],
             'title_override': subdir_tree.get('title_override', ''),
             'sort_order': subdir_config.sort_order if subdir_config and subdir_config.sort_order is not None else natural_order,
+            'is_hidden': get_configured_hidden(subdir_config),
+            'is_effectively_hidden': get_configured_hidden(subdir_config),
             'tree': subdir_tree,
             'is_open': is_path_under(current_file, subdir_relative_path),
             'article_count': subdir_tree['article_count'],
@@ -408,6 +447,9 @@ def build_directory_tree(root_dir, relative_path="", current_file="", config_map
 
     if apply_custom_hierarchy:
         apply_custom_sidebar_hierarchy(tree, config_map, current_file)
+
+    if hide_hidden:
+        filter_hidden_sidebar_tree(tree, current_file=current_file, config_map=config_map)
 
     return tree
 
@@ -440,6 +482,16 @@ def build_article_meta(meta):
         "categories": [item.lstrip("-") for item in meta.get("category", []) if item.lstrip("-")],
         "tags": [item.lstrip("-") for item in meta.get("tag", []) if item.lstrip("-")],
     }
+
+
+def parse_sidebar_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return False
 
 
 def save_article_sidebar_payload(payload, valid_items):
@@ -493,6 +545,7 @@ def save_article_sidebar_payload(payload, valid_items):
                 sort_order = 0
 
             parent_path = parent_map.get(path, valid_item.get("parent_path", ""))
+            is_hidden = parse_sidebar_bool(raw_item.get("is_hidden", False))
 
             ArticleSidebarItem.objects.update_or_create(
                 path=path,
@@ -501,6 +554,7 @@ def save_article_sidebar_payload(payload, valid_items):
                     "node_type": valid_item.get("node_type", ArticleSidebarItem.NODE_FILE),
                     "title_override": title_override,
                     "sort_order": max(sort_order, 0),
+                    "is_hidden": is_hidden,
                 },
             )
             saved_count += 1
@@ -541,7 +595,7 @@ def index():
     新版主页：遍历文章内容目录，将一级目录作为专栏展示。
     """
     config_map = get_article_sidebar_config_map()
-    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, config_map=config_map)
+    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, config_map=config_map, hide_hidden=True)
     return render_page('index.html',
                        directory_tree=directory_tree,
                        article_collections=get_article_collections(directory_tree))
@@ -557,6 +611,18 @@ def article(filename):
     """
     full_path = get_safe_article_path(filename)
     if not full_path or not os.path.isfile(full_path):
+        return HttpResponse(f"File not found: {filename}", status=404)
+
+    # Hidden sidebar items are not public article targets. This also covers
+    # descendants hidden through a parent folder or custom sidebar hierarchy.
+    config_map = get_article_sidebar_config_map()
+    directory_tree = build_directory_tree(
+        settings.CODEMARK_ARTICLES_DIR,
+        current_file=filename,
+        config_map=config_map,
+        hide_hidden=True,
+    )
+    if filename.endswith(".md") and not contains_sidebar_path(directory_tree, filename):
         return HttpResponse(f"File not found: {filename}", status=404)
 
     with open(full_path, 'r', encoding='utf-8') as f:
@@ -583,8 +649,6 @@ def article(filename):
         meta = md.Meta if hasattr(md, 'Meta') else {}
 
     # 构建目录树；文章页左侧只渲染当前专栏自己的目录树。
-    config_map = get_article_sidebar_config_map()
-    directory_tree = build_directory_tree(settings.CODEMARK_ARTICLES_DIR, current_file=filename, config_map=config_map)
     article_collections = get_article_collections(directory_tree)
     current_collection = get_current_collection(directory_tree, filename)
     sidebar_tree = current_collection['tree'] if current_collection else directory_tree
@@ -629,7 +693,7 @@ def admin_article_sidebar():
         except (json.JSONDecodeError, ValueError) as exc:
             messages.error(django_request, str(exc))
         else:
-            messages.success(django_request, f"已保存 {saved_count} 个侧边栏节点的标题和排序。")
+            messages.success(django_request, f"已保存 {saved_count} 个侧边栏节点的标题、排序和显隐状态。")
 
         return redirect(get_sidebar_admin_redirect(selected_collection_path))
 
