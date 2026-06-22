@@ -1087,13 +1087,23 @@ body.article-page {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     width: 100%;
+    min-height: 34px;
     margin: 0;
     border-radius: 7px;
+    overflow: hidden;
+    transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .article-page .sidebar-tree-file-parent-row .sidebar-tree-link {
     margin: 0;
     padding-right: 0.24rem;
+}
+
+.article-page .sidebar-tree-file-parent-row .sidebar-tree-link,
+.article-page .sidebar-tree-file-parent-row .sidebar-tree-article-toggle {
+    min-height: 34px;
+    border-radius: 0;
+    background: transparent;
 }
 
 .article-page .sidebar-tree-article-toggle {
@@ -1166,6 +1176,22 @@ body.article-page {
     color: var(--article-primary);
     background: #eaf3ff;
     font-weight: 800;
+}
+
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row:hover,
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row:focus-within,
+.article-page .sidebar-tree-file-parent.is-active-item > .sidebar-tree-file-parent-row,
+.article-page .sidebar-tree-file-parent.has-active > .sidebar-tree-file-parent-row {
+    background: #eaf3ff;
+}
+
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row .sidebar-tree-link:hover,
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row .sidebar-tree-link:focus-visible,
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row .sidebar-tree-link.active-file,
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row .sidebar-tree-article-toggle:hover,
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row .sidebar-tree-article-toggle:focus-visible,
+.article-page .sidebar-tree-file-parent > .sidebar-tree-file-parent-row .sidebar-tree-article-toggle.is-open {
+    background: transparent;
 }
 
 .article-page .folder-name:hover .sidebar-node-icon,
