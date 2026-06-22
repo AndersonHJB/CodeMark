@@ -1444,8 +1444,8 @@ body.article-page {
 }
 
 .article-page .toc-list .toc .active {
-    border-left: 3px solid var(--article-primary);
-    padding-left: 0.55rem;
+    border-left: none;
+    padding-left: 0.48rem;
     font-weight: 800;
 }
 
