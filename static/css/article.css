@@ -1165,7 +1165,6 @@ body.article-page {
 .article-page .sidebar-tree-link.active-file {
     color: var(--article-primary);
     background: #eaf3ff;
-    box-shadow: inset 3px 0 0 var(--article-primary);
     font-weight: 800;
 }
 
