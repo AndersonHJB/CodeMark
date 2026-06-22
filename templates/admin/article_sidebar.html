@@ -472,6 +472,53 @@
         border-radius: 6px;
     }
 
+    .article-sidebar-confirm-backdrop[hidden] {
+        display: none;
+    }
+
+    .article-sidebar-confirm-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(15, 18, 22, 0.42);
+    }
+
+    .article-sidebar-confirm-dialog {
+        display: grid;
+        gap: 14px;
+        width: min(420px, 100%);
+        padding: 18px;
+        color: var(--body-fg);
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+    }
+
+    .article-sidebar-confirm-dialog h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .article-sidebar-confirm-dialog p {
+        margin: 0;
+        color: var(--body-quiet-color);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .article-sidebar-confirm-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 2px;
+    }
+
     @media (max-width: 1180px) {
         .article-sidebar-admin-row,
         .article-sidebar-collection-root-row,
@@ -518,6 +565,8 @@
                     type="submit"
                     name="action"
                     value="reset"
+                    data-confirm-title="重置全部"
+                    data-confirm-message="确定要重置全部文章侧边栏定制吗？"
                     data-confirm-reset>重置全部</button>
         </form>
     </div>
@@ -574,6 +623,8 @@
                             type="submit"
                             name="action"
                             value="reset_collection"
+                            data-confirm-title="重置专栏"
+                            data-confirm-message="确定要重置当前专栏的侧边栏定制吗？"
                             data-confirm-reset-current>重置专栏</button>
                 </div>
             </div>
@@ -627,19 +678,115 @@
     {% endif %}
 </div>
 
+<div class="article-sidebar-confirm-backdrop" data-sidebar-confirm hidden>
+    <div class="article-sidebar-confirm-dialog"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="article-sidebar-confirm-title"
+         aria-describedby="article-sidebar-confirm-message"
+         tabindex="-1"
+         data-sidebar-confirm-dialog>
+        <h2 id="article-sidebar-confirm-title" data-sidebar-confirm-title>确认操作</h2>
+        <p id="article-sidebar-confirm-message" data-sidebar-confirm-message></p>
+        <div class="article-sidebar-confirm-actions">
+            <button class="article-sidebar-button article-sidebar-button-plain"
+                    type="button"
+                    data-sidebar-confirm-cancel>取消</button>
+            <button class="article-sidebar-button article-sidebar-button-danger"
+                    type="button"
+                    data-sidebar-confirm-accept>确认</button>
+        </div>
+    </div>
+</div>
+
 <script>
     (function () {
         const editorForm = document.querySelector('[data-sidebar-admin-form]');
+        const confirmModal = document.querySelector('[data-sidebar-confirm]');
+        const confirmDialog = confirmModal ? confirmModal.querySelector('[data-sidebar-confirm-dialog]') : null;
+        const confirmTitle = confirmModal ? confirmModal.querySelector('[data-sidebar-confirm-title]') : null;
+        const confirmMessage = confirmModal ? confirmModal.querySelector('[data-sidebar-confirm-message]') : null;
+        const confirmCancel = confirmModal ? confirmModal.querySelector('[data-sidebar-confirm-cancel]') : null;
+        const confirmAccept = confirmModal ? confirmModal.querySelector('[data-sidebar-confirm-accept]') : null;
+        let pendingConfirmSubmitter = null;
+        let confirmRestoreFocusTarget = null;
+
+        function closeConfirmModal(restoreFocus) {
+            if (!confirmModal) return;
+
+            confirmModal.hidden = true;
+            pendingConfirmSubmitter = null;
+            if (restoreFocus !== false && confirmRestoreFocusTarget) {
+                confirmRestoreFocusTarget.focus();
+            }
+            confirmRestoreFocusTarget = null;
+        }
+
+        function openConfirmModal(submitter) {
+            if (!confirmModal || !confirmDialog) return;
+
+            pendingConfirmSubmitter = submitter;
+            confirmRestoreFocusTarget = submitter;
+            if (confirmTitle) {
+                confirmTitle.textContent = submitter.dataset.confirmTitle || '确认操作';
+            }
+            if (confirmMessage) {
+                confirmMessage.textContent = submitter.dataset.confirmMessage || '确定要执行此操作吗？';
+            }
+            confirmModal.hidden = false;
+            window.requestAnimationFrame(() => {
+                (confirmCancel || confirmDialog).focus();
+            });
+        }
+
+        function submitPendingConfirmedForm() {
+            const submitter = pendingConfirmSubmitter;
+            const form = submitter ? submitter.form : null;
+            closeConfirmModal(false);
+
+            if (!submitter || !form) return;
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit(submitter);
+                return;
+            }
+            form.submit();
+        }
 
         document.addEventListener('click', event => {
-            const resetAllButton = event.target.closest('[data-confirm-reset]');
-            if (resetAllButton && !window.confirm('确定要重置全部文章侧边栏定制吗？')) {
-                event.preventDefault();
+            const resetButton = event.target.closest('[data-confirm-reset], [data-confirm-reset-current]');
+            if (!resetButton) return;
+
+            if (!confirmModal) {
+                return;
             }
 
-            const resetCurrentButton = event.target.closest('[data-confirm-reset-current]');
-            if (resetCurrentButton && !window.confirm('确定要重置当前专栏的侧边栏定制吗？')) {
+            event.preventDefault();
+            if (resetButton.disabled) return;
+            openConfirmModal(resetButton);
+        });
+
+        if (confirmCancel) {
+            confirmCancel.addEventListener('click', () => closeConfirmModal(true));
+        }
+
+        if (confirmAccept) {
+            confirmAccept.addEventListener('click', submitPendingConfirmedForm);
+        }
+
+        if (confirmModal) {
+            confirmModal.addEventListener('click', event => {
+                if (event.target === confirmModal) {
+                    closeConfirmModal(true);
+                }
+            });
+        }
+
+        document.addEventListener('keydown', event => {
+            if (!confirmModal || confirmModal.hidden) return;
+
+            if (event.key === 'Escape') {
                 event.preventDefault();
+                closeConfirmModal(true);
             }
         });
 
