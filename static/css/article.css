@@ -1160,15 +1160,15 @@ body.article-page {
     transition: transform 0.16s ease, color 0.16s ease;
 }
 
-.article-page .folder-name.is-open,
 .article-page .sidebar-tree-folder.has-active > .folder-name,
-.article-page .sidebar-tree-file.has-active > .sidebar-tree-file-parent-row .sidebar-tree-link {
+.article-page .sidebar-tree-file.has-active > .sidebar-tree-file-parent-row .sidebar-tree-link,
+.article-page .sidebar-tree-file.has-active > .sidebar-tree-file-parent-row .sidebar-tree-article-toggle,
+.article-page .sidebar-tree-file-parent.is-active-item > .sidebar-tree-file-parent-row .sidebar-tree-article-toggle {
     color: var(--article-primary);
     background: rgba(237, 245, 255, 0.72);
 }
 
 .article-page .folder-name.is-open .arrow-icon {
-    color: var(--article-primary);
     transform: rotate(90deg);
 }
 
@@ -1196,7 +1196,7 @@ body.article-page {
 
 .article-page .folder-name:hover .sidebar-node-icon,
 .article-page .folder-name:focus-visible .sidebar-node-icon,
-.article-page .folder-name.is-open .sidebar-node-icon,
+.article-page .sidebar-tree-folder.has-active > .folder-name .sidebar-node-icon,
 .article-page .sidebar-tree-link:hover .sidebar-node-icon,
 .article-page .sidebar-tree-link:focus-visible .sidebar-node-icon,
 .article-page .sidebar-tree-link.active-file .sidebar-node-icon {

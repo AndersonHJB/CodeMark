@@ -38,7 +38,7 @@
             {% endif %}
         </li>
     {% else %}
-        <li class="sidebar-tree-item sidebar-tree-folder">
+        <li class="sidebar-tree-item sidebar-tree-folder{% if node.is_open %} has-active{% endif %}">
             <button class="folder-name sidebar-tree-button {% if node.is_open %}is-open{% endif %}"
                     type="button"
                     data-sidebar-folder
