@@ -465,7 +465,10 @@
 
 .article-page .CodeMirror,
 .article-page .CodeMirror-scroll,
-.article-page .CodeMirror textarea {
+.article-page .CodeMirror textarea,
+.article-page .cm-editor,
+.article-page .cm-scroller,
+.article-page .cm-content {
     max-width: 100%;
 }
 
@@ -509,7 +512,9 @@
     .article-page .toc ul,
     .article-page .toc li,
     .article-page .CodeMirror,
-    .article-page .CodeMirror-scroll {
+    .article-page .CodeMirror-scroll,
+    .article-page .cm-editor,
+    .article-page .cm-scroller {
         max-width: 100%;
     }
 }

@@ -271,11 +271,13 @@ button.fullscreen-button:hover {
     background-color: #155a8a;
 }
 
-.CodeMirror-scroll {
+.CodeMirror-scroll,
+.cm-scroller {
     overflow: auto;
 }
 
-.CodeMirror-selected {
+.CodeMirror-selected,
+.cm-selectionBackground {
     background: #3399ff !important;
 }
 
@@ -503,7 +505,8 @@ code, kbd, .highlight-inline {
     overflow: auto;
 }
 
-.CodeMirror {
+.CodeMirror,
+.cm-editor {
     height: auto;
 }
 
@@ -793,8 +796,9 @@ footer.show-footer {
     align-items: stretch;
 }
 
-/* 全屏时，CodeMirror 自适应撑满高度 */
-.fullscreen-code .CodeMirror {
+/* 全屏时，编辑器自适应撑满高度 */
+.fullscreen-code .CodeMirror,
+.fullscreen-code .cm-editor {
     flex: 1;
     height: auto !important;
     border: 1px solid #aaa;
@@ -1544,7 +1548,8 @@ body.article-page {
     background: #111827;
 }
 
-.article-page .CodeMirror {
+.article-page .CodeMirror,
+.article-page .cm-editor {
     font-family: var(--article-font-mono);
     font-size: 0.92rem;
     line-height: 1.55;
