@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Python 判题｜CodeMark</title>
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <link href="{% static 'css/site-topbar.css' %}" rel="stylesheet" media="screen">
+    <link href="{% static 'css/accounts.css' %}" rel="stylesheet" media="screen">
+    <link href="{% static 'css/python-judge.css' %}" rel="stylesheet" media="screen">
+    <script>
+        window.PYTHON_JUDGE_CONFIG = {
+            csrfToken: "{{ csrf_token|escapejs }}",
+            saveProgressUrl: "{% url 'python_judge_save_progress' %}",
+            submitUrl: "{% url 'python_judge_submit' %}",
+            aceBasePath: "{% static 'js/ace' %}/",
+            pyodideBaseUrl: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/",
+            bootstrap: {{ bootstrap_json|safe }}
+        };
+    </script>
+</head>
+<body class="python-judge-body">
+{% include "_site_topbar.html" %}
+
+<main class="pyjudge-shell" data-python-judge-app>
+    <section class="pyjudge-workspace" aria-label="Python 判题工作台">
+        <aside class="pyjudge-rail" aria-label="题库">
+            <div class="pyjudge-rail-head">
+                <div>
+                    <h1>Python 判题</h1>
+                    <p>Pyodide 浏览器执行</p>
+                </div>
+                <span class="pyjudge-live-dot" data-pyodide-status>准备中</span>
+            </div>
+
+            <div class="pyjudge-stats" aria-label="做题统计">
+                <div>
+                    <strong data-stat-accepted>0</strong>
+                    <span>通过</span>
+                </div>
+                <div>
+                    <strong data-stat-attempted>0</strong>
+                    <span>尝试</span>
+                </div>
+                <div>
+                    <strong data-stat-marked>0</strong>
+                    <span>标记</span>
+                </div>
+            </div>
+
+            <div class="pyjudge-filterbar" role="tablist" aria-label="题目筛选">
+                <button class="is-active" type="button" data-filter="all">全部</button>
+                <button type="button" data-filter="marked">标记</button>
+                <button type="button" data-filter="accepted">已通过</button>
+            </div>
+
+            <div class="pyjudge-problem-list" data-problem-list></div>
+        </aside>
+
+        <section class="pyjudge-statement" aria-label="题目">
+            <header class="pyjudge-statement-head">
+                <div>
+                    <div class="pyjudge-title-row">
+                        <h2 data-problem-title>题目</h2>
+                        <span class="pyjudge-difficulty" data-problem-difficulty>入门</span>
+                    </div>
+                    <p data-problem-summary></p>
+                </div>
+                <button class="pyjudge-icon-button" type="button" data-mark-button aria-pressed="false" title="标记题目">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="m12 3 2.7 5.8 6.3.8-4.7 4.4 1.2 6.2L12 17.1l-5.5 3.1 1.2-6.2L3 9.6l6.3-.8z"></path>
+                    </svg>
+                    <span>标记</span>
+                </button>
+            </header>
+
+            <div class="pyjudge-tags" data-problem-tags></div>
+
+            <div class="pyjudge-section">
+                <h3>题目描述</h3>
+                <div class="pyjudge-copy" data-problem-statement></div>
+            </div>
+
+            <div class="pyjudge-section pyjudge-two-col">
+                <div>
+                    <h3>输入</h3>
+                    <div class="pyjudge-copy" data-input-description></div>
+                </div>
+                <div>
+                    <h3>输出</h3>
+                    <div class="pyjudge-copy" data-output-description></div>
+                </div>
+            </div>
+
+            <div class="pyjudge-section">
+                <h3>样例测试</h3>
+                <div class="pyjudge-samples" data-sample-list></div>
+            </div>
+
+            <div class="pyjudge-section">
+                <h3>数据范围</h3>
+                <div class="pyjudge-copy" data-constraints></div>
+            </div>
+        </section>
+
+        <section class="pyjudge-workbench" aria-label="代码与判题">
+            <div class="pyjudge-editor-head">
+                <div>
+                    <h2>代码</h2>
+                    <p data-save-state>未保存</p>
+                </div>
+                <div class="pyjudge-actions">
+                    <button class="pyjudge-secondary" type="button" data-action="save">保存</button>
+                    <button class="pyjudge-secondary" type="button" data-action="run">运行</button>
+                    <button class="pyjudge-secondary" type="button" data-action="test">测试</button>
+                    <button class="pyjudge-primary" type="button" data-action="submit">提交</button>
+                </div>
+            </div>
+
+            <div class="pyjudge-editor-frame">
+                <div id="pyjudgeEditor" class="pyjudge-editor" aria-label="Python 代码编辑器"></div>
+            </div>
+
+            <div class="pyjudge-input-row">
+                <label for="pyjudgeCustomInput">自定义输入</label>
+                <textarea id="pyjudgeCustomInput" data-custom-input spellcheck="false"></textarea>
+            </div>
+
+            <div class="pyjudge-result-panel" aria-live="polite">
+                <div class="pyjudge-result-head">
+                    <div>
+                        <h3 data-result-title>运行结果</h3>
+                        <p data-result-summary>等待运行</p>
+                    </div>
+                    <button class="pyjudge-ghost" type="button" data-action="clear">清空</button>
+                </div>
+                <div class="pyjudge-results" data-result-list>
+                    <div class="pyjudge-empty">运行、测试或提交后会显示输出。</div>
+                </div>
+            </div>
+
+            <div class="pyjudge-history">
+                <div class="pyjudge-history-head">
+                    <h3>我的记录</h3>
+                    <span data-record-count>0 次提交</span>
+                </div>
+                <div class="pyjudge-history-list" data-history-list></div>
+            </div>
+        </section>
+    </section>
+
+    <div class="pyjudge-auth-gate" data-auth-gate hidden>
+        <div class="pyjudge-auth-panel">
+            <h2>登录后开始做题</h2>
+            <p>系统会保存你的当前代码、标记状态、测试结果和提交记录。</p>
+            <div class="pyjudge-auth-actions">
+                <button class="pyjudge-primary" type="button" data-account-open-login>登录</button>
+                <button class="pyjudge-secondary" type="button" data-account-open-register>注册</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% include "_account_dialogs.html" %}
+
+<script src="{% static 'js/ace/ace.js' %}"></script>
+<script src="{% static 'js/ace/ext-language_tools.js' %}"></script>
+<script src="{% static 'js/ace/mode-python.js' %}"></script>
+<script src="{% static 'js/ace/theme-github.js' %}"></script>
+<script src="{% static 'js/accounts.js' %}"></script>
+<script src="{% static 'js/python_judge.js' %}"></script>
+</body>
+</html>

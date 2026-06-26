@@ -13,6 +13,7 @@ urlpatterns = [
     path("", include("apps.articles.urls")),
     path("", include("apps.editor.urls")),
     path("", include("apps.cpp_editor.urls")),
+    path("", include("apps.python_judge.urls")),
     path("", include("apps.sharing.urls")),
     path("", include("apps.algorithms.urls")),
     path("admin/avatar-gallery/", account_views.admin_avatar_gallery, name="admin_avatar_gallery"),

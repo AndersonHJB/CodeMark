@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.blog.apps.BlogConfig",
     "apps.editor.apps.EditorConfig",
     "apps.cpp_editor.apps.CppEditorConfig",
+    "apps.python_judge.apps.PythonJudgeConfig",
     "apps.sharing.apps.SharingConfig",
     "apps.algorithms.apps.AlgorithmsConfig",
 ]
