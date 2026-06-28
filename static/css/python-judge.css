@@ -595,6 +595,7 @@
 .pyjudge-console-input-prompt {
     flex: 0 0 auto;
     color: #f8fafc;
+    white-space: pre-wrap;
 }
 
 .pyjudge-console-inline-input {

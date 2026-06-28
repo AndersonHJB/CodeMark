@@ -28,7 +28,7 @@
     let rerunRequested = false;
     let pendingConsoleInputResolve = null;
     let pendingConsoleInputRow = null;
-    let pendingConsoleInputPrompt = "";
+    let pendingConsoleInputTail = "";
     let currentRunInputLines = [];
     let lastInteractiveInput = "";
     const INPUT_CANCEL_TOKEN = "__codemark_cancel_input_9f7d48__";
@@ -391,19 +391,38 @@
         lastInteractiveInput = currentRunInputLines.length ? currentRunInputLines.join("\n") + "\n" : "";
     }
 
+    function splitConsoleInputPrompt(prompt) {
+        const normalizedPrompt = String(prompt || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        const lastNewlineIndex = normalizedPrompt.lastIndexOf("\n");
+        if (lastNewlineIndex === -1) {
+            return {
+                leadingText: "",
+                inputLinePrefix: normalizedPrompt
+            };
+        }
+        return {
+            leadingText: normalizedPrompt.slice(0, lastNewlineIndex + 1),
+            inputLinePrefix: normalizedPrompt.slice(lastNewlineIndex + 1)
+        };
+    }
+
     function requestRunConsoleInput(prompt) {
         if (!nodes.runConsole) {
             return Promise.resolve("");
+        }
+        const promptParts = splitConsoleInputPrompt(prompt);
+
+        if (promptParts.leadingText) {
+            nodes.runConsole.appendChild(document.createTextNode(promptParts.leadingText));
         }
 
         const row = document.createElement("div");
         row.className = "pyjudge-console-input-row";
 
-        const normalizedPrompt = String(prompt || "");
-        if (normalizedPrompt) {
+        if (promptParts.inputLinePrefix) {
             const promptSpan = document.createElement("span");
             promptSpan.className = "pyjudge-console-input-prompt";
-            promptSpan.textContent = normalizedPrompt;
+            promptSpan.textContent = promptParts.inputLinePrefix;
             row.appendChild(promptSpan);
         }
 
@@ -421,22 +440,20 @@
         return new Promise(function (resolve) {
             pendingConsoleInputResolve = resolve;
             pendingConsoleInputRow = row;
-            pendingConsoleInputPrompt = normalizedPrompt;
+            pendingConsoleInputTail = promptParts.inputLinePrefix;
 
             function submit() {
                 if (!pendingConsoleInputResolve) {
                     return;
                 }
                 const value = inputElement.value;
-                const historyLine = document.createElement("div");
-                historyLine.textContent = normalizedPrompt + value;
-                row.replaceWith(historyLine);
+                row.replaceWith(document.createTextNode(promptParts.inputLinePrefix + value + "\n"));
                 pendingConsoleInputResolve = null;
                 pendingConsoleInputRow = null;
-                pendingConsoleInputPrompt = "";
+                pendingConsoleInputTail = "";
                 currentRunInputLines.push(value);
                 syncLastInteractiveInput();
-                appendRunConsoleText("\n");
+                scrollRunConsoleToBottom();
                 setConsoleSummary("运行中...");
                 resolve(value);
             }
@@ -456,18 +473,16 @@
         }
         const resolve = pendingConsoleInputResolve;
         const row = pendingConsoleInputRow;
-        const prompt = pendingConsoleInputPrompt;
+        const promptTail = pendingConsoleInputTail;
 
         pendingConsoleInputResolve = null;
         pendingConsoleInputRow = null;
-        pendingConsoleInputPrompt = "";
+        pendingConsoleInputTail = "";
 
         if (row && row.parentNode) {
-            const historyLine = document.createElement("div");
-            historyLine.textContent = prompt + "[已取消，准备重新运行]";
-            row.replaceWith(historyLine);
+            row.replaceWith(document.createTextNode(promptTail + "[已取消，准备重新运行]\n"));
         }
-        appendRunConsoleText("\n");
+        scrollRunConsoleToBottom();
         resolve(INPUT_CANCEL_TOKEN);
         return true;
     }
