@@ -15,7 +15,7 @@
             saveProgressUrl: "{% url 'python_judge_save_progress' %}",
             submitUrl: "{% url 'python_judge_submit' %}",
             aceBasePath: "{% static 'js/ace' %}/",
-            pyodideBaseUrl: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/",
+            pyodideBaseUrl: "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/",
             bootstrap: {{ bootstrap_json|safe }}
         };
     </script>
@@ -122,21 +122,27 @@
                 <div id="pyjudgeEditor" class="pyjudge-editor" aria-label="Python 代码编辑器"></div>
             </div>
 
-            <div class="pyjudge-input-row">
-                <label for="pyjudgeCustomInput">自定义输入</label>
-                <textarea id="pyjudgeCustomInput" data-custom-input spellcheck="false"></textarea>
+            <div class="pyjudge-console-panel">
+                <div class="pyjudge-console-head">
+                    <div>
+                        <h3>Python Output</h3>
+                        <p data-console-summary>运行代码后，input() 会在这里等待输入。</p>
+                    </div>
+                    <button class="pyjudge-ghost" type="button" data-action="clear-console">清空</button>
+                </div>
+                <div class="pyjudge-console" data-run-console aria-live="polite"></div>
             </div>
 
             <div class="pyjudge-result-panel" aria-live="polite">
                 <div class="pyjudge-result-head">
                     <div>
-                        <h3 data-result-title>运行结果</h3>
-                        <p data-result-summary>等待运行</p>
+                        <h3 data-result-title>判题结果</h3>
+                        <p data-result-summary>等待测试</p>
                     </div>
                     <button class="pyjudge-ghost" type="button" data-action="clear">清空</button>
                 </div>
                 <div class="pyjudge-results" data-result-list>
-                    <div class="pyjudge-empty">运行、测试或提交后会显示输出。</div>
+                    <div class="pyjudge-empty">样例测试或提交后会显示输出。</div>
                 </div>
             </div>
 
@@ -166,8 +172,10 @@
 
 <script src="{% static 'js/ace/ace.js' %}"></script>
 <script src="{% static 'js/ace/ext-language_tools.js' %}"></script>
-<script src="{% static 'js/ace/mode-python.js' %}"></script>
-<script src="{% static 'js/ace/theme-github.js' %}"></script>
+<script src="{% static 'js/ace/mode-python3.js' %}"></script>
+<script src="{% static 'js/ace/theme-monokai.js' %}"></script>
+<script src="{% static 'js/ace/snippets/python.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
 <script src="{% static 'js/accounts.js' %}"></script>
 <script src="{% static 'js/python_judge.js' %}"></script>
 </body>
