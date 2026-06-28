@@ -761,17 +761,11 @@
 .pyjudge-history-list {
     display: grid;
     gap: 0;
-    max-height: 144px;
+    max-height: 360px;
     overflow: auto;
 }
 
 .pyjudge-history-item {
-    display: grid;
-    grid-template-columns: 88px 1fr auto;
-    gap: 8px;
-    align-items: center;
-    min-height: 38px;
-    padding: 0 12px;
     border-top: 1px solid rgba(216, 224, 234, 0.72);
     color: #334155;
     font-size: 0.78rem;
@@ -790,8 +784,212 @@
 }
 
 .pyjudge-history-status.is-failed,
-.pyjudge-history-status.is-error {
+.pyjudge-history-status.is-wrong_answer,
+.pyjudge-history-status.is-error,
+.pyjudge-history-status.is-runtime_error {
     color: var(--pyjudge-red);
+}
+
+.pyjudge-history-summary {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr) auto 14px;
+    gap: 8px;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.pyjudge-history-summary::-webkit-details-marker {
+    display: none;
+}
+
+.pyjudge-history-summary:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.52);
+    outline-offset: -2px;
+}
+
+.pyjudge-history-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    min-width: 0;
+    color: #334155;
+}
+
+.pyjudge-history-meta span,
+.pyjudge-history-time {
+    white-space: nowrap;
+}
+
+.pyjudge-history-time,
+.pyjudge-history-note {
+    color: var(--pyjudge-muted);
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.pyjudge-history-caret {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #7c8898;
+    border-bottom: 2px solid #7c8898;
+    transform: rotate(45deg);
+    transition: transform 0.18s ease;
+}
+
+.pyjudge-history-item[open] .pyjudge-history-caret {
+    transform: rotate(-135deg);
+}
+
+.pyjudge-history-detail {
+    display: grid;
+    gap: 10px;
+    padding: 0 12px 12px;
+    border-top: 1px solid rgba(216, 224, 234, 0.58);
+}
+
+.pyjudge-history-facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding-top: 10px;
+}
+
+.pyjudge-history-fact {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid rgba(216, 224, 234, 0.8);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.pyjudge-history-fact span {
+    color: var(--pyjudge-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.pyjudge-history-fact strong {
+    overflow: hidden;
+    color: var(--pyjudge-ink);
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pyjudge-history-section {
+    display: grid;
+    gap: 8px;
+}
+
+.pyjudge-history-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--pyjudge-ink);
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.pyjudge-history-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pyjudge-mini-action {
+    min-height: 26px;
+    padding: 0 9px;
+    border: 1px solid rgba(27, 42, 62, 0.14);
+    border-radius: 7px;
+    color: #25415f;
+    background: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.pyjudge-mini-action:disabled {
+    cursor: not-allowed;
+    color: #9aa6b5;
+    background: #f3f6fa;
+}
+
+.pyjudge-history-code,
+.pyjudge-history-case-output {
+    margin: 0;
+    overflow: auto;
+    border-radius: 8px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    white-space: pre-wrap;
+}
+
+.pyjudge-history-code {
+    max-height: 220px;
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    color: #e5edf8;
+    background: #111827;
+    font-size: 0.76rem;
+    line-height: 1.55;
+}
+
+.pyjudge-history-case-list {
+    display: grid;
+    gap: 6px;
+}
+
+.pyjudge-history-case,
+.pyjudge-history-empty {
+    border: 1px solid rgba(216, 224, 234, 0.86);
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.pyjudge-history-empty {
+    padding: 10px;
+    border-left-color: var(--pyjudge-line);
+    color: var(--pyjudge-muted);
+}
+
+.pyjudge-history-case.is-pass {
+    border-left-color: var(--pyjudge-teal);
+}
+
+.pyjudge-history-case.is-fail {
+    border-left-color: var(--pyjudge-red);
+}
+
+.pyjudge-history-case-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 34px;
+    padding: 0 10px;
+    color: var(--pyjudge-ink);
+    font-weight: 850;
+}
+
+.pyjudge-history-case-line span:last-child {
+    color: var(--pyjudge-muted);
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.pyjudge-history-case-output {
+    max-height: 150px;
+    padding: 9px 10px;
+    border-top: 1px solid rgba(216, 224, 234, 0.72);
+    color: #263548;
+    background: #f8fafc;
+    font-size: 0.72rem;
+    line-height: 1.5;
 }
 
 .pyjudge-auth-gate {
@@ -924,13 +1122,52 @@
         font-size: 0.86rem;
     }
 
-    .pyjudge-history-item {
-        grid-template-columns: 72px 1fr;
+    .pyjudge-history-list {
+        max-height: 430px;
     }
 
-    .pyjudge-history-item span:last-child {
-        grid-column: 1 / -1;
-        color: var(--pyjudge-muted);
+    .pyjudge-history-summary {
+        grid-template-columns: 72px minmax(0, 1fr) 14px;
+        min-height: 52px;
+    }
+
+    .pyjudge-history-time {
+        grid-column: 2;
+    }
+
+    .pyjudge-history-caret {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+    }
+
+    .pyjudge-history-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pyjudge-history-section-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pyjudge-history-actions {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .pyjudge-mini-action {
+        flex: 0 0 auto;
+    }
+
+    .pyjudge-history-code {
+        max-height: 190px;
+        font-size: 0.72rem;
+    }
+
+    .pyjudge-history-case-line {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 10px;
     }
 
     .pyjudge-auth-gate {

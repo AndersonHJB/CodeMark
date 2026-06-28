@@ -154,6 +154,29 @@
         });
     }
 
+    function formatFullDate(value) {
+        if (!value) {
+            return "";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+        return date.toLocaleString("zh-CN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+    }
+
+    function safeNumber(value, fallback) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+    }
+
     function statusLabel(status) {
         if (status === "accepted") {
             return "全部通过";
@@ -168,6 +191,10 @@
             return "运行错误";
         }
         return "未开始";
+    }
+
+    function submissionStatusClass(status) {
+        return "is-" + String(status || "unknown").replace(/[^a-z0-9_-]/gi, "-");
     }
 
     function updateStats() {
@@ -275,17 +302,124 @@
     function renderHistory(problem) {
         const submissions = (problem && Array.isArray(problem.submissions)) ? problem.submissions : [];
         nodes.historyList.innerHTML = "";
-        nodes.recordCount.textContent = submissions.length + " 次提交";
+        const totalSubmissions = problem && problem.state
+            ? safeNumber(problem.state.submissionCount, submissions.length)
+            : submissions.length;
+        nodes.recordCount.textContent = totalSubmissions + " 次提交";
         if (!submissions.length) {
             nodes.historyList.appendChild(textNode("div", "pyjudge-empty", "还没有提交记录"));
             return;
         }
         submissions.forEach(function (submission) {
-            const item = textNode("div", "pyjudge-history-item");
-            const status = textNode("span", "pyjudge-history-status is-" + submission.status, statusLabel(submission.status));
-            item.appendChild(status);
-            item.appendChild(textNode("span", "", submission.passedCount + "/" + submission.totalCount + " 通过 · " + submission.runtimeMs + "ms"));
-            item.appendChild(textNode("span", "", formatDate(submission.createdAt)));
+            const item = document.createElement("details");
+            item.className = "pyjudge-history-item";
+            if (problem && problem.lastSubmittedRecordId && submission.id === problem.lastSubmittedRecordId) {
+                item.open = true;
+            }
+
+            const summary = textNode("summary", "pyjudge-history-summary");
+            const status = textNode(
+                "span",
+                "pyjudge-history-status " + submissionStatusClass(submission.status),
+                statusLabel(submission.status)
+            );
+            const meta = textNode("span", "pyjudge-history-meta");
+            meta.appendChild(textNode("span", "", safeNumber(submission.passedCount, 0) + "/" + safeNumber(submission.totalCount, 0) + " 通过"));
+            meta.appendChild(textNode("span", "", safeNumber(submission.score, 0) + " 分"));
+            meta.appendChild(textNode("span", "", safeNumber(submission.runtimeMs, 0) + "ms"));
+            const time = textNode("span", "pyjudge-history-time", formatDate(submission.createdAt));
+            const caret = textNode("span", "pyjudge-history-caret");
+            caret.setAttribute("aria-hidden", "true");
+            summary.appendChild(status);
+            summary.appendChild(meta);
+            summary.appendChild(time);
+            summary.appendChild(caret);
+
+            const detail = textNode("div", "pyjudge-history-detail");
+            const facts = textNode("div", "pyjudge-history-facts");
+            [
+                ["提交时间", formatFullDate(submission.createdAt) || "--"],
+                ["测试结果", safeNumber(submission.passedCount, 0) + "/" + safeNumber(submission.totalCount, 0)],
+                ["运行耗时", safeNumber(submission.runtimeMs, 0) + "ms"],
+                ["代码行数", safeNumber(submission.codeLineCount, 0) + " 行"],
+            ].forEach(function (fact) {
+                const factItem = textNode("div", "pyjudge-history-fact");
+                factItem.appendChild(textNode("span", "", fact[0]));
+                factItem.appendChild(textNode("strong", "", fact[1]));
+                facts.appendChild(factItem);
+            });
+            detail.appendChild(facts);
+
+            const codeSection = textNode("div", "pyjudge-history-section");
+            const codeHead = textNode("div", "pyjudge-history-section-head");
+            codeHead.appendChild(textNode("span", "", "提交代码"));
+            const codeActions = textNode("span", "pyjudge-history-actions");
+            if (submission.codeTruncated) {
+                codeActions.appendChild(textNode("span", "pyjudge-history-note", "代码较长，仅显示预览"));
+            }
+            const loadButton = textNode("button", "pyjudge-mini-action", "载入代码");
+            loadButton.type = "button";
+            loadButton.disabled = !submission.code || !!submission.codeTruncated;
+            loadButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!editor || !submission.code || submission.codeTruncated) {
+                    return;
+                }
+                editor.setValue(submission.code, -1);
+                problem.state = problem.state || {};
+                problem.state.code = submission.code;
+                setSaveState("已载入历史提交代码");
+            });
+            codeActions.appendChild(loadButton);
+            codeHead.appendChild(codeActions);
+            codeSection.appendChild(codeHead);
+            codeSection.appendChild(textNode("pre", "pyjudge-history-code", submission.code || "(空代码)"));
+            detail.appendChild(codeSection);
+
+            const caseResults = Array.isArray(submission.caseResults) ? submission.caseResults : [];
+            const caseSection = textNode("div", "pyjudge-history-section");
+            const caseHead = textNode("div", "pyjudge-history-section-head");
+            caseHead.appendChild(textNode("span", "", "测试详情"));
+            caseHead.appendChild(textNode("span", "pyjudge-history-note", caseResults.length + " 个测试点"));
+            caseSection.appendChild(caseHead);
+            const caseList = textNode("div", "pyjudge-history-case-list");
+            if (!caseResults.length) {
+                caseList.appendChild(textNode("div", "pyjudge-history-empty", "暂无测试详情"));
+            }
+            caseResults.forEach(function (result, index) {
+                const caseItem = textNode("div", "pyjudge-history-case " + (result.passed ? "is-pass" : "is-fail"));
+                const caseLine = textNode("div", "pyjudge-history-case-line");
+                caseLine.appendChild(textNode("span", "", result.title || "测试点 " + (index + 1)));
+                caseLine.appendChild(textNode(
+                    "span",
+                    "",
+                    (result.passed ? "通过" : (result.timeout ? "超时" : "未通过")) + " · " + safeNumber(result.durationMs, 0) + "ms"
+                ));
+                caseItem.appendChild(caseLine);
+                const outputParts = [];
+                if (result.expectedStdout) {
+                    outputParts.push("期望输出\n" + result.expectedStdout);
+                }
+                if (result.stdout) {
+                    outputParts.push("实际输出\n" + result.stdout);
+                }
+                if (result.stderr) {
+                    outputParts.push("标准错误\n" + result.stderr);
+                }
+                if (result.error) {
+                    outputParts.push("错误\n" + result.error);
+                }
+                if (outputParts.length) {
+                    caseItem.appendChild(textNode("pre", "pyjudge-history-case-output", outputParts.join("\n\n")));
+                }
+                caseList.appendChild(caseItem);
+            });
+            caseSection.appendChild(caseList);
+            detail.appendChild(caseSection);
+
+            item.appendChild(summary);
+            item.appendChild(detail);
             nodes.historyList.appendChild(item);
         });
     }
@@ -1312,16 +1446,27 @@ except KeyboardInterrupt as _codemark_interrupt:
                     ok: result.ok,
                     durationMs: result.durationMs,
                     timeout: result.timeout,
+                    stdout: result.stdout ? result.stdout.slice(0, 12000) : "",
+                    stderr: result.stderr ? result.stderr.slice(0, 12000) : "",
+                    expectedStdout: result.expectedStdout ? result.expectedStdout.slice(0, 12000) : "",
                     error: result.error ? result.error.slice(0, 1200) : ""
                 };
             })
         };
         return apiPost(config.submitUrl, payload).then(function (data) {
             problem.state = Object.assign({}, problem.state || {}, data.state || {});
-            problem.submissions = problem.submissions || [];
-            if (data.submission) {
+            if (Number.isFinite(Number(data.submissionCount))) {
+                problem.state.submissionCount = Number(data.submissionCount);
+            }
+            if (Array.isArray(data.submissions)) {
+                problem.submissions = data.submissions;
+            } else if (data.submission) {
+                problem.submissions = problem.submissions || [];
                 problem.submissions.unshift(data.submission);
-                problem.submissions = problem.submissions.slice(0, 6);
+                problem.submissions = problem.submissions.slice(0, 10);
+            }
+            if (data.submission) {
+                problem.lastSubmittedRecordId = data.submission.id;
             }
             renderAll();
             setSaveState(summary.status === "accepted" ? "已提交：全部通过" : "已提交：未通过");

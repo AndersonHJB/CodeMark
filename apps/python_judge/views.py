@@ -13,6 +13,9 @@ from .models import JudgeProblem, JudgeSubmission, UserProblemState
 MAX_CODE_BYTES = 200 * 1024
 MAX_INPUT_BYTES = 64 * 1024
 MAX_RESULT_ITEMS = 80
+MAX_RESULT_TEXT_BYTES = 16 * 1024
+MAX_HISTORY_CODE_BYTES = 96 * 1024
+HISTORY_LIMIT = 10
 
 
 def _json_error(message, status=400):
@@ -52,6 +55,10 @@ def _safe_int(value, default=0):
         return default
 
 
+def _byte_length(value):
+    return len(("" if value is None else str(value)).encode("utf-8"))
+
+
 def _published_problem(slug):
     if not slug:
         return None
@@ -78,6 +85,7 @@ def _state_payload(state):
             "status": UserProblemState.STATUS_TODO,
             "lastResult": {},
             "lastSubmittedAt": "",
+            "submissionCount": 0,
             "updatedAt": "",
         }
     return {
@@ -90,17 +98,53 @@ def _state_payload(state):
             "score": state.last_score,
         } if state.last_verdict else {},
         "lastSubmittedAt": state.last_submitted_at.isoformat() if state.last_submitted_at else "",
+        "submissionCount": state.submission_count,
         "updatedAt": state.updated_at.isoformat() if state.updated_at else "",
     }
 
 
+def _clean_case_result(item):
+    if not isinstance(item, dict):
+        item = {}
+    return {
+        "title": _safe_text(item.get("title", ""), 120),
+        "hidden": bool(item.get("hidden")),
+        "passed": bool(item.get("passed")),
+        "ok": bool(item.get("ok")),
+        "durationMs": max(0, _safe_int(item.get("durationMs"), 0)),
+        "timeout": bool(item.get("timeout")),
+        "stdout": _safe_text(item.get("stdout", ""), MAX_RESULT_TEXT_BYTES),
+        "stderr": _safe_text(item.get("stderr", ""), MAX_RESULT_TEXT_BYTES),
+        "expectedStdout": _safe_text(item.get("expectedStdout", ""), MAX_RESULT_TEXT_BYTES),
+        "error": _safe_text(item.get("error", ""), MAX_RESULT_TEXT_BYTES),
+    }
+
+
+def _case_results_from_json(value):
+    try:
+        parsed = json.loads(value or "[]")
+    except (TypeError, ValueError):
+        parsed = []
+    if not isinstance(parsed, list):
+        return []
+    return [_clean_case_result(item) for item in parsed[:MAX_RESULT_ITEMS]]
+
+
 def _submission_payload(submission):
+    code = _safe_text(submission.code, MAX_HISTORY_CODE_BYTES)
     return {
         "id": submission.id,
         "status": submission.status,
+        "score": submission.score,
         "passedCount": submission.passed_count,
         "totalCount": submission.total_count,
         "runtimeMs": submission.runtime_ms,
+        "code": code,
+        "codeLineCount": len((submission.code or "").splitlines()) or (1 if submission.code else 0),
+        "codeTruncated": _byte_length(submission.code) > MAX_HISTORY_CODE_BYTES,
+        "caseResults": _case_results_from_json(submission.case_results),
+        "stdout": _safe_text(submission.stdout, MAX_RESULT_TEXT_BYTES),
+        "stderr": _safe_text(submission.stderr, MAX_RESULT_TEXT_BYTES),
         "createdAt": submission.created_at.isoformat(),
     }
 
@@ -158,7 +202,7 @@ def _bootstrap_payload(user):
         state_by_problem_id = {state.problem_id: state for state in states}
         for problem in problems:
             submissions_by_problem_id[problem.id] = list(
-                JudgeSubmission.objects.filter(user=user, problem=problem).order_by("-created_at")[:6]
+                JudgeSubmission.objects.filter(user=user, problem=problem).order_by("-created_at")[:HISTORY_LIMIT]
             )
 
     serialized_problems = [
@@ -256,10 +300,10 @@ def submit_solution(request):
     if problem is None:
         return _json_error("题目不存在或尚未发布", status=404)
     code = _safe_text(payload.get("code"), MAX_CODE_BYTES)
-    results = payload.get("results")
-    if not isinstance(results, list):
-        results = []
-    results = results[:MAX_RESULT_ITEMS]
+    raw_results = payload.get("results")
+    if not isinstance(raw_results, list):
+        raw_results = []
+    results = [_clean_case_result(item) for item in raw_results[:MAX_RESULT_ITEMS]]
 
     total_count = max(0, _safe_int(payload.get("total_count"), len(results)))
     passed_count = max(0, min(_safe_int(payload.get("passed_count"), 0), total_count))
@@ -275,6 +319,8 @@ def submit_solution(request):
         int((passed_count / total_count) * 100) if total_count else 0
     )
 
+    visible_results = [result for result in results if not result["hidden"]] or results
+    first_visible_result = visible_results[0] if visible_results else {}
     submission = JudgeSubmission.objects.create(
         user=request.user,
         problem=problem,
@@ -285,13 +331,14 @@ def submit_solution(request):
         total_count=total_count,
         runtime_ms=runtime_ms,
         case_results=json.dumps(results, ensure_ascii=False),
-        stdout="",
-        stderr="",
+        stdout=first_visible_result.get("stdout", ""),
+        stderr=first_visible_result.get("stderr", ""),
     )
 
     state, _ = UserProblemState.objects.get_or_create(user=request.user, problem=problem)
     state.mark_started()
     state.current_code = code
+    now = timezone.now()
     if submission_status == JudgeSubmission.STATUS_ACCEPTED or state.status != UserProblemState.STATUS_ACCEPTED:
         state.status = (
             UserProblemState.STATUS_ACCEPTED
@@ -300,15 +347,22 @@ def submit_solution(request):
         )
     state.last_verdict = submission_status
     state.last_score = score
-    state.last_run_at = timezone.now()
-    state.last_submitted_at = timezone.now()
+    state.last_run_at = now
+    state.last_submitted_at = now
     state.submission_count += 1
     state.save()
+
+    latest_submissions = JudgeSubmission.objects.filter(
+        user=request.user,
+        problem=problem,
+    ).order_by("-created_at")[:HISTORY_LIMIT]
 
     return JsonResponse(
         {
             "ok": True,
             "submission": _submission_payload(submission),
+            "submissions": [_submission_payload(item) for item in latest_submissions],
+            "submissionCount": state.submission_count,
             "state": _state_payload(state),
         },
         json_dumps_params={"ensure_ascii": False},

@@ -70,13 +70,27 @@ class PythonJudgeApiTests(TestCase):
                 "passed_count": 1,
                 "total_count": 1,
                 "runtime_ms": 18,
-                "results": [{"title": "样例 1", "passed": True}],
+                "results": [{
+                    "title": "样例 1",
+                    "passed": True,
+                    "ok": True,
+                    "durationMs": 7,
+                    "stdout": "3\n",
+                    "expectedStdout": "3\n",
+                }],
             },
         )
 
         self.assertEqual(response.status_code, 200)
+        data = response.json()
         self.assertEqual(JudgeSubmission.objects.count(), 1)
+        self.assertEqual(data["submission"]["code"], "print(3)")
+        self.assertEqual(data["submission"]["score"], 100)
+        self.assertEqual(data["submission"]["caseResults"][0]["stdout"], "3\n")
+        self.assertEqual(data["submissionCount"], 1)
+        self.assertEqual(len(data["submissions"]), 1)
         state = UserProblemState.objects.get(user=self.user, problem=self.problem)
         self.assertEqual(state.status, UserProblemState.STATUS_ACCEPTED)
         self.assertEqual(state.current_code, "print(3)")
+        self.assertEqual(state.submission_count, 1)
         self.assertIsNotNone(state.last_submitted_at)
