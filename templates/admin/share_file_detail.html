@@ -32,6 +32,48 @@
         flex-wrap: wrap;
         gap: 8px;
     }
+    .share-detail-actions form {
+        margin: 0;
+    }
+    .share-detail-danger {
+        color: #fff !important;
+        background: #ba2121 !important;
+        border-color: #ba2121 !important;
+    }
+    .share-detail-status {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .share-detail-status-ok {
+        color: #027a48;
+        border-color: #a6f4c5;
+        background: #ecfdf3;
+    }
+    .share-detail-status-user-deleted {
+        color: #b54708;
+        border-color: #fedf89;
+        background: #fffaeb;
+    }
+    .share-detail-status-admin-deleted {
+        color: #b42318;
+        border-color: #fecdca;
+        background: #fef3f2;
+    }
+    .share-detail-messages {
+        display: grid;
+        gap: 8px;
+    }
+    .share-detail-message {
+        margin: 0;
+        padding: 9px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--darkened-bg);
+    }
     .share-file-block {
         border: 1px solid var(--border-color);
         background: var(--body-bg);
@@ -136,8 +178,32 @@
 <div class="share-detail-shell">
     <div class="share-detail-actions">
         <a class="button" href="{% url 'admin_share_files' %}">返回列表</a>
-        <a class="button" href="{{ record.share_path }}" target="_blank" rel="noopener">打开分享页</a>
+        <a class="button" href="{{ record.admin_share_path }}" target="_blank" rel="noopener">管理员打开分享页</a>
+        {% if record.is_deleted %}
+            <form action="{% url 'admin_restore_share_file' record.project_id %}" method="post">
+                {% csrf_token %}
+                <button class="button" type="submit">恢复</button>
+            </form>
+        {% endif %}
+        {% if not record.is_admin_deleted %}
+            <form action="{% url 'admin_delete_share_file' record.project_id %}" method="post" onsubmit="return confirm('确定将这个分享移入后台回收站？普通用户将无法访问。');">
+                {% csrf_token %}
+                <button class="button" type="submit">后台删除</button>
+            </form>
+        {% endif %}
+        <form action="{% url 'admin_hard_delete_share_file' record.project_id %}" method="post" onsubmit="return confirm('永久删除会物理删除文本、二维码和资源文件，确定继续？');">
+            {% csrf_token %}
+            <button class="button share-detail-danger" type="submit">永久删除</button>
+        </form>
     </div>
+
+    {% if messages %}
+        <div class="share-detail-messages">
+            {% for message in messages %}
+                <p class="share-detail-message">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <div class="share-detail-grid">
         <section class="share-detail-panel">
@@ -146,6 +212,23 @@
             <p class="share-detail-meta">模板: {{ record.template_type }}</p>
             <p class="share-detail-meta">语言: {{ record.language }}</p>
             <p class="share-detail-meta">主题: {{ record.theme }}</p>
+            <p class="share-detail-meta">归属用户 ID: {{ record.owner_user_id|default:"-" }}</p>
+        </section>
+        <section class="share-detail-panel">
+            <h2>删除状态</h2>
+            {% if record.is_admin_deleted %}
+                <p class="share-detail-meta"><span class="share-detail-status share-detail-status-admin-deleted">{{ record.delete_status }}</span></p>
+                <p class="share-detail-meta">后台删除时间: {{ record.admin_deleted_at|date:"Y-m-d H:i:s" }}</p>
+                <p class="share-detail-meta">操作人 ID: {{ record.admin_deleted_by|default:"-" }}</p>
+            {% elif record.is_user_deleted %}
+                <p class="share-detail-meta"><span class="share-detail-status share-detail-status-user-deleted">{{ record.delete_status }}</span></p>
+                <p class="share-detail-meta">用户删除时间: {{ record.user_deleted_at|date:"Y-m-d H:i:s" }}</p>
+                <p class="share-detail-meta">用户回收站到期: {{ record.user_delete_expires_at|date:"Y-m-d H:i:s" }}</p>
+                <p class="share-detail-meta">用户可恢复: {% if record.user_trash_is_recoverable %}是{% else %}否{% endif %}</p>
+            {% else %}
+                <p class="share-detail-meta"><span class="share-detail-status share-detail-status-ok">正常</span></p>
+                <p class="share-detail-meta">普通访问: 允许</p>
+            {% endif %}
         </section>
         <section class="share-detail-panel">
             <h2>存储信息</h2>
@@ -187,19 +270,20 @@
             <div class="share-asset-list">
                 {% for asset in record.assets %}
                     <article class="share-asset-card">
+                        {% with preview_url=asset.admin_url|default:asset.url %}
                         <div class="share-asset-preview">
-                            {% if asset.url and asset.preview_type == "image" %}
-                                <a href="{{ asset.url }}" target="_blank" rel="noopener">
-                                    <img src="{{ asset.url }}" alt="{{ asset.path }}">
+                            {% if preview_url and asset.preview_type == "image" %}
+                                <a href="{{ preview_url }}" target="_blank" rel="noopener">
+                                    <img src="{{ preview_url }}" alt="{{ asset.path }}">
                                 </a>
-                            {% elif asset.url and asset.preview_type == "video" %}
-                                <video src="{{ asset.url }}" controls preload="metadata"></video>
-                            {% elif asset.url and asset.preview_type == "audio" %}
-                                <audio src="{{ asset.url }}" controls preload="metadata"></audio>
+                            {% elif preview_url and asset.preview_type == "video" %}
+                                <video src="{{ preview_url }}" controls preload="metadata"></video>
+                            {% elif preview_url and asset.preview_type == "audio" %}
+                                <audio src="{{ preview_url }}" controls preload="metadata"></audio>
                             {% else %}
                                 <div class="share-asset-file-fallback">
-                                    {% if asset.url %}
-                                        <a href="{{ asset.url }}" target="_blank" rel="noopener">打开文件</a>
+                                    {% if preview_url %}
+                                        <a href="{{ preview_url }}" target="_blank" rel="noopener">打开文件</a>
                                     {% else %}
                                         无可预览地址
                                     {% endif %}
@@ -212,10 +296,11 @@
                             <div><strong>MIME:</strong> {{ asset.mime_type }}</div>
                             <div><strong>大小:</strong> {{ asset.size }} bytes</div>
                             <div><strong>类型:</strong> {{ asset.preview_type }}</div>
-                            {% if asset.url %}
-                                <div><a href="{{ asset.url }}" target="_blank" rel="noopener">新窗口打开</a></div>
+                            {% if preview_url %}
+                                <div><a href="{{ preview_url }}" target="_blank" rel="noopener">新窗口打开</a></div>
                             {% endif %}
                         </div>
+                        {% endwith %}
                     </article>
                 {% endfor %}
             </div>

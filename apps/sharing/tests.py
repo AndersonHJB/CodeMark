@@ -1,20 +1,29 @@
 import json
+import datetime
 import os
 import tempfile
 
 from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
+from django.utils import timezone
 
 from apps.common.project_payload import ASSET_MARKER, FILENAME_MARKER, FILE_LANGUAGE_MARKER
 
 from . import views
 from .models import SharedFileAdminEntry
 from .share_files import (
+    ADMIN_DELETED_AT_MARKER,
+    ADMIN_SHARE_ACCESS_PARAM,
     OWNER_ID_MARKER,
+    USER_DELETED_AT_MARKER,
+    USER_DELETED_BY_MARKER,
     classify_asset_preview_type,
+    format_share_metadata_datetime,
     get_shared_code_record,
+    hard_delete_shared_code_record,
     list_shared_code_records,
+    restore_shared_code_record,
 )
 
 
@@ -60,6 +69,14 @@ class SharingUrlPatternTests(SimpleTestCase):
             "delete_account_share_link": (
                 reverse("delete_account_share_link", kwargs={"project_id": "project-1"}),
                 views.delete_account_share_link,
+            ),
+            "restore_account_share_link": (
+                reverse("restore_account_share_link", kwargs={"project_id": "project-1"}),
+                views.restore_account_share_link,
+            ),
+            "admin_share_files_bulk_action": (
+                reverse("admin_share_files_bulk_action"),
+                views.admin_share_files_bulk_action,
             ),
         }
 
@@ -145,6 +162,62 @@ class ShareFileRegistryTests(SimpleTestCase):
 
             self.assertEqual([record["project_id"] for record in records], [own_project_id])
             self.assertEqual(records[0]["owner_user_id"], 7)
+
+    def test_user_deleted_share_is_only_in_recoverable_trash_for_30_days(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            month_dir = os.path.join(tmpdir, "202606")
+            os.makedirs(month_dir)
+            active_project_id = "active_20260610124100"
+            expired_project_id = "expired_20260610124200"
+            expired_at = timezone.now() - datetime.timedelta(days=31)
+            with open(os.path.join(month_dir, f"{active_project_id}.txt"), "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n")
+                share_file.write("__LANG__=python\n")
+                share_file.write("__THEME__=monokai\n")
+                share_file.write(f"{OWNER_ID_MARKER}7\n")
+                share_file.write(f"{USER_DELETED_AT_MARKER}{format_share_metadata_datetime(timezone.now())}\n")
+                share_file.write(f"{USER_DELETED_BY_MARKER}7\n")
+                share_file.write("print('trash')\n")
+            with open(os.path.join(month_dir, f"{expired_project_id}.txt"), "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n")
+                share_file.write("__LANG__=python\n")
+                share_file.write("__THEME__=monokai\n")
+                share_file.write(f"{OWNER_ID_MARKER}7\n")
+                share_file.write(f"{USER_DELETED_AT_MARKER}{format_share_metadata_datetime(expired_at)}\n")
+                share_file.write(f"{USER_DELETED_BY_MARKER}7\n")
+                share_file.write("print('expired')\n")
+
+            active_records = list_shared_code_records(owner_user_id=7)
+            trash_records = list_shared_code_records(owner_user_id=7, trash_only=True)
+            admin_records = list_shared_code_records(include_deleted=True, include_expired_user_deleted=True)
+
+            self.assertEqual(active_records, [])
+            self.assertEqual([record["project_id"] for record in trash_records], [active_project_id])
+            self.assertEqual({record["project_id"] for record in admin_records}, {active_project_id, expired_project_id})
+            expired_record = get_shared_code_record(expired_project_id)
+            self.assertTrue(expired_record["user_delete_is_expired"])
+
+    def test_admin_restore_clears_deleted_metadata(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            month_dir = os.path.join(tmpdir, "202606")
+            os.makedirs(month_dir)
+            project_id = "restore_20260610124300"
+            with open(os.path.join(month_dir, f"{project_id}.txt"), "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n")
+                share_file.write("__LANG__=python\n")
+                share_file.write("__THEME__=monokai\n")
+                share_file.write(f"{OWNER_ID_MARKER}7\n")
+                share_file.write(f"{USER_DELETED_AT_MARKER}{format_share_metadata_datetime(timezone.now())}\n")
+                share_file.write(f"{USER_DELETED_BY_MARKER}7\n")
+                share_file.write(f"{ADMIN_DELETED_AT_MARKER}{format_share_metadata_datetime(timezone.now())}\n")
+                share_file.write("print('restore')\n")
+
+            self.assertTrue(restore_shared_code_record(project_id))
+            record = get_shared_code_record(project_id)
+
+            self.assertFalse(record["is_deleted"])
+            self.assertIsNone(record["user_deleted_at"])
+            self.assertIsNone(record["admin_deleted_at"])
 
 
 class AdminShareFileViewTests(TestCase):
@@ -240,6 +313,83 @@ class AdminShareFileViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], reverse("admin_share_files"))
 
+    def test_staff_can_see_and_open_user_deleted_share_with_admin_parameter(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            month_dir = os.path.join(tmpdir, "202606")
+            os.makedirs(month_dir)
+            project_id = "deleted_20260610124400"
+            with open(os.path.join(month_dir, f"{project_id}.txt"), "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n")
+                share_file.write("__LANG__=python\n")
+                share_file.write("__THEME__=monokai\n")
+                share_file.write(f"{USER_DELETED_AT_MARKER}{format_share_metadata_datetime(timezone.now())}\n")
+                share_file.write("print('deleted but visible to admin')\n")
+
+            public_response = self.client.get(reverse("show_shared_code", kwargs={"project_id": project_id}))
+            self.assertEqual(public_response.status_code, 404)
+
+            User = get_user_model()
+            user = User.objects.create_user(
+                username="deleted-staff",
+                password="test-password",
+                is_staff=True,
+                is_superuser=True,
+            )
+            client = Client()
+            client.force_login(user)
+
+            admin_list_response = client.get(reverse("admin_share_files"))
+            admin_open_response = client.get(
+                reverse("show_shared_code", kwargs={"project_id": project_id}),
+                {ADMIN_SHARE_ACCESS_PARAM: "1"},
+            )
+
+            self.assertEqual(admin_list_response.status_code, 200)
+            self.assertContains(admin_list_response, "用户删除")
+            self.assertEqual(admin_open_response.status_code, 200)
+            self.assertContains(admin_open_response, "deleted but visible to admin")
+
+    def test_admin_bulk_delete_blocks_public_access_until_restore(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            month_dir = os.path.join(tmpdir, "202606")
+            os.makedirs(month_dir)
+            project_id = "bulkdelete_20260610124500"
+            with open(os.path.join(month_dir, f"{project_id}.txt"), "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n__LANG__=python\n__THEME__=monokai\nprint('bulk')\n")
+
+            User = get_user_model()
+            user = User.objects.create_user(
+                username="bulk-staff",
+                password="test-password",
+                is_staff=True,
+                is_superuser=True,
+            )
+            client = Client()
+            client.force_login(user)
+
+            delete_response = client.post(
+                reverse("admin_share_files_bulk_action"),
+                {"action": "admin_delete", "project_ids": [project_id]},
+                follow=True,
+            )
+            record = get_shared_code_record(project_id)
+            public_response = client.get(reverse("show_shared_code", kwargs={"project_id": project_id}))
+            admin_response = client.get(
+                reverse("show_shared_code", kwargs={"project_id": project_id}),
+                {ADMIN_SHARE_ACCESS_PARAM: "1"},
+            )
+            restore_response = client.post(
+                reverse("admin_restore_share_file", kwargs={"project_id": project_id}),
+                follow=True,
+            )
+
+            self.assertEqual(delete_response.status_code, 200)
+            self.assertTrue(record["is_admin_deleted"])
+            self.assertEqual(public_response.status_code, 404)
+            self.assertEqual(admin_response.status_code, 200)
+            self.assertEqual(restore_response.status_code, 200)
+            self.assertFalse(get_shared_code_record(project_id)["is_deleted"])
+
 
 class ShareUploadTests(TestCase):
     def test_account_share_links_page_prompts_guest(self):
@@ -291,7 +441,7 @@ class ShareUploadTests(TestCase):
             )
             self.assertTrue(os.path.exists(saved_asset_path))
 
-    def test_authenticated_upload_is_listed_and_deleted_from_account_page(self):
+    def test_authenticated_upload_is_listed_deleted_and_restored_from_account_page(self):
         with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
             User = get_user_model()
             owner = User.objects.create_user(
@@ -343,5 +493,51 @@ class ShareUploadTests(TestCase):
             )
 
             self.assertEqual(delete_response.status_code, 200)
-            self.assertContains(delete_response, "分享链接已删除")
-            self.assertIsNone(get_shared_code_record(project_id))
+            self.assertContains(delete_response, "分享链接已移入回收站")
+            deleted_record = get_shared_code_record(project_id)
+            self.assertIsNotNone(deleted_record)
+            self.assertTrue(deleted_record["is_user_deleted"])
+            self.assertEqual(deleted_record["owner_user_id"], owner.pk)
+
+            public_deleted_response = self.client.get(reverse("show_shared_code", kwargs={"project_id": project_id}))
+            trash_response = self.client.get(reverse("account_share_links") + "?view=trash")
+            active_after_delete_response = self.client.get(reverse("account_share_links"))
+
+            self.assertEqual(public_deleted_response.status_code, 404)
+            self.assertContains(trash_response, project_id)
+            self.assertContains(trash_response, "恢复")
+            self.assertNotContains(active_after_delete_response, project_id)
+
+            restore_response = self.client.post(
+                reverse("restore_account_share_link", kwargs={"project_id": project_id}),
+                follow=True,
+            )
+
+            self.assertEqual(restore_response.status_code, 200)
+            self.assertContains(restore_response, "分享链接已恢复")
+            self.assertFalse(get_shared_code_record(project_id)["is_deleted"])
+
+    def test_hard_delete_removes_share_files_after_soft_delete(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            month_dir = os.path.join(tmpdir, "202606")
+            image_dir = os.path.join(tmpdir, "images")
+            asset_dir = os.path.join(tmpdir, "assets", "hard_20260610124600")
+            os.makedirs(month_dir)
+            os.makedirs(image_dir)
+            os.makedirs(asset_dir)
+            project_id = "hard_20260610124600"
+            text_path = os.path.join(month_dir, f"{project_id}.txt")
+            qr_path = os.path.join(image_dir, f"{project_id}.png")
+            asset_path = os.path.join(asset_dir, "asset.txt")
+            with open(text_path, "w", encoding="utf-8") as share_file:
+                share_file.write("__TEMPLATE__=sharecode\n__LANG__=python\n__THEME__=monokai\nprint('hard')\n")
+            with open(qr_path, "wb") as qr_file:
+                qr_file.write(b"png")
+            with open(asset_path, "w", encoding="utf-8") as asset_file:
+                asset_file.write("asset")
+
+            self.assertTrue(hard_delete_shared_code_record(project_id))
+
+            self.assertFalse(os.path.exists(text_path))
+            self.assertFalse(os.path.exists(qr_path))
+            self.assertFalse(os.path.exists(asset_dir))

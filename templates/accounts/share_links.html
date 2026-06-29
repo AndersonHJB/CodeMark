@@ -79,6 +79,7 @@
         }
         .account-shares-quick-actions,
         .account-shares-actions,
+        .account-shares-tabs,
         .account-shares-toolbar,
         .account-shares-row-actions {
             display: flex;
@@ -121,6 +122,15 @@
             border-color: #b42318;
             background: #b42318;
         }
+        .account-shares-button-success {
+            color: #027a48;
+            border-color: #a6f4c5;
+        }
+        .account-shares-button-success:hover,
+        .account-shares-button-success:focus {
+            border-color: #027a48;
+            background: #027a48;
+        }
         .account-shares-panel {
             padding: 22px;
         }
@@ -147,6 +157,14 @@
             flex: 1 1 320px;
             max-width: 520px;
             gap: 8px;
+        }
+        .account-shares-tabs {
+            margin: 0 0 16px;
+        }
+        .account-shares-tab-active {
+            color: #fff;
+            border-color: var(--account-page-primary);
+            background: var(--account-page-primary);
         }
         .account-shares-search input {
             min-width: 0;
@@ -180,6 +198,10 @@
             border-radius: var(--account-page-radius);
             background: #fff;
         }
+        .account-shares-item-trash {
+            border-color: #fedf89;
+            background: #fffaf0;
+        }
         .account-shares-title {
             display: flex;
             flex-wrap: wrap;
@@ -188,6 +210,11 @@
             margin-bottom: 8px;
         }
         .account-shares-title a {
+            color: var(--account-page-ink);
+            font-weight: 800;
+            word-break: break-all;
+        }
+        .account-shares-deleted-title {
             color: var(--account-page-ink);
             font-weight: 800;
             word-break: break-all;
@@ -226,6 +253,12 @@
         .account-shares-delete-form {
             margin: 0;
         }
+        .account-shares-trash-note {
+            flex: 1 1 100%;
+            color: #b54708;
+            font-size: 13px;
+            line-height: 1.5;
+        }
         .account-shares-empty {
             padding: 34px 22px;
             text-align: center;
@@ -253,6 +286,7 @@
         }
         @media (max-width: 560px) {
             .account-shares-toolbar,
+            .account-shares-tabs,
             .account-shares-search,
             .account-shares-actions,
             .account-shares-row-actions {
@@ -298,7 +332,11 @@
                 <p>{{ codemark_account.display_name }} 的代码分享链接。</p>
                 <div class="account-shares-stat">
                     <strong>{{ record_count }}</strong>
-                    <span class="account-shares-muted">当前记录</span>
+                    <span class="account-shares-muted">当前分享</span>
+                </div>
+                <div class="account-shares-stat">
+                    <strong>{{ trash_count }}</strong>
+                    <span class="account-shares-muted">回收站</span>
                 </div>
                 <div class="account-shares-quick-actions">
                     <a class="account-shares-link" href="{% url 'sharecode' %}">分享工具</a>
@@ -311,16 +349,26 @@
                 <div class="account-shares-panel-head">
                     <div>
                         <h2 id="accountSharesTitle">分享链接</h2>
-                        <p>只显示当前登录账号生成的分享。</p>
+                        <p>{% if is_trash_view %}回收站内分享保留 {{ share_trash_retention_days }} 天。{% else %}只显示当前登录账号生成的分享。{% endif %}</p>
                     </div>
                     <form class="account-shares-search" action="{% url 'account_share_links' %}" method="get">
+                        {% if is_trash_view %}<input type="hidden" name="view" value="trash">{% endif %}
                         <input type="search" name="q" value="{{ query }}" placeholder="搜索 project_id、文件名或代码">
                         <button class="account-shares-button" type="submit">搜索</button>
                         {% if query %}
-                            <a class="account-shares-link" href="{% url 'account_share_links' %}">清除</a>
+                            {% if is_trash_view %}
+                                <a class="account-shares-link" href="{% url 'account_share_links' %}?view=trash">清除</a>
+                            {% else %}
+                                <a class="account-shares-link" href="{% url 'account_share_links' %}">清除</a>
+                            {% endif %}
                         {% endif %}
                     </form>
                 </div>
+
+                <nav class="account-shares-tabs" aria-label="分享列表筛选">
+                    <a class="account-shares-link{% if not is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}">当前分享 {{ record_count }}</a>
+                    <a class="account-shares-link{% if is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">回收站 {{ trash_count }}</a>
+                </nav>
 
                 {% if messages %}
                     {% for message in messages %}
@@ -331,12 +379,19 @@
                 {% if records %}
                     <div class="account-shares-list">
                         {% for record in records %}
-                            <article class="account-shares-item">
+                            <article class="account-shares-item{% if is_trash_view %} account-shares-item-trash{% endif %}">
                                 <div>
                                     <div class="account-shares-title">
-                                        <a href="{{ record.share_path }}" target="_blank" rel="noopener">{{ record.project_id }}</a>
+                                        {% if is_trash_view %}
+                                            <span class="account-shares-deleted-title">{{ record.project_id }}</span>
+                                        {% else %}
+                                            <a href="{{ record.share_path }}" target="_blank" rel="noopener">{{ record.project_id }}</a>
+                                        {% endif %}
                                         <span class="account-shares-pill">{{ record.template_type }}</span>
                                         <span class="account-shares-pill">{{ record.language }}</span>
+                                        {% if is_trash_view %}
+                                            <span class="account-shares-pill">用户已删除</span>
+                                        {% endif %}
                                     </div>
                                     <div class="account-shares-meta">
                                         <span>{{ record.created_at|date:"Y-m-d H:i:s" }}</span>
@@ -344,32 +399,51 @@
                                         <span>文件夹 {{ record.folder_count }}</span>
                                         <span>资源 {{ record.asset_count }}</span>
                                         <span>{{ record.content_chars }} 字符</span>
+                                        {% if is_trash_view %}
+                                            <span>删除 {{ record.user_deleted_at|date:"Y-m-d H:i:s" }}</span>
+                                            <span>到期 {{ record.user_delete_expires_at|date:"Y-m-d H:i:s" }}</span>
+                                            <span>剩余 {{ record.trash_days_remaining }} 天</span>
+                                        {% endif %}
                                     </div>
                                     {% if record.preview_text %}
                                         <pre class="account-shares-preview">{{ record.preview_text }}</pre>
                                     {% endif %}
                                 </div>
                                 <div class="account-shares-row-actions">
-                                    <a class="account-shares-link" href="{{ record.share_path }}" target="_blank" rel="noopener">打开</a>
-                                    <button class="account-shares-button" type="button" data-copy-share-url="{{ record.share_url }}">复制</button>
-                                    <form class="account-shares-delete-form"
-                                          action="{% url 'delete_account_share_link' record.project_id %}"
-                                          method="post"
-                                          onsubmit="return confirm('确定删除这个分享链接？删除后原链接将无法访问。');">
-                                        {% csrf_token %}
-                                        <button class="account-shares-button account-shares-button-danger" type="submit">删除</button>
-                                    </form>
+                                    {% if is_trash_view %}
+                                        <span class="account-shares-trash-note">删除后的分享链接不可访问。</span>
+                                        <form class="account-shares-delete-form"
+                                              action="{% url 'restore_account_share_link' record.project_id %}"
+                                              method="post">
+                                            {% csrf_token %}
+                                            <button class="account-shares-button account-shares-button-success" type="submit">恢复</button>
+                                        </form>
+                                    {% else %}
+                                        <a class="account-shares-link" href="{{ record.share_path }}" target="_blank" rel="noopener">打开</a>
+                                        <button class="account-shares-button" type="button" data-copy-share-url="{{ record.share_url }}">复制</button>
+                                        <form class="account-shares-delete-form"
+                                              action="{% url 'delete_account_share_link' record.project_id %}"
+                                              method="post"
+                                              onsubmit="return confirm('确定删除这个分享链接？删除后原链接将无法访问，{{ share_trash_retention_days }} 天内可在回收站恢复。');">
+                                            {% csrf_token %}
+                                            <button class="account-shares-button account-shares-button-danger" type="submit">删除</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </article>
                         {% endfor %}
                     </div>
                 {% else %}
                     <div class="account-shares-empty">
-                        <h2>{% if query %}没有匹配的分享{% else %}暂无分享链接{% endif %}</h2>
-                        <p>{% if query %}换一个关键词试试。{% else %}在编辑器或分享工具里点击 share 后会自动出现在这里。{% endif %}</p>
+                        <h2>{% if query %}没有匹配的分享{% elif is_trash_view %}回收站为空{% else %}暂无分享链接{% endif %}</h2>
+                        <p>{% if query %}换一个关键词试试。{% elif is_trash_view %}用户删除的分享会在这里保留 {{ share_trash_retention_days }} 天。{% else %}在编辑器或分享工具里点击 share 后会自动出现在这里。{% endif %}</p>
                         <div class="account-shares-actions">
-                            <a class="account-shares-link" href="{% url 'sharecode' %}">打开分享工具</a>
-                            <a class="account-shares-link" href="{% url 'editor' %}">打开 Python 编辑器</a>
+                            {% if is_trash_view %}
+                                <a class="account-shares-link" href="{% url 'account_share_links' %}">返回当前分享</a>
+                            {% else %}
+                                <a class="account-shares-link" href="{% url 'sharecode' %}">打开分享工具</a>
+                                <a class="account-shares-link" href="{% url 'editor' %}">打开 Python 编辑器</a>
+                            {% endif %}
                         </div>
                     </div>
                 {% endif %}

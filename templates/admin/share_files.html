@@ -30,6 +30,19 @@
         color: var(--body-quiet-color);
         white-space: nowrap;
     }
+    .share-admin-bulkbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    .share-admin-bulkbar select {
+        min-width: 180px;
+    }
     .share-admin-table {
         width: 100%;
         border-collapse: collapse;
@@ -72,6 +85,32 @@
         font-size: 12px;
         white-space: nowrap;
     }
+    .share-admin-pill-ok {
+        color: #027a48;
+        border-color: #a6f4c5;
+        background: #ecfdf3;
+    }
+    .share-admin-pill-user-deleted {
+        color: #b54708;
+        border-color: #fedf89;
+        background: #fffaeb;
+    }
+    .share-admin-pill-admin-deleted {
+        color: #b42318;
+        border-color: #fecdca;
+        background: #fef3f2;
+    }
+    .share-admin-messages {
+        display: grid;
+        gap: 8px;
+    }
+    .share-admin-message {
+        margin: 0;
+        padding: 9px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--darkened-bg);
+    }
 </style>
 {% endblock %}
 
@@ -95,49 +134,116 @@
         <div class="share-admin-summary">共 {{ record_count }} 条分享记录</div>
     </div>
 
-    <table class="share-admin-table">
-        <thead>
-        <tr>
-            <th>分享文件</th>
-            <th>数据概览</th>
-            <th>预览</th>
-            <th>时间</th>
-            <th>操作</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for record in records %}
+    {% if messages %}
+        <div class="share-admin-messages">
+            {% for message in messages %}
+                <p class="share-admin-message">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form action="{% url 'admin_share_files_bulk_action' %}" method="post" id="shareAdminBulkForm">
+        {% csrf_token %}
+        <div class="share-admin-bulkbar">
+            <select name="action" aria-label="批量操作">
+                <option value="admin_delete">后台删除（进入永久回收站）</option>
+                <option value="restore">恢复所选分享</option>
+            </select>
+            <button type="submit" class="button">应用到所选</button>
+            <span class="share-admin-meta">后台删除不会物理删除文件；永久删除请进入详情页手动执行。</span>
+        </div>
+
+        <table class="share-admin-table">
+            <thead>
             <tr>
-                <td>
-                    <a href="{% url 'admin_share_file_detail' record.project_id %}">{{ record.project_id }}</a>
-                    <div class="share-admin-meta">{{ record.storage_month }} / {{ record.template_type }} / {{ record.language }} / {{ record.theme }}</div>
-                    <div class="share-admin-meta">{{ record.storage_path }}</div>
-                </td>
-                <td>
-                    <span class="share-admin-pill">文件 {{ record.text_file_count }}</span>
-                    <span class="share-admin-pill">文件夹 {{ record.folder_count }}</span>
-                    <span class="share-admin-pill">资源 {{ record.asset_count }}</span>
-                    <span class="share-admin-pill">{{ record.content_chars }} 字符</span>
-                    <div class="share-admin-meta">{{ record.size }} bytes</div>
-                </td>
-                <td><div class="share-admin-preview">{{ record.preview_text|default:"-" }}</div></td>
-                <td>
-                    <div>{{ record.created_at|date:"Y-m-d H:i:s" }}</div>
-                    <div class="share-admin-meta">修改 {{ record.modified_at|date:"Y-m-d H:i:s" }}</div>
-                </td>
-                <td>
-                    <div class="share-admin-actions">
-                        <a class="button" href="{% url 'admin_share_file_detail' record.project_id %}">查看全部数据</a>
-                        <a class="button" href="{{ record.share_path }}" target="_blank" rel="noopener">打开分享页</a>
-                    </div>
-                </td>
+                <th><input type="checkbox" id="shareAdminSelectAll" aria-label="选择全部分享文件"></th>
+                <th>分享文件</th>
+                <th>状态</th>
+                <th>数据概览</th>
+                <th>预览</th>
+                <th>时间</th>
+                <th>操作</th>
             </tr>
-        {% empty %}
-            <tr>
-                <td colspan="5">没有找到分享文件。</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+            {% for record in records %}
+                <tr>
+                    <td><input type="checkbox" name="project_ids" value="{{ record.project_id }}" aria-label="选择 {{ record.project_id }}"></td>
+                    <td>
+                        <a href="{% url 'admin_share_file_detail' record.project_id %}">{{ record.project_id }}</a>
+                        <div class="share-admin-meta">{{ record.storage_month }} / {{ record.template_type }} / {{ record.language }} / {{ record.theme }}</div>
+                        <div class="share-admin-meta">{{ record.storage_path }}</div>
+                    </td>
+                    <td>
+                        {% if record.is_admin_deleted %}
+                            <span class="share-admin-pill share-admin-pill-admin-deleted">{{ record.delete_status }}</span>
+                            <div class="share-admin-meta">删除 {{ record.admin_deleted_at|date:"Y-m-d H:i:s" }}</div>
+                            {% if record.admin_deleted_by %}<div class="share-admin-meta">操作人 ID {{ record.admin_deleted_by }}</div>{% endif %}
+                        {% elif record.is_user_deleted %}
+                            <span class="share-admin-pill share-admin-pill-user-deleted">{{ record.delete_status }}</span>
+                            <div class="share-admin-meta">删除 {{ record.user_deleted_at|date:"Y-m-d H:i:s" }}</div>
+                            <div class="share-admin-meta">用户回收站到期 {{ record.user_delete_expires_at|date:"Y-m-d H:i:s" }}</div>
+                            {% if record.user_deleted_by %}<div class="share-admin-meta">用户 ID {{ record.user_deleted_by }}</div>{% endif %}
+                        {% else %}
+                            <span class="share-admin-pill share-admin-pill-ok">正常</span>
+                        {% endif %}
+                        {% if record.owner_user_id %}
+                            <div class="share-admin-meta">归属用户 ID {{ record.owner_user_id }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="share-admin-pill">文件 {{ record.text_file_count }}</span>
+                        <span class="share-admin-pill">文件夹 {{ record.folder_count }}</span>
+                        <span class="share-admin-pill">资源 {{ record.asset_count }}</span>
+                        <span class="share-admin-pill">{{ record.content_chars }} 字符</span>
+                        <div class="share-admin-meta">{{ record.size }} bytes</div>
+                    </td>
+                    <td><div class="share-admin-preview">{{ record.preview_text|default:"-" }}</div></td>
+                    <td>
+                        <div>{{ record.created_at|date:"Y-m-d H:i:s" }}</div>
+                        <div class="share-admin-meta">修改 {{ record.modified_at|date:"Y-m-d H:i:s" }}</div>
+                    </td>
+                    <td>
+                        <div class="share-admin-actions">
+                            <a class="button" href="{% url 'admin_share_file_detail' record.project_id %}">查看全部数据</a>
+                            <a class="button" href="{{ record.admin_share_path }}" target="_blank" rel="noopener">管理员打开</a>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">没有找到分享文件。</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </form>
 </div>
+<script>
+    (function () {
+        const selectAll = document.getElementById("shareAdminSelectAll");
+        const bulkForm = document.getElementById("shareAdminBulkForm");
+        if (selectAll) {
+            selectAll.addEventListener("change", function () {
+                document.querySelectorAll('input[name="project_ids"]').forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                });
+            });
+        }
+        if (bulkForm) {
+            bulkForm.addEventListener("submit", function (event) {
+                const selected = bulkForm.querySelectorAll('input[name="project_ids"]:checked');
+                if (!selected.length) {
+                    event.preventDefault();
+                    alert("请先选择分享文件。");
+                    return;
+                }
+                const action = bulkForm.querySelector('select[name="action"]').value;
+                if (action === "admin_delete" && !confirm("确定将所选分享移入后台回收站？普通用户将无法访问。")) {
+                    event.preventDefault();
+                }
+            });
+        }
+    })();
+</script>
 {% endblock %}
