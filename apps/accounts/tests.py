@@ -818,6 +818,8 @@ class AccountTemplateTests(TestCase):
         self.assertIn("data-account-open-register data-account-guest-only", html)
         self.assertIn("data-account-profile-link", html)
         self.assertIn("data-account-auth-only", html)
+        self.assertIn(reverse("account_share_links"), html)
+        self.assertIn("我的分享", html)
 
     def test_sharecode_sidebar_includes_account_entry(self):
         response = self.client.get(reverse("sharecode"))
@@ -841,6 +843,7 @@ class AccountTemplateTests(TestCase):
         self.assertNotContains(response, 'data-account-login-mode="username_password"', html=False)
         self.assertContains(response, 'data-account-login-send-code', html=False)
         self.assertContains(response, reverse("account_profile_page"), html=False)
+        self.assertContains(response, reverse("account_share_links"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
 
     def test_algorithms_topbar_includes_account_entry(self):
@@ -851,6 +854,7 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, 'data-account-open-login data-account-guest-only', html=False)
         self.assertContains(response, 'data-account-tab="login"', html=False)
         self.assertContains(response, reverse("account_profile_page"), html=False)
+        self.assertContains(response, reverse("account_share_links"), html=False)
         self.assertContains(response, 'js/accounts.js', html=False)
 
     def test_login_dialog_respects_enabled_login_methods(self):
@@ -890,6 +894,7 @@ class AccountTemplateTests(TestCase):
         self.assertIn("data-account-open-register data-account-guest-only hidden", html)
         self.assertIn("data-account-profile-link", html)
         self.assertIn(reverse("account_profile_page"), html)
+        self.assertIn(reverse("account_share_links"), html)
         self.assertIn("已登录简介", html)
 
     def test_profile_page_prompts_guest_and_mounts_profile_form(self):

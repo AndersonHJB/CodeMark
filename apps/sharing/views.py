@@ -7,11 +7,12 @@ import uuid
 import zipfile
 
 from django.conf import settings
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 import qrcode
 
 from apps.common.project_payload import (
@@ -40,7 +41,19 @@ from apps.common.runtime import (
     send_file,
     send_from_directory,
 )
-from apps.sharing.share_files import get_shared_code_record, list_shared_code_records
+from apps.sharing.share_files import (
+    OWNER_ID_MARKER,
+    delete_shared_code_record,
+    get_shared_code_record,
+    list_shared_code_records,
+)
+
+
+def _share_owner_header_lines():
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated and user.pk:
+        return [f"{OWNER_ID_MARKER}{user.pk}"]
+    return []
 
 
 @django_view
@@ -108,6 +121,7 @@ def upload_code():
             code=code,
             project_payload=project_payload,
             project_id=project_id,
+            extra_header_lines=_share_owner_header_lines(),
         )
     else:
         # 兼容原单文件存储格式
@@ -115,6 +129,8 @@ def upload_code():
             f.write(f"__TEMPLATE__={template_type}\n")
             f.write(f"__LANG__={language}\n")
             f.write(f"{THEME_MARKER}{theme}\n")
+            for header_line in _share_owner_header_lines():
+                f.write(f"{header_line}\n")
             f.write(code)
 
     # 3. 生成二维码并保存在 media/sharecode/images 文件夹
@@ -282,6 +298,8 @@ def show_shared_code(project_id):
                         lang = normalize_language(line.split("=", 1)[1].strip())
                     elif line.startswith(THEME_MARKER):
                         theme = normalize_theme(line.split("=", 1)[1].strip())
+                    elif line.startswith(OWNER_ID_MARKER):
+                        pass
                     else:
                         break
                     body_start_index += 1
@@ -352,6 +370,41 @@ def show_shared_code(project_id):
         share_project_id=project_id,
         is_mobile=is_mobile_request()
     )
+
+
+@django_view
+def account_share_links():
+    query = request.GET.get("q", "")
+    records = []
+    if request.user.is_authenticated:
+        records = list_shared_code_records(query, owner_user_id=request.user.pk)
+        for record in records:
+            record["share_url"] = request._current().build_absolute_uri(record["share_path"])
+
+    return render(
+        request._current(),
+        "accounts/share_links.html",
+        {
+            "active_nav": "sharecode",
+            "records": records,
+            "record_count": len(records),
+            "query": query,
+        },
+    )
+
+
+@require_POST
+@django_view
+def delete_account_share_link(project_id):
+    if not request.user.is_authenticated:
+        return redirect("account_share_links")
+
+    deleted = delete_shared_code_record(project_id, owner_user_id=request.user.pk)
+    if deleted:
+        messages.success(request._current(), "分享链接已删除。")
+    else:
+        messages.error(request._current(), "没有找到可删除的分享链接。")
+    return redirect("account_share_links")
 
 
 @staff_member_required

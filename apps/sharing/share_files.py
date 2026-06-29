@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+import shutil
 
 from django.conf import settings
 from django.utils import timezone
@@ -19,6 +20,7 @@ from apps.common.project_payload import (
 SHARE_PROJECT_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 SHARE_TIMESTAMP_PATTERN = re.compile(r"_([0-9]{14})$")
 SHARE_SYSTEM_DIRS = {"assets", "images"}
+OWNER_ID_MARKER = "__OWNER_ID__="
 IMAGE_EXTENSIONS = {"avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "webp"}
 VIDEO_EXTENSIONS = {"avi", "m4v", "mkv", "mov", "mp4", "mpeg", "mpg", "ogv", "webm"}
 AUDIO_EXTENSIONS = {"aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "weba"}
@@ -94,6 +96,7 @@ def parse_share_file(file_path, include_content=False):
     template_type = "editor"
     language = "python"
     theme = DEFAULT_CODE_THEME
+    owner_user_id = None
 
     with open(file_path, "r", encoding="utf-8") as share_file:
         lines = share_file.readlines()
@@ -108,6 +111,9 @@ def parse_share_file(file_path, include_content=False):
             language = normalize_language(line.split("=", 1)[1].strip(), language)
         elif line.startswith(THEME_MARKER):
             theme = normalize_theme(line.split("=", 1)[1].strip(), theme)
+        elif line.startswith(OWNER_ID_MARKER):
+            raw_owner_user_id = line.split("=", 1)[1].strip()
+            owner_user_id = int(raw_owner_user_id) if raw_owner_user_id.isdigit() else None
         else:
             break
         body_start_index += 1
@@ -146,6 +152,7 @@ def parse_share_file(file_path, include_content=False):
         "template_type": template_type,
         "language": language,
         "theme": theme,
+        "owner_user_id": owner_user_id,
         "storage_path": file_path,
         "storage_month": os.path.basename(os.path.dirname(file_path)),
         "size": file_stat.st_size,
@@ -171,18 +178,27 @@ def parse_share_file(file_path, include_content=False):
                 "template_type": template_type,
                 "language": language,
                 "theme": theme,
+                "owner_user_id": owner_user_id,
             },
         })
 
     return record
 
 
-def list_shared_code_records(query=""):
+def list_shared_code_records(query="", owner_user_id=None):
     normalized_query = (query or "").strip().lower()
+    normalized_owner_user_id = None
+    if owner_user_id is not None:
+        try:
+            normalized_owner_user_id = int(owner_user_id)
+        except (TypeError, ValueError):
+            normalized_owner_user_id = -1
     records = []
 
     for file_path in iter_share_file_paths() or []:
         record = parse_share_file(file_path, include_content=bool(normalized_query))
+        if normalized_owner_user_id is not None and record.get("owner_user_id") != normalized_owner_user_id:
+            continue
         if normalized_query:
             searchable_parts = [
                 record["project_id"],
@@ -204,3 +220,38 @@ def get_shared_code_record(project_id):
     if not file_path:
         return None
     return parse_share_file(file_path, include_content=True)
+
+
+def delete_shared_code_record(project_id, owner_user_id=None):
+    record = get_shared_code_record(project_id)
+    if not record:
+        return False
+
+    if owner_user_id is not None:
+        try:
+            normalized_owner_user_id = int(owner_user_id)
+        except (TypeError, ValueError):
+            return False
+        if record.get("owner_user_id") != normalized_owner_user_id:
+            return False
+
+    storage_path = record.get("storage_path")
+    if storage_path and os.path.isfile(storage_path):
+        os.remove(storage_path)
+
+    month_folder = os.path.dirname(storage_path) if storage_path else ""
+    if month_folder and os.path.isdir(month_folder):
+        try:
+            os.rmdir(month_folder)
+        except OSError:
+            pass
+
+    qr_path = os.path.join(settings.CODEMARK_SHARECODE_DIR, "images", f"{record['project_id']}.png")
+    if os.path.isfile(qr_path):
+        os.remove(qr_path)
+
+    asset_root = os.path.join(settings.CODEMARK_SHARECODE_DIR, "assets", record["project_id"])
+    if os.path.isdir(asset_root):
+        shutil.rmtree(asset_root)
+
+    return True

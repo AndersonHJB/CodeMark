@@ -58,6 +58,20 @@
             </svg>
             <span>个人资料</span>
         </a>
+        <a class="account-menu-item"
+           href="{% url 'account_share_links' %}"
+           role="menuitem"
+           data-account-auth-only
+           {% if not codemark_account.is_authenticated %} hidden{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <path d="m8.6 10.6 6.8-4.2"></path>
+                <path d="m8.6 13.4 6.8 4.2"></path>
+            </svg>
+            <span>我的分享</span>
+        </a>
         <a class="account-menu-item account-menu-item-vip"
            href="{% url 'blog_vip_guide' %}"
            role="menuitem"

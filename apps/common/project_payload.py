@@ -490,7 +490,16 @@ def parse_project_sections(body_lines, project_id=None):
     }
 
 
-def persist_project_payload(code_file_path, template_type, language, theme, code, project_payload, project_id):
+def persist_project_payload(
+    code_file_path,
+    template_type,
+    language,
+    theme,
+    code,
+    project_payload,
+    project_id,
+    extra_header_lines=None,
+):
     """将单文件或多文件项目写入 sharecode 文本，并持久化资源文件。"""
     project_data = project_payload if isinstance(project_payload, dict) else {}
     language = normalize_language(language)
@@ -609,6 +618,10 @@ def persist_project_payload(code_file_path, template_type, language, theme, code
         f.write(f"__TEMPLATE__={template_type}\n")
         f.write(f"__LANG__={language}\n")
         f.write(f"{THEME_MARKER}{theme}\n")
+        for header_line in extra_header_lines or []:
+            clean_header_line = str(header_line).rstrip("\r\n")
+            if clean_header_line:
+                f.write(f"{clean_header_line}\n")
         for folder_path in folders:
             f.write(f"{FOLDER_MARKER}{folder_path}\n")
         for text_file in text_files:

@@ -1,0 +1,420 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的分享 - CodeMark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/site-topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+    <link rel="icon" href="https://bornforthis.cn/favicon.ico">
+    <style>
+        .account-shares-page .account-profile-shell {
+            max-width: 1180px;
+        }
+        .account-shares-page .account-profile-layout {
+            display: block;
+        }
+        .account-shares-page .account-profile-layout[hidden] {
+            display: none !important;
+        }
+        .account-shares-layout {
+            display: grid;
+            grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+            gap: 20px;
+        }
+        .account-shares-card,
+        .account-shares-panel,
+        .account-shares-empty {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--account-page-line);
+            border-radius: var(--account-page-radius);
+            background: var(--account-page-surface);
+            box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
+        }
+        .account-shares-card::before,
+        .account-shares-panel::before,
+        .account-shares-empty::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, var(--account-page-primary), var(--account-page-blue) 54%, var(--account-page-warm));
+        }
+        .account-shares-card {
+            padding: 22px;
+            align-self: start;
+        }
+        .account-shares-card h1 {
+            margin: 0 0 8px;
+            color: var(--account-page-ink);
+            font-size: 24px;
+            line-height: 1.2;
+        }
+        .account-shares-card p,
+        .account-shares-muted,
+        .account-shares-meta {
+            color: var(--account-page-muted);
+        }
+        .account-shares-card p {
+            margin: 0 0 18px;
+            line-height: 1.65;
+        }
+        .account-shares-stat {
+            display: grid;
+            gap: 4px;
+            padding-top: 16px;
+            border-top: 1px solid var(--account-page-line);
+        }
+        .account-shares-stat strong {
+            color: var(--account-page-primary-strong);
+            font-size: 34px;
+            line-height: 1;
+            font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+        }
+        .account-shares-quick-actions,
+        .account-shares-actions,
+        .account-shares-toolbar,
+        .account-shares-row-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .account-shares-quick-actions {
+            margin-top: 20px;
+        }
+        .account-shares-link,
+        .account-shares-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 38px;
+            padding: 0 14px;
+            border: 1px solid var(--account-page-line);
+            border-radius: var(--account-page-radius);
+            color: var(--account-page-primary-strong);
+            background: #fff;
+            font: 700 13px/1 "Noto Sans SC", sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .account-shares-link:hover,
+        .account-shares-link:focus,
+        .account-shares-button:hover,
+        .account-shares-button:focus {
+            color: #fff;
+            border-color: var(--account-page-primary);
+            background: var(--account-page-primary);
+            text-decoration: none;
+        }
+        .account-shares-button-danger {
+            color: #b42318;
+            border-color: #f4c7c3;
+        }
+        .account-shares-button-danger:hover,
+        .account-shares-button-danger:focus {
+            border-color: #b42318;
+            background: #b42318;
+        }
+        .account-shares-panel {
+            padding: 22px;
+        }
+        .account-shares-panel-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .account-shares-panel-head h2 {
+            margin: 0 0 6px;
+            color: var(--account-page-ink);
+            font-size: 22px;
+            line-height: 1.25;
+        }
+        .account-shares-panel-head p {
+            margin: 0;
+            color: var(--account-page-muted);
+        }
+        .account-shares-search {
+            display: flex;
+            flex: 1 1 320px;
+            max-width: 520px;
+            gap: 8px;
+        }
+        .account-shares-search input {
+            min-width: 0;
+            flex: 1;
+            height: 38px;
+            padding: 0 12px;
+            border: 1px solid var(--account-page-line);
+            border-radius: var(--account-page-radius);
+            color: var(--account-page-ink);
+            background: #fff;
+            font: 500 14px/1.4 "Noto Sans SC", sans-serif;
+        }
+        .account-shares-message {
+            margin: 0 0 14px;
+            padding: 10px 12px;
+            border: 1px solid #b7e4d8;
+            border-radius: var(--account-page-radius);
+            color: #0f5d51;
+            background: #ecfdf7;
+        }
+        .account-shares-list {
+            display: grid;
+            gap: 12px;
+        }
+        .account-shares-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            padding: 15px;
+            border: 1px solid var(--account-page-line);
+            border-radius: var(--account-page-radius);
+            background: #fff;
+        }
+        .account-shares-title {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .account-shares-title a {
+            color: var(--account-page-ink);
+            font-weight: 800;
+            word-break: break-all;
+        }
+        .account-shares-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 8px;
+            border: 1px solid var(--account-page-line);
+            border-radius: 999px;
+            color: var(--account-page-muted);
+            background: var(--account-page-surface-soft);
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .account-shares-preview {
+            margin: 8px 0 0;
+            max-width: 760px;
+            color: var(--account-page-muted);
+            white-space: pre-wrap;
+            word-break: break-word;
+            font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+        .account-shares-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+        .account-shares-row-actions {
+            align-content: start;
+            justify-content: flex-end;
+        }
+        .account-shares-delete-form {
+            margin: 0;
+        }
+        .account-shares-empty {
+            padding: 34px 22px;
+            text-align: center;
+        }
+        .account-shares-empty h2 {
+            margin: 0 0 8px;
+            color: var(--account-page-ink);
+            font-size: 22px;
+        }
+        .account-shares-empty p {
+            margin: 0 0 18px;
+            color: var(--account-page-muted);
+        }
+        @media (max-width: 900px) {
+            .account-shares-layout,
+            .account-shares-item {
+                grid-template-columns: 1fr;
+            }
+            .account-shares-row-actions {
+                justify-content: flex-start;
+            }
+            .account-shares-search {
+                max-width: none;
+            }
+        }
+        @media (max-width: 560px) {
+            .account-shares-toolbar,
+            .account-shares-search,
+            .account-shares-actions,
+            .account-shares-row-actions {
+                width: 100%;
+            }
+            .account-shares-link,
+            .account-shares-button {
+                flex: 1 1 auto;
+            }
+        }
+    </style>
+</head>
+<body class="account-profile-page account-shares-page">
+{% include "_site_topbar.html" with show_account=True brand_logo="images/logo-cm.svg" %}
+
+<main class="account-profile-shell">
+    <section class="account-profile-guest" data-account-guest-only{% if codemark_account.is_authenticated %} hidden{% endif %}>
+        <div class="account-profile-guest-card">
+            <span class="account-profile-guest-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <path d="m8.6 10.6 6.8-4.2"></path>
+                    <path d="m8.6 13.4 6.8 4.2"></path>
+                </svg>
+            </span>
+            <div>
+                <h1>登录后管理分享链接</h1>
+                <p>登录账号生成的分享链接会归档到这里。</p>
+            </div>
+            <div class="account-profile-guest-actions">
+                <button class="account-primary-btn" type="button" data-account-open-login>登录</button>
+                <button class="account-secondary-btn" type="button" data-account-open-register>注册</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="account-profile-layout" data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
+        <div class="account-shares-layout">
+            <aside class="account-shares-card" aria-label="分享概览">
+                <h1>我的分享</h1>
+                <p>{{ codemark_account.display_name }} 的代码分享链接。</p>
+                <div class="account-shares-stat">
+                    <strong>{{ record_count }}</strong>
+                    <span class="account-shares-muted">当前记录</span>
+                </div>
+                <div class="account-shares-quick-actions">
+                    <a class="account-shares-link" href="{% url 'sharecode' %}">分享工具</a>
+                    <a class="account-shares-link" href="{% url 'editor' %}">Python 编辑器</a>
+                    <a class="account-shares-link" href="{% url 'cpp_editor' %}">C++ 编辑器</a>
+                </div>
+            </aside>
+
+            <section class="account-shares-panel" aria-labelledby="accountSharesTitle">
+                <div class="account-shares-panel-head">
+                    <div>
+                        <h2 id="accountSharesTitle">分享链接</h2>
+                        <p>只显示当前登录账号生成的分享。</p>
+                    </div>
+                    <form class="account-shares-search" action="{% url 'account_share_links' %}" method="get">
+                        <input type="search" name="q" value="{{ query }}" placeholder="搜索 project_id、文件名或代码">
+                        <button class="account-shares-button" type="submit">搜索</button>
+                        {% if query %}
+                            <a class="account-shares-link" href="{% url 'account_share_links' %}">清除</a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <p class="account-shares-message">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+
+                {% if records %}
+                    <div class="account-shares-list">
+                        {% for record in records %}
+                            <article class="account-shares-item">
+                                <div>
+                                    <div class="account-shares-title">
+                                        <a href="{{ record.share_path }}" target="_blank" rel="noopener">{{ record.project_id }}</a>
+                                        <span class="account-shares-pill">{{ record.template_type }}</span>
+                                        <span class="account-shares-pill">{{ record.language }}</span>
+                                    </div>
+                                    <div class="account-shares-meta">
+                                        <span>{{ record.created_at|date:"Y-m-d H:i:s" }}</span>
+                                        <span>文件 {{ record.text_file_count }}</span>
+                                        <span>文件夹 {{ record.folder_count }}</span>
+                                        <span>资源 {{ record.asset_count }}</span>
+                                        <span>{{ record.content_chars }} 字符</span>
+                                    </div>
+                                    {% if record.preview_text %}
+                                        <pre class="account-shares-preview">{{ record.preview_text }}</pre>
+                                    {% endif %}
+                                </div>
+                                <div class="account-shares-row-actions">
+                                    <a class="account-shares-link" href="{{ record.share_path }}" target="_blank" rel="noopener">打开</a>
+                                    <button class="account-shares-button" type="button" data-copy-share-url="{{ record.share_url }}">复制</button>
+                                    <form class="account-shares-delete-form"
+                                          action="{% url 'delete_account_share_link' record.project_id %}"
+                                          method="post"
+                                          onsubmit="return confirm('确定删除这个分享链接？删除后原链接将无法访问。');">
+                                        {% csrf_token %}
+                                        <button class="account-shares-button account-shares-button-danger" type="submit">删除</button>
+                                    </form>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="account-shares-empty">
+                        <h2>{% if query %}没有匹配的分享{% else %}暂无分享链接{% endif %}</h2>
+                        <p>{% if query %}换一个关键词试试。{% else %}在编辑器或分享工具里点击 share 后会自动出现在这里。{% endif %}</p>
+                        <div class="account-shares-actions">
+                            <a class="account-shares-link" href="{% url 'sharecode' %}">打开分享工具</a>
+                            <a class="account-shares-link" href="{% url 'editor' %}">打开 Python 编辑器</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+    </section>
+</main>
+
+{% include "_account_dialogs.html" %}
+<script src="{% static 'js/accounts.js' %}"></script>
+<script>
+    document.querySelectorAll("[data-copy-share-url]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const shareUrl = button.getAttribute("data-copy-share-url") || "";
+            if (!shareUrl) {
+                return;
+            }
+            const done = function () {
+                const originalText = button.textContent;
+                button.textContent = "已复制";
+                setTimeout(function () {
+                    button.textContent = originalText;
+                }, 1400);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(done).catch(function () {
+                    done();
+                });
+            } else {
+                const input = document.createElement("textarea");
+                input.value = shareUrl;
+                input.style.position = "fixed";
+                input.style.left = "-9999px";
+                document.body.appendChild(input);
+                input.focus();
+                input.select();
+                try {
+                    document.execCommand("copy");
+                } finally {
+                    document.body.removeChild(input);
+                }
+                done();
+            }
+        });
+    });
+</script>
+</body>
+</html>
