@@ -1,10 +1,35 @@
 import json
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
-from django.urls import reverse
+from django.template.loader import render_to_string
+from django.test import SimpleTestCase, TestCase
+from django.urls import resolve, reverse
 
+from . import views
 from .models import JudgeProblem, JudgeSubmission, JudgeTestCase, UserProblemState
+
+
+class PythonJudgeUrlPatternTests(SimpleTestCase):
+    def test_workspace_route_keeps_existing_name_and_path(self):
+        self.assertEqual(reverse("python_judge_workspace"), "/python-judge/")
+        self.assertIs(resolve(reverse("python_judge_workspace")).func, views.workspace)
+
+
+class SiteTopbarPythonJudgeMenuTests(SimpleTestCase):
+    def test_python_judge_nav_renders_as_active_menu_item(self):
+        html = render_to_string(
+            "_site_topbar.html",
+            {
+                "active_nav": "python_judge",
+                "show_search": False,
+                "show_account": False,
+                "brand_logo": "images/logo-cm.svg",
+            },
+        )
+
+        self.assertIn('<a class="site-nav-link is-active" href="/python-judge/">', html)
+        self.assertIn("<span>Python 判题</span>", html)
+        self.assertNotIn('class="site-nav-group is-active"', html)
 
 
 class PythonJudgeApiTests(TestCase):
