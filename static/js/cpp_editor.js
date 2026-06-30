@@ -1265,10 +1265,18 @@
             },
             body: formData.toString()
         });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = null;
         }
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error((data && data.message) || `HTTP ${response.status}`);
+        }
+        if (data && data.ok === false) {
+            throw new Error(data.message || "分享链接生成失败");
+        }
         const shareLink = data.share_link || "";
         const qrcode = document.getElementById("qrcode");
         if (qrcode) {

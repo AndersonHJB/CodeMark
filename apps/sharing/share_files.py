@@ -10,9 +10,11 @@ from django.utils import timezone
 from apps.common.project_payload import (
     DEFAULT_CODE_THEME,
     THEME_MARKER,
+    decode_base64_payload,
     default_filename_for_language,
     detect_language_from_filename,
     normalize_language,
+    normalize_project_relative_path,
     normalize_theme,
     parse_project_sections,
 )
@@ -29,6 +31,8 @@ ADMIN_DELETED_BY_MARKER = "__ADMIN_DELETED_BY__="
 SHARE_TEMPLATE_MARKER = "__TEMPLATE__="
 SHARE_LANGUAGE_MARKER = "__LANG__="
 SHARE_TRASH_RETENTION_DAYS = 30
+DEFAULT_NON_MEMBER_SHARE_STORAGE_BYTES = 100 * 1024 * 1024
+SHARE_STORAGE_QR_ESTIMATE_BYTES = 64 * 1024
 ADMIN_SHARE_ACCESS_PARAM = "admin_view"
 SHARE_HEADER_MARKERS = (
     SHARE_TEMPLATE_MARKER,
@@ -43,6 +47,252 @@ SHARE_HEADER_MARKERS = (
 IMAGE_EXTENSIONS = {"avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "webp"}
 VIDEO_EXTENSIONS = {"avi", "m4v", "mkv", "mov", "mp4", "mpeg", "mpg", "ogv", "webm"}
 AUDIO_EXTENSIONS = {"aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "weba"}
+
+
+def format_storage_bytes(byte_count):
+    value = max(0, int(byte_count or 0))
+    units = ("B", "KB", "MB", "GB", "TB")
+    size = float(value)
+    unit = units[0]
+    for next_unit in units[1:]:
+        if size < 1024:
+            break
+        size /= 1024
+        unit = next_unit
+    if unit == "B":
+        return f"{value} B"
+    if size >= 100 or size.is_integer():
+        return f"{size:.0f} {unit}"
+    return f"{size:.1f} {unit}"
+
+
+def _file_size_if_exists(file_path):
+    try:
+        return os.path.getsize(file_path) if file_path and os.path.isfile(file_path) else 0
+    except OSError:
+        return 0
+
+
+def _directory_size(directory_path):
+    if not directory_path or not os.path.isdir(directory_path):
+        return 0
+    total_size = 0
+    for root, _, files in os.walk(directory_path):
+        for file_name in files:
+            total_size += _file_size_if_exists(os.path.join(root, file_name))
+    return total_size
+
+
+def _custom_share_quota_is_active(profile):
+    if not profile or profile.share_storage_quota_mb is None:
+        return False
+    expires_at = profile.share_storage_quota_expires_at
+    return not expires_at or timezone.now() < expires_at
+
+
+def get_user_share_storage_policy(user, profile=None):
+    if not user or not getattr(user, "is_authenticated", False):
+        return {
+            "limit_bytes": None,
+            "limit_source": "guest",
+            "limit_label": "未登录用户",
+            "expires_at": None,
+            "is_unlimited": True,
+            "is_custom": False,
+        }
+
+    if profile is None:
+        try:
+            profile = user.codemark_profile
+        except Exception:
+            profile = None
+
+    if _custom_share_quota_is_active(profile):
+        limit_bytes = int(profile.share_storage_quota_mb or 0) * 1024 * 1024
+        return {
+            "limit_bytes": limit_bytes,
+            "limit_source": "custom",
+            "limit_label": "后台配置空间",
+            "expires_at": profile.share_storage_quota_expires_at,
+            "is_unlimited": False,
+            "is_custom": True,
+        }
+
+    if getattr(user, "is_staff", False) or bool(profile and (profile.is_vip or profile.is_permanent_vip)):
+        return {
+            "limit_bytes": None,
+            "limit_source": "member",
+            "limit_label": "会员不限额",
+            "expires_at": None,
+            "is_unlimited": True,
+            "is_custom": False,
+        }
+
+    return {
+        "limit_bytes": DEFAULT_NON_MEMBER_SHARE_STORAGE_BYTES,
+        "limit_source": "default",
+        "limit_label": "非会员默认空间",
+        "expires_at": None,
+        "is_unlimited": False,
+        "is_custom": False,
+    }
+
+
+def get_share_record_storage_bytes(record):
+    if not record:
+        return 0
+    project_id = record.get("project_id", "")
+    total_size = _file_size_if_exists(record.get("storage_path"))
+    total_size += _file_size_if_exists(record.get("qr_path"))
+    if project_id and SHARE_PROJECT_ID_PATTERN.fullmatch(project_id):
+        total_size += _directory_size(os.path.join(settings.CODEMARK_SHARECODE_DIR, "assets", project_id))
+    return total_size
+
+
+def get_user_share_storage_usage(owner_user_id):
+    if owner_user_id is None:
+        return 0
+    total_size = 0
+    for record in list_shared_code_records(
+        owner_user_id=owner_user_id,
+        include_deleted=True,
+        include_expired_user_deleted=True,
+    ):
+        total_size += get_share_record_storage_bytes(record)
+    return total_size
+
+
+def get_user_share_storage_summary(user, profile=None):
+    policy = get_user_share_storage_policy(user, profile=profile)
+    used_bytes = get_user_share_storage_usage(getattr(user, "pk", None)) if getattr(user, "is_authenticated", False) else 0
+    limit_bytes = policy["limit_bytes"]
+    if limit_bytes is None:
+        percent = 0
+        available_bytes = None
+    elif limit_bytes <= 0:
+        percent = 100 if used_bytes else 0
+        available_bytes = 0
+    else:
+        percent = min(100, round((used_bytes / limit_bytes) * 100, 1))
+        available_bytes = max(0, limit_bytes - used_bytes)
+    summary = {
+        **policy,
+        "used_bytes": used_bytes,
+        "available_bytes": available_bytes,
+        "percent": percent,
+        "percent_label": f"{percent:g}%",
+        "used_display": format_storage_bytes(used_bytes),
+        "limit_display": "不限额" if limit_bytes is None else format_storage_bytes(limit_bytes),
+        "available_display": "不限额" if available_bytes is None else format_storage_bytes(available_bytes),
+        "is_quota_exceeded": bool(limit_bytes is not None and used_bytes > limit_bytes),
+    }
+    summary["usage_display"] = (
+        f"{summary['used_display']} / {summary['limit_display']}"
+        if limit_bytes is not None
+        else f"{summary['used_display']} / 不限额"
+    )
+    return summary
+
+
+def _estimate_base64_payload_size(raw_payload):
+    if not isinstance(raw_payload, str):
+        return 0
+    payload = raw_payload.strip()
+    if not payload:
+        return 0
+    if "," in payload:
+        payload = payload.split(",", 1)[1]
+    payload = "".join(payload.split())
+    if not payload:
+        return 0
+    padding = payload.count("=")
+    return max(0, (len(payload) * 3) // 4 - padding)
+
+
+def _estimate_source_asset_size(asset_item):
+    source_project_id = asset_item.get("source_project_id")
+    source_stored_path = normalize_project_relative_path(asset_item.get("source_stored_path", ""))
+    if not (
+        isinstance(source_project_id, str)
+        and SHARE_PROJECT_ID_PATTERN.fullmatch(source_project_id)
+        and source_stored_path
+    ):
+        return 0
+    source_abs_path = os.path.join(
+        settings.CODEMARK_SHARECODE_DIR,
+        "assets",
+        source_project_id,
+        source_stored_path,
+    )
+    return _file_size_if_exists(source_abs_path)
+
+
+def estimate_share_upload_storage_bytes(code, template_type, language, theme, project_payload=None, extra_header_lines=None):
+    header_lines = [
+        f"{SHARE_TEMPLATE_MARKER}{template_type}\n",
+        f"{SHARE_LANGUAGE_MARKER}{language}\n",
+        f"{THEME_MARKER}{theme}\n",
+    ]
+    for header_line in extra_header_lines or []:
+        clean_header_line = str(header_line).rstrip("\r\n")
+        if clean_header_line:
+            header_lines.append(f"{clean_header_line}\n")
+
+    text_bytes = sum(len(line.encode("utf-8")) for line in header_lines)
+    asset_bytes = 0
+
+    if isinstance(project_payload, dict):
+        incoming_folders = project_payload.get("folders", [])
+        if isinstance(incoming_folders, list):
+            for folder_path in incoming_folders:
+                text_bytes += len(f"__FOLDER___={folder_path}\n".encode("utf-8"))
+
+        incoming_text_files = project_payload.get("text_files", [])
+        if isinstance(incoming_text_files, list):
+            for idx, file_item in enumerate(incoming_text_files):
+                if not isinstance(file_item, dict):
+                    continue
+                path = file_item.get("path") or file_item.get("name") or f"file_{idx + 1}.txt"
+                file_language = file_item.get("language") or language
+                raw_content = file_item.get("content", "")
+                content = raw_content if isinstance(raw_content, str) else str(raw_content)
+                text_bytes += len(f"__FILENAME___={path}\n".encode("utf-8"))
+                text_bytes += len(f"__FILE_LANG___={file_language}\n".encode("utf-8"))
+                text_bytes += len(content.encode("utf-8")) + (0 if content.endswith("\n") else 1)
+
+        incoming_assets = project_payload.get("assets", [])
+        if isinstance(incoming_assets, list):
+            for idx, asset_item in enumerate(incoming_assets):
+                if not isinstance(asset_item, dict):
+                    continue
+                path = asset_item.get("path") or asset_item.get("name") or f"asset_{idx + 1}"
+                data_base64 = asset_item.get("data_base64")
+                if isinstance(data_base64, str) and data_base64.strip():
+                    asset_size = _estimate_base64_payload_size(data_base64)
+                    if not asset_size:
+                        decoded_bytes = decode_base64_payload(data_base64)
+                        asset_size = len(decoded_bytes) if decoded_bytes is not None else 0
+                else:
+                    asset_size = _estimate_source_asset_size(asset_item)
+                    if not asset_size:
+                        try:
+                            asset_size = int(asset_item.get("size") or 0)
+                        except (TypeError, ValueError):
+                            asset_size = 0
+                asset_bytes += max(0, asset_size)
+                text_bytes += len(f"__ASSET___={path}|{path}|application/octet-stream|{asset_size}\n".encode("utf-8"))
+    else:
+        text_bytes += len((code or "").encode("utf-8"))
+
+    return text_bytes + asset_bytes + SHARE_STORAGE_QR_ESTIMATE_BYTES
+
+
+def user_share_storage_can_accept(user, incoming_bytes, profile=None):
+    summary = get_user_share_storage_summary(user, profile=profile)
+    limit_bytes = summary["limit_bytes"]
+    if limit_bytes is None:
+        return True, summary
+    return summary["used_bytes"] + max(0, int(incoming_bytes or 0)) <= limit_bytes, summary
 
 
 def iter_share_file_paths():

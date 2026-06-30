@@ -44,13 +44,17 @@ from apps.sharing.share_files import (
     ADMIN_SHARE_ACCESS_PARAM,
     OWNER_ID_MARKER,
     delete_shared_code_record,
+    estimate_share_upload_storage_bytes,
+    format_storage_bytes,
     get_shared_code_record,
+    get_user_share_storage_summary,
     hard_delete_shared_code_record,
     list_shared_code_records,
     mark_shared_code_record_admin_deleted,
     restore_shared_code_record,
     restore_user_deleted_share,
     SHARE_TRASH_RETENTION_DAYS,
+    user_share_storage_can_accept,
 )
 
 
@@ -79,6 +83,28 @@ def _assets_for_share_access(assets, admin_access=False):
             next_asset["url"] = next_asset["admin_url"]
         next_assets.append(next_asset)
     return next_assets
+
+
+def _share_storage_limit_response(storage_summary, incoming_bytes):
+    payload = {
+        "ok": False,
+        "error": "share_storage_quota_exceeded",
+        "message": (
+            "分享空间不足：已使用 "
+            f"{storage_summary['used_display']} / {storage_summary['limit_display']}，"
+            f"本次预计需要 {format_storage_bytes(incoming_bytes)}。请删除旧分享或联系管理员扩容。"
+        ),
+        "storage": {
+            "used_bytes": storage_summary["used_bytes"],
+            "limit_bytes": storage_summary["limit_bytes"],
+            "used_display": storage_summary["used_display"],
+            "limit_display": storage_summary["limit_display"],
+            "available_display": storage_summary["available_display"],
+        },
+    }
+    response = jsonify(payload)
+    response.status_code = 413
+    return response
 
 
 @django_view
@@ -123,6 +149,7 @@ def upload_code():
             project_payload = None
     payload_theme = project_payload.get("theme", "") if isinstance(project_payload, dict) else ""
     theme = normalize_theme(request.form.get('theme', '') or payload_theme)
+    owner_header_lines = _share_owner_header_lines()
 
     # 生成一个唯一 ID
     unique_id = str(uuid.uuid4())
@@ -130,6 +157,21 @@ def upload_code():
     timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
     # 拼接最终 project_id
     project_id = unique_id + "_" + timestamp
+
+    if request.user.is_authenticated:
+        incoming_storage_bytes = estimate_share_upload_storage_bytes(
+            code=code,
+            template_type=template_type,
+            language=language,
+            theme=theme,
+            project_payload=project_payload,
+            extra_header_lines=owner_header_lines,
+        )
+        can_accept, storage_summary = user_share_storage_can_accept(request.user, incoming_storage_bytes)
+        if not can_accept:
+            return _share_storage_limit_response(storage_summary, incoming_storage_bytes)
+    else:
+        incoming_storage_bytes = 0
 
     # 1. 先拼装 media/sharecode/<yearmonth>/ 路径
     yearmonth = datetime.datetime.now().strftime('%Y%m')
@@ -146,7 +188,7 @@ def upload_code():
             code=code,
             project_payload=project_payload,
             project_id=project_id,
-            extra_header_lines=_share_owner_header_lines(),
+            extra_header_lines=owner_header_lines,
         )
     else:
         # 兼容原单文件存储格式
@@ -154,7 +196,7 @@ def upload_code():
             f.write(f"__TEMPLATE__={template_type}\n")
             f.write(f"__LANG__={language}\n")
             f.write(f"{THEME_MARKER}{theme}\n")
-            for header_line in _share_owner_header_lines():
+            for header_line in owner_header_lines:
                 f.write(f"{header_line}\n")
             f.write(code)
 
@@ -174,8 +216,15 @@ def upload_code():
     img_file_path = os.path.join(images_folder, project_id + ".png")
     img.save(img_file_path)
 
+    if request.user.is_authenticated:
+        storage_summary = get_user_share_storage_summary(request.user)
+        if storage_summary["limit_bytes"] is not None and storage_summary["used_bytes"] > storage_summary["limit_bytes"]:
+            hard_delete_shared_code_record(project_id)
+            return _share_storage_limit_response(storage_summary, incoming_storage_bytes)
+
     # 返回给前端
     return jsonify({
+        "ok": True,
         "project_id": project_id,
         "share_link": share_link,
     })
@@ -387,6 +436,9 @@ def account_share_links():
         )
         for record in records:
             record["share_url"] = request._current().build_absolute_uri(record["share_path"])
+        storage_summary = get_user_share_storage_summary(request.user)
+    else:
+        storage_summary = get_user_share_storage_summary(None)
 
     return render(
         request._current(),
@@ -400,6 +452,7 @@ def account_share_links():
             "query": query,
             "is_trash_view": is_trash_view,
             "share_trash_retention_days": SHARE_TRASH_RETENTION_DAYS,
+            "storage_summary": storage_summary,
         },
     )
 

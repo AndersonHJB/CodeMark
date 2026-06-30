@@ -594,6 +594,24 @@ function openShareModalWithPayload(payloadOverride) {
     generateShareLink(payloadOverride);
 }
 
+function getShareUploadErrorMessage(xhr, fallbackMessage) {
+    const fallback = fallbackMessage || "分享生成失败，请稍后再试。";
+    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+        return xhr.responseJSON.message;
+    }
+    if (xhr && xhr.responseText) {
+        try {
+            const payload = JSON.parse(xhr.responseText);
+            if (payload && payload.message) {
+                return payload.message;
+            }
+        } catch (e) {
+            return fallback;
+        }
+    }
+    return fallback;
+}
+
 function generateShareLink(payloadOverride) {
     const payload = payloadOverride || buildSharePayload();
     let language;
@@ -632,6 +650,10 @@ function generateShareLink(payloadOverride) {
         dataType: 'json',
         data: requestData,
         success: function (d) {
+            if (d && d.ok === false) {
+                showProjectNotice(d.message || "分享生成失败，请稍后再试。");
+                return;
+            }
             let shareLink = appendShareViewToLink(d.share_link);
             prepareHiddenShareQrSource();
             $('#qrcode').qrcode({
@@ -680,6 +702,9 @@ function generateShareLink(payloadOverride) {
 
             copyToClipboard(shareLink);
             $('#share-modal').modal('show');
+        },
+        error: function (xhr) {
+            showProjectNotice(getShareUploadErrorMessage(xhr, "分享生成失败，请稍后再试。"));
         }
     });
 }
@@ -1461,10 +1486,14 @@ function goRunEditorPageForActiveFile(language, template, errorMessage) {
             project_payload: JSON.stringify(payload)
         },
         success: function (d) {
+            if (d && d.ok === false) {
+                showProjectNotice(d.message || errorMessage);
+                return;
+            }
             window.location.href = d.share_link;
         },
-        error: function () {
-            showProjectNotice(errorMessage);
+        error: function (xhr) {
+            showProjectNotice(getShareUploadErrorMessage(xhr, errorMessage));
         }
     });
 }

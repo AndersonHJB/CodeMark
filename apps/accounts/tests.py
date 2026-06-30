@@ -732,6 +732,29 @@ class AdminAvatarGalleryViewTests(TestCase):
         self.assertContains(response, "登录方式设置")
         self.assertContains(response, reverse("admin:accounts_accountloginsettings_changelist"))
 
+    def test_user_profile_admin_exposes_share_storage_fields(self):
+        User = get_user_model()
+        admin_user = User.objects.create_user(
+            username="profile-quota-admin",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        target_user = User.objects.create_user(
+            username="profile-quota-target",
+            email="profile-quota@example.com",
+            password="test-password",
+        )
+        profile = UserProfile.objects.create(user=target_user)
+        client = Client()
+        client.force_login(admin_user)
+
+        response = client.get(reverse("admin:accounts_userprofile_change", args=[profile.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "分享空间上限（MB）")
+        self.assertContains(response, "分享空间有效期")
+
     def test_login_settings_admin_opens_singleton_config(self):
         User = get_user_model()
         user = User.objects.create_user(

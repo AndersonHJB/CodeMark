@@ -674,6 +674,634 @@
                 width: 100%;
             }
         }
+
+        .account-shares-page .account-profile-shell {
+            width: 100%;
+            max-width: none;
+            padding: 0;
+        }
+        .account-shares-page .account-profile-layout {
+            min-height: calc(100vh - 70px);
+        }
+        .account-shares-app {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            min-height: calc(100vh - 70px);
+            background: #ffffff;
+        }
+        .account-shares-sidebar {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            border-right: 1px solid #e4e7ec;
+            background: linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%);
+        }
+        .account-shares-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 28px 20px 26px;
+        }
+        .account-shares-user-avatar {
+            width: 46px;
+            height: 46px;
+            flex: 0 0 auto;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #0faaa5;
+            box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12), 0 8px 18px rgba(15, 118, 110, 0.18);
+        }
+        .account-shares-user-avatar img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .account-shares-user strong {
+            display: block;
+            overflow: hidden;
+            color: #101828;
+            font-size: 17px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .account-shares-user span {
+            display: block;
+            overflow: hidden;
+            margin-top: 4px;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .account-shares-side-section {
+            padding: 0 16px 22px;
+        }
+        .account-shares-side-title {
+            margin: 0 0 12px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .account-shares-side-nav {
+            display: grid;
+            gap: 8px;
+        }
+        .account-shares-side-link,
+        .account-shares-side-disabled {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 6px;
+            padding: 0 12px;
+            color: #344054;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .account-shares-side-link:hover,
+        .account-shares-side-link:focus,
+        .account-shares-side-link.is-active {
+            color: #0e7490;
+            background: #e9f8f8;
+            text-decoration: none;
+        }
+        .account-shares-side-disabled {
+            color: #98a2b3;
+            cursor: not-allowed;
+        }
+        .account-shares-side-link svg,
+        .account-shares-side-disabled svg,
+        .account-shares-filter svg,
+        .account-shares-open-icon,
+        .account-shares-statline svg {
+            width: 17px;
+            height: 17px;
+            flex: 0 0 auto;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.1;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .account-shares-side-link em {
+            margin-left: auto;
+            color: #0e9aa7;
+            font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+            font-size: 20px;
+            font-style: normal;
+            font-weight: 700;
+        }
+        .account-shares-side-divider {
+            height: 1px;
+            margin: 0 16px 22px;
+            background: #d9dee7;
+        }
+        .account-shares-storage {
+            margin: auto 16px 18px;
+            padding: 14px;
+            border: 1px solid #e1e6ef;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.04);
+        }
+        .account-shares-storage-head,
+        .account-shares-storage-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .account-shares-storage-head span {
+            color: #667085;
+            font-weight: 700;
+        }
+        .account-shares-storage-bar {
+            height: 10px;
+            overflow: hidden;
+            margin: 14px 0 10px;
+            border-radius: 999px;
+            background: #edf0f5;
+        }
+        .account-shares-storage-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #0faaa5, #0e7490);
+        }
+        .account-shares-storage-note {
+            margin: 10px 0 0;
+            color: #667085;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .account-shares-storage-link {
+            display: inline-flex;
+            margin-top: 14px;
+            color: #0e9aa7;
+            font-size: 13px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .account-shares-storage-link:hover,
+        .account-shares-storage-link:focus {
+            color: #0b5e57;
+            text-decoration: none;
+        }
+        .account-shares-main {
+            min-width: 0;
+            padding: 24px 26px 28px;
+            background: #ffffff;
+        }
+        .account-shares-main-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(360px, 560px);
+            align-items: start;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .account-shares-main-head h1 {
+            margin: 0 0 7px;
+            color: #101828;
+            font-size: 25px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .account-shares-main-head p {
+            margin: 0;
+            color: #475467;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .account-shares-searchbar {
+            display: flex;
+            min-width: 0;
+            gap: 10px;
+        }
+        .account-shares-searchbar .account-shares-search-field {
+            min-height: 40px;
+            position: relative;
+            display: flex;
+            min-width: 0;
+            flex: 1 1 auto;
+            align-items: center;
+        }
+        .account-shares-searchbar input {
+            width: 100%;
+            min-width: 0;
+            height: 40px;
+            padding: 0 12px 0 40px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            color: #101828;
+            background: #ffffff;
+            font: 600 14px/1.4 "Noto Sans SC", sans-serif;
+        }
+        .account-shares-searchbar input::placeholder {
+            color: #98a2b3;
+        }
+        .account-shares-searchbar input:focus {
+            border-color: #0e9aa7;
+            outline: 3px solid rgba(14, 154, 167, 0.14);
+            outline-offset: 0;
+        }
+        .account-shares-filter {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            padding: 0 14px;
+            color: #344054;
+            background: #ffffff;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .account-shares-filter:hover,
+        .account-shares-filter:focus {
+            border-color: #0e9aa7;
+            color: #0e7490;
+        }
+        .account-shares-clear {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            color: #667085;
+            font-size: 13px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .account-shares-table-tabs {
+            display: flex;
+            gap: 32px;
+            border-bottom: 1px solid #e4e7ec;
+            margin-bottom: 0;
+        }
+        .account-shares-table-tabs a {
+            position: relative;
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            color: #344054;
+            font-size: 15px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .account-shares-table-tabs a.is-active {
+            color: #0e9aa7;
+        }
+        .account-shares-table-tabs a.is-active::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            bottom: -1px;
+            left: 0;
+            height: 2px;
+            background: #0e9aa7;
+        }
+        .account-shares-table {
+            min-width: 0;
+        }
+        .account-shares-table-head,
+        .account-shares-table-row {
+            display: grid;
+            grid-template-columns: minmax(360px, 1.45fr) minmax(130px, 0.38fr) minmax(150px, 0.48fr) minmax(228px, auto);
+            column-gap: 22px;
+            align-items: center;
+        }
+        .account-shares-table-head {
+            min-height: 50px;
+            border-bottom: 1px solid #e4e7ec;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .account-shares-table-row {
+            padding: 18px 0;
+            border-bottom: 1px solid #e4e7ec;
+        }
+        .account-shares-content-cell {
+            display: grid;
+            grid-template-columns: 48px minmax(0, 1fr);
+            gap: 16px;
+            min-width: 0;
+            align-items: start;
+        }
+        .account-share-filemark {
+            width: 48px;
+            height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #d9e0eb;
+            border-radius: 6px;
+            color: #4f46e5;
+            background: #f8fafc;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        .account-share-filemark svg {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .account-share-filemark-python {
+            color: #2563eb;
+            background: #eff6ff;
+        }
+        .account-share-filemark-js {
+            color: #111827;
+            background: #fde868;
+        }
+        .account-share-filemark-md {
+            color: #344054;
+            background: #f8fafc;
+        }
+        .account-share-filemark-go {
+            color: #ffffff;
+            background: linear-gradient(135deg, #8b5cf6, #60a5fa);
+        }
+        .account-shares-row-title {
+            display: flex;
+            min-width: 0;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            color: #101828;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+        .account-shares-row-title a,
+        .account-shares-row-title span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        .account-shares-row-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .account-shares-row-title a:hover,
+        .account-shares-row-title a:focus {
+            color: #0e9aa7;
+        }
+        .account-shares-copy-mini {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            padding: 0;
+            color: #667085;
+            background: transparent;
+            cursor: pointer;
+        }
+        .account-shares-copy-mini svg {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+        .account-shares-row-id {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 4px;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+        .account-shares-tags {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-left: 6px;
+        }
+        .account-shares-tag {
+            display: inline-flex;
+            min-height: 22px;
+            align-items: center;
+            border-radius: 5px;
+            padding: 0 8px;
+            color: #2563eb;
+            background: #eaf2ff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .account-shares-tag:nth-child(2n) {
+            color: #047857;
+            background: #dcfce7;
+        }
+        .account-shares-tag-warning {
+            color: #b45309;
+            background: #fff4d6;
+        }
+        .account-shares-description {
+            margin: 8px 0 0;
+            color: #475467;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+        .account-shares-code-preview {
+            width: min(100%, 430px);
+            max-height: 86px;
+            overflow: hidden;
+            margin: 10px 0 0;
+            border: 0;
+            border-radius: 6px;
+            padding: 9px 12px;
+            color: #475467;
+            background: linear-gradient(90deg, #f8fafc, #ffffff);
+            white-space: pre-wrap;
+            word-break: break-word;
+            font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+        .account-shares-date-cell,
+        .account-shares-stats-cell {
+            color: #344054;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .account-shares-date-cell small {
+            display: block;
+            margin-top: 4px;
+            color: #667085;
+            font-size: 13px;
+        }
+        .account-shares-statline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 22px;
+            color: #344054;
+        }
+        .account-shares-statline strong {
+            margin-left: auto;
+            font-weight: 800;
+        }
+        .account-shares-actions-cell {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .account-shares-action {
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            padding: 0 12px;
+            color: #344054;
+            background: #ffffff;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .account-shares-action:hover,
+        .account-shares-action:focus {
+            border-color: #0e9aa7;
+            color: #0e9aa7;
+            text-decoration: none;
+        }
+        .account-shares-action-open {
+            color: #0e9aa7;
+            border-color: #67c9d0;
+        }
+        .account-shares-action-danger {
+            color: #ef4444;
+            border-color: #fda4a4;
+        }
+        .account-shares-action-danger:hover,
+        .account-shares-action-danger:focus {
+            color: #ffffff;
+            border-color: #ef4444;
+            background: #ef4444;
+        }
+        .account-shares-action-success {
+            color: #027a48;
+            border-color: #86efac;
+        }
+        .account-shares-action-success:hover,
+        .account-shares-action-success:focus {
+            color: #ffffff;
+            border-color: #027a48;
+            background: #027a48;
+        }
+        .account-shares-action svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.1;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .account-shares-trash-note-table {
+            flex-basis: 100%;
+            color: #b45309;
+            font-size: 12px;
+            line-height: 1.35;
+            text-align: right;
+        }
+        .account-shares-delete-form {
+            margin: 0;
+        }
+        .account-shares-table-empty {
+            margin-top: 24px;
+        }
+        @media (max-width: 1180px) {
+            .account-shares-table-head,
+            .account-shares-table-row {
+                grid-template-columns: minmax(320px, 1fr) minmax(120px, 0.34fr) minmax(140px, 0.4fr);
+            }
+            .account-shares-table-head span:last-child {
+                display: none;
+            }
+            .account-shares-actions-cell {
+                grid-column: 1 / -1;
+                justify-content: flex-start;
+                margin-left: 64px;
+                margin-top: 12px;
+            }
+            .account-shares-trash-note-table {
+                text-align: left;
+            }
+        }
+        @media (max-width: 920px) {
+            .account-shares-app {
+                grid-template-columns: 1fr;
+            }
+            .account-shares-sidebar {
+                border-right: 0;
+                border-bottom: 1px solid #e4e7ec;
+            }
+            .account-shares-storage {
+                margin-top: 0;
+            }
+            .account-shares-main-head {
+                grid-template-columns: 1fr;
+            }
+            .account-shares-table-head {
+                display: none;
+            }
+            .account-shares-table-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .account-shares-date-cell,
+            .account-shares-stats-cell,
+            .account-shares-actions-cell {
+                margin-left: 64px;
+            }
+        }
+        @media (max-width: 560px) {
+            .account-shares-main {
+                padding: 20px 14px 24px;
+            }
+            .account-shares-user {
+                padding: 22px 16px 20px;
+            }
+            .account-shares-searchbar,
+            .account-shares-actions-cell {
+                flex-wrap: wrap;
+            }
+            .account-shares-searchbar .account-shares-search-field,
+            .account-shares-filter,
+            .account-shares-clear,
+            .account-shares-action {
+                flex: 1 1 100%;
+            }
+            .account-shares-content-cell {
+                grid-template-columns: 1fr;
+            }
+            .account-shares-date-cell,
+            .account-shares-stats-cell,
+            .account-shares-actions-cell {
+                margin-left: 0;
+            }
+            .account-shares-table-tabs {
+                gap: 22px;
+            }
+        }
     </style>
 </head>
 <body class="account-profile-page account-shares-page">
@@ -703,120 +1331,146 @@
     </section>
 
     <section class="account-profile-layout" data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
-        <header class="account-shares-intro">
-            <div>
-                <h1>我的分享</h1>
-                <p><strong>{{ codemark_account.display_name }}</strong> 的代码分享链接和回收站。</p>
-            </div>
-            <div class="account-shares-intro-actions">
-                <a class="account-shares-link account-shares-link-primary" href="{% url 'sharecode' %}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <circle cx="18" cy="5" r="3"></circle>
-                        <circle cx="6" cy="12" r="3"></circle>
-                        <circle cx="18" cy="19" r="3"></circle>
-                        <path d="m8.6 10.6 6.8-4.2"></path>
-                        <path d="m8.6 13.4 6.8 4.2"></path>
-                    </svg>
-                    <span>分享工具</span>
-                </a>
-                <a class="account-shares-link" href="{% url 'editor' %}">Python 编辑器</a>
-                <a class="account-shares-link" href="{% url 'cpp_editor' %}">C++ 编辑器</a>
-            </div>
-        </header>
-
-        <div class="account-shares-workspace">
-            <aside class="account-shares-rail" aria-label="分享概览">
-                <div class="account-shares-rail-head">
-                    <span class="account-shares-rail-mark" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
-                            <path d="M8 9h8"></path>
-                            <path d="M8 13h5"></path>
-                            <path d="M16 17l2-2 2 2"></path>
-                        </svg>
+        <div class="account-shares-app">
+            <aside class="account-shares-sidebar" aria-label="我的分享侧栏">
+                <div class="account-shares-user">
+                    <span class="account-shares-user-avatar" aria-hidden="true">
+                        <img src="{{ codemark_account.avatar_url }}" alt="">
                     </span>
                     <div>
-                        <h2>分享概览</h2>
-                        <p>{% if is_trash_view %}回收站内分享保留 {{ share_trash_retention_days }} 天。{% else %}当前账号生成的分享会归档在这里。{% endif %}</p>
+                        <strong>{{ codemark_account.display_name }}</strong>
+                        <span>{{ codemark_account.email|default:codemark_account.username }}</span>
                     </div>
                 </div>
 
-                <dl class="account-shares-stats">
-                    <div class="account-shares-stat">
-                        <dt>当前分享</dt>
-                        <dd>{{ record_count }}</dd>
-                    </div>
-                    <div class="account-shares-stat">
-                        <dt>回收站</dt>
-                        <dd>{{ trash_count }}</dd>
-                    </div>
-                </dl>
+                <div class="account-shares-side-section">
+                    <h2 class="account-shares-side-title">概览</h2>
+                    <nav class="account-shares-side-nav" aria-label="分享概览">
+                        <a class="account-shares-side-link{% if not is_trash_view %} is-active{% endif %}" href="{% url 'account_share_links' %}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M6 3h9l3 3v15H6z"></path>
+                                <path d="M14 3v4h4"></path>
+                                <path d="M9 13h6"></path>
+                            </svg>
+                            <span>当前分享</span>
+                            <em>{{ record_count }}</em>
+                        </a>
+                        <a class="account-shares-side-link{% if is_trash_view %} is-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M4 7h16"></path>
+                                <path d="M10 11v6"></path>
+                                <path d="M14 11v6"></path>
+                                <path d="M6 7l1 14h10l1-14"></path>
+                                <path d="M9 7V4h6v3"></path>
+                            </svg>
+                            <span>回收站</span>
+                            <em>{{ trash_count }}</em>
+                        </a>
+                    </nav>
+                </div>
 
-                <div class="account-shares-rail-section">
-                    <h3>快捷入口</h3>
-                    <div class="account-shares-quick-actions">
-                        <a class="account-shares-link" href="{% url 'sharecode' %}">
+                <div class="account-shares-side-divider" aria-hidden="true"></div>
+
+                <div class="account-shares-side-section">
+                    <h2 class="account-shares-side-title">快速入口</h2>
+                    <nav class="account-shares-side-nav" aria-label="分享快捷入口">
+                        <a class="account-shares-side-link{% if not is_trash_view %} is-active{% endif %}" href="{% url 'account_share_links' %}">
                             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="M4 12h12"></path>
-                                <path d="m12 6 6 6-6 6"></path>
+                                <path d="M3 6h18"></path>
+                                <path d="M3 12h18"></path>
+                                <path d="M3 18h18"></path>
                             </svg>
-                            <span>分享工具</span>
+                            <span>全部分享</span>
                         </a>
-                        <a class="account-shares-link" href="{% url 'editor' %}">
+                        <a class="account-shares-side-link" href="{% url 'account_share_links' %}">
                             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="m9 18-6-6 6-6"></path>
-                                <path d="m15 6 6 6-6 6"></path>
-                                <path d="m14 4-4 16"></path>
+                                <circle cx="12" cy="8" r="4"></circle>
+                                <path d="M4 21a8 8 0 0 1 16 0"></path>
                             </svg>
-                            <span>Python 编辑器</span>
+                            <span>我创建的分享</span>
                         </a>
-                        <a class="account-shares-link" href="{% url 'cpp_editor' %}">
+                        <span class="account-shares-side-disabled" aria-disabled="true" title="暂未开放">
                             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="M8.5 7 3.5 12l5 5"></path>
-                                <path d="M12.5 17 17.5 12l-5-5"></path>
-                                <path d="M18 6.5v4"></path>
-                                <path d="M16 8.5h4"></path>
+                                <path d="M4 7h16v10H4z"></path>
+                                <path d="m4 8 8 6 8-6"></path>
                             </svg>
-                            <span>C++ 编辑器</span>
+                            <span>我收到的分享</span>
+                        </span>
+                        <span class="account-shares-side-disabled" aria-disabled="true" title="暂未开放">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M16 11a4 4 0 1 0-8 0"></path>
+                                <path d="M3 21a7 7 0 0 1 14 0"></path>
+                                <path d="M18 8v6"></path>
+                                <path d="M21 11h-6"></path>
+                            </svg>
+                            <span>分享给我的</span>
+                        </span>
+                        <a class="account-shares-side-link{% if is_trash_view %} is-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 7v5l3 2"></path>
+                            </svg>
+                            <span>过期的分享</span>
                         </a>
+                    </nav>
+                </div>
+
+                <div class="account-shares-storage" aria-label="存储用量">
+                    <div class="account-shares-storage-head">
+                        <strong>存储用量</strong>
+                        <span>{{ storage_summary.usage_display }}</span>
                     </div>
+                    <div class="account-shares-storage-bar" aria-hidden="true">
+                        <div class="account-shares-storage-fill" style="width: {{ storage_summary.percent }}%;"></div>
+                    </div>
+                    <div class="account-shares-storage-foot">
+                        <span>{{ storage_summary.percent_label }}</span>
+                        <span>{{ storage_summary.limit_label }}</span>
+                    </div>
+                    {% if storage_summary.expires_at %}
+                        <p class="account-shares-storage-note">有效期至 {{ storage_summary.expires_at|date:"Y-m-d H:i" }}</p>
+                    {% endif %}
+                    <a class="account-shares-storage-link" href="{% url 'sharecode' %}">前往资源库管理 →</a>
                 </div>
             </aside>
 
-            <section class="account-shares-panel" aria-labelledby="accountSharesTitle">
-                <div class="account-shares-panel-head">
-                    <div class="account-shares-panel-title">
-                        <h2 id="accountSharesTitle">{% if is_trash_view %}回收站{% else %}当前分享{% endif %}</h2>
-                        <p>{% if is_trash_view %}删除后的分享链接不可访问，恢复后会回到当前分享。{% else %}打开、复制或删除你已经发布的分享链接。{% endif %}</p>
+            <section class="account-shares-main" aria-labelledby="accountSharesTitle">
+                <div class="account-shares-main-head">
+                    <div>
+                        <h1 id="accountSharesTitle">我的分享</h1>
+                        <p>管理你创建的分享与回收站中的内容</p>
                     </div>
-                    <span class="account-shares-visible-count">显示 {{ visible_record_count }} 项</span>
-                </div>
-
-                <div class="account-shares-toolbar">
-                    <nav class="account-shares-tabs" aria-label="分享列表筛选">
-                        <a class="account-shares-link{% if not is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}">当前分享 {{ record_count }}</a>
-                        <a class="account-shares-link{% if is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">回收站 {{ trash_count }}</a>
-                    </nav>
-
-                    <form class="account-shares-search" action="{% url 'account_share_links' %}" method="get">
+                    <form class="account-shares-searchbar" action="{% url 'account_share_links' %}" method="get">
                         {% if is_trash_view %}<input type="hidden" name="view" value="trash">{% endif %}
                         <label class="account-shares-search-field">
                             <svg class="account-shares-search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <circle cx="11" cy="11" r="7"></circle>
                                 <path d="m16.5 16.5 4 4"></path>
                             </svg>
-                            <input type="search" name="q" value="{{ query }}" placeholder="搜索 project_id、文件名或代码" aria-label="搜索 project_id、文件名或代码">
+                            <input type="search" name="q" value="{{ query }}" placeholder="搜索分享标题、ID、语言、标签..." aria-label="搜索分享标题、ID、语言、标签">
                         </label>
-                        <button class="account-shares-button" type="submit">搜索</button>
+                        <button class="account-shares-filter" type="submit">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M4 5h16"></path>
+                                <path d="M7 12h10"></path>
+                                <path d="M10 19h4"></path>
+                            </svg>
+                            <span>筛选</span>
+                        </button>
                         {% if query %}
                             {% if is_trash_view %}
-                                <a class="account-shares-link" href="{% url 'account_share_links' %}?view=trash">清除</a>
+                                <a class="account-shares-clear" href="{% url 'account_share_links' %}?view=trash">清除</a>
                             {% else %}
-                                <a class="account-shares-link" href="{% url 'account_share_links' %}">清除</a>
+                                <a class="account-shares-clear" href="{% url 'account_share_links' %}">清除</a>
                             {% endif %}
                         {% endif %}
                     </form>
                 </div>
+
+                <nav class="account-shares-table-tabs" aria-label="分享列表筛选">
+                    <a class="{% if not is_trash_view %}is-active{% endif %}" href="{% url 'account_share_links' %}">当前分享</a>
+                    <a class="{% if is_trash_view %}is-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">回收站</a>
+                </nav>
 
                 {% if messages %}
                     {% for message in messages %}
@@ -825,56 +1479,128 @@
                 {% endif %}
 
                 {% if records %}
-                    <div class="account-shares-list">
+                    <div class="account-shares-table" role="table" aria-label="分享列表">
+                        <div class="account-shares-table-head" role="row">
+                            <span role="columnheader">分享内容</span>
+                            <span role="columnheader">创建时间</span>
+                            <span role="columnheader">统计信息</span>
+                            <span role="columnheader">操作</span>
+                        </div>
                         {% for record in records %}
-                            <article class="account-shares-item{% if is_trash_view %} account-shares-item-trash{% endif %}">
-                                <div class="account-shares-item-main">
-                                    <div class="account-shares-title">
-                                        {% if is_trash_view %}
-                                            <span class="account-shares-deleted-title">{{ record.project_id }}</span>
+                            <article class="account-shares-table-row{% if is_trash_view %} account-shares-item-trash{% endif %}" role="row">
+                                <div class="account-shares-content-cell" role="cell">
+                                    <span class="account-share-filemark{% if record.language == 'python' %} account-share-filemark-python{% elif record.language == 'javascript' %} account-share-filemark-js{% elif record.language == 'markdown' %} account-share-filemark-md{% elif record.language == 'golang' %} account-share-filemark-go{% endif %}" aria-hidden="true">
+                                        {% if record.language == 'python' %}
+                                            Py
+                                        {% elif record.language == 'javascript' %}
+                                            JS
+                                        {% elif record.language == 'markdown' %}
+                                            M↓
+                                        {% elif record.language == 'golang' %}
+                                            GO
                                         {% else %}
-                                            <a href="{{ record.share_path }}" target="_blank" rel="noopener">{{ record.project_id }}</a>
+                                            <svg viewBox="0 0 24 24" focusable="false">
+                                                <path d="m9 18-6-6 6-6"></path>
+                                                <path d="m15 6 6 6-6 6"></path>
+                                            </svg>
                                         {% endif %}
-                                        <span class="account-shares-pill">{{ record.template_type }}</span>
-                                        <span class="account-shares-pill">{{ record.language }}</span>
-                                        {% if is_trash_view %}
-                                            <span class="account-shares-pill account-shares-pill-warning">用户已删除</span>
+                                    </span>
+                                    <div>
+                                        <div class="account-shares-row-title">
+                                            {% if is_trash_view %}
+                                                <span>{{ record.project_id }}</span>
+                                            {% else %}
+                                                <a href="{{ record.share_path }}" target="_blank" rel="noopener">{{ record.project_id }}</a>
+                                            {% endif %}
+                                            <button class="account-shares-copy-mini" type="button" data-copy-share-url="{{ record.share_url|default:record.share_path }}" aria-label="复制分享链接">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path>
+                                                </svg>
+                                            </button>
+                                            <span class="account-shares-tags">
+                                                <span class="account-shares-tag">{{ record.template_type }}</span>
+                                                <span class="account-shares-tag">{{ record.language }}</span>
+                                                {% if is_trash_view %}
+                                                    <span class="account-shares-tag account-shares-tag-warning">用户已删除</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="account-shares-row-id">
+                                            <span>ID: {{ record.project_id }}</span>
+                                        </div>
+                                        {% if record.preview_text %}
+                                            <p class="account-shares-description">{{ record.preview_text|truncatechars:54 }}</p>
+                                            <pre class="account-shares-code-preview">{{ record.preview_text }}</pre>
                                         {% endif %}
                                     </div>
-                                    <div class="account-shares-meta">
-                                        <span><strong>创建</strong>{{ record.created_at|date:"Y-m-d H:i:s" }}</span>
-                                        <span><strong>文件</strong>{{ record.text_file_count }}</span>
-                                        <span><strong>文件夹</strong>{{ record.folder_count }}</span>
-                                        <span><strong>资源</strong>{{ record.asset_count }}</span>
-                                        <span><strong>字符</strong>{{ record.content_chars }}</span>
-                                        {% if is_trash_view %}
-                                            <span><strong>删除</strong>{{ record.user_deleted_at|date:"Y-m-d H:i:s" }}</span>
-                                            <span><strong>到期</strong>{{ record.user_delete_expires_at|date:"Y-m-d H:i:s" }}</span>
-                                            <span><strong>剩余</strong>{{ record.trash_days_remaining }} 天</span>
-                                        {% endif %}
-                                    </div>
-                                    {% if record.preview_text %}
-                                        <pre class="account-shares-preview">{{ record.preview_text }}</pre>
+                                </div>
+                                <div class="account-shares-date-cell" role="cell">
+                                    <span>{{ record.created_at|date:"Y-m-d H:i" }}</span>
+                                    <small>{{ record.created_at|timesince }}前</small>
+                                    {% if is_trash_view %}
+                                        <small>到期 {{ record.user_delete_expires_at|date:"Y-m-d H:i" }}</small>
                                     {% endif %}
                                 </div>
-                                <div class="account-shares-row-actions" aria-label="{{ record.project_id }} 操作">
+                                <div class="account-shares-stats-cell" role="cell">
+                                    <span class="account-shares-statline">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <path d="M6 3h9l3 3v15H6z"></path>
+                                        </svg>
+                                        <span>文件</span>
+                                        <strong>{{ record.text_file_count }}</strong>
+                                    </span>
+                                    <span class="account-shares-statline">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        </svg>
+                                        <span>文件夹</span>
+                                        <strong>{{ record.folder_count }}</strong>
+                                    </span>
+                                    <span class="account-shares-statline">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <ellipse cx="12" cy="5" rx="7" ry="3"></ellipse>
+                                            <path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path>
+                                            <path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path>
+                                        </svg>
+                                        <span>资源</span>
+                                        <strong>{{ record.asset_count }}</strong>
+                                    </span>
+                                    <span class="account-shares-statline">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <path d="M4 7h16"></path>
+                                            <path d="M4 12h10"></path>
+                                            <path d="M4 17h7"></path>
+                                        </svg>
+                                        <span>字符数</span>
+                                        <strong>{{ record.content_chars }}</strong>
+                                    </span>
+                                </div>
+                                <div class="account-shares-actions-cell" role="cell" aria-label="{{ record.project_id }} 操作">
                                     {% if is_trash_view %}
-                                        <span class="account-shares-trash-note">删除后的分享链接不可访问。</span>
+                                        <span class="account-shares-trash-note-table">删除后的分享链接不可访问。</span>
                                         <form class="account-shares-delete-form"
                                               action="{% url 'restore_account_share_link' record.project_id %}"
                                               method="post">
                                             {% csrf_token %}
-                                            <button class="account-shares-button account-shares-button-success" type="submit">恢复</button>
+                                            <button class="account-shares-action account-shares-action-success" type="submit">恢复</button>
                                         </form>
                                     {% else %}
-                                        <a class="account-shares-link" href="{{ record.share_path }}" target="_blank" rel="noopener">打开</a>
-                                        <button class="account-shares-button" type="button" data-copy-share-url="{{ record.share_url }}">复制</button>
+                                        <a class="account-shares-action account-shares-action-open" href="{{ record.share_path }}" target="_blank" rel="noopener">
+                                            <svg class="account-shares-open-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <path d="M14 3h7v7"></path>
+                                                <path d="M10 14 21 3"></path>
+                                                <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path>
+                                            </svg>
+                                            <span>打开</span>
+                                        </a>
+                                        <button class="account-shares-action" type="button" data-copy-share-url="{{ record.share_url }}">复制</button>
                                         <form class="account-shares-delete-form"
                                               action="{% url 'delete_account_share_link' record.project_id %}"
                                               method="post"
                                               onsubmit="return confirm('确定删除这个分享链接？删除后原链接将无法访问，{{ share_trash_retention_days }} 天内可在回收站恢复。');">
                                             {% csrf_token %}
-                                            <button class="account-shares-button account-shares-button-danger" type="submit">删除</button>
+                                            <button class="account-shares-action account-shares-action-danger" type="submit">删除</button>
                                         </form>
                                     {% endif %}
                                 </div>
@@ -882,7 +1608,7 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="account-shares-empty">
+                    <div class="account-shares-empty account-shares-table-empty">
                         <span class="account-shares-empty-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
                                 <path d="M5 5h14v14H5z"></path>

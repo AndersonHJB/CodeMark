@@ -686,6 +686,24 @@ except KeyboardInterrupt as _codemark_interrupt:
         generateShareLink();
     }
 
+    function getShareUploadErrorMessage(xhr, fallbackMessage) {
+        const fallback = fallbackMessage || "分享生成失败，请稍后再试。";
+        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+            return xhr.responseJSON.message;
+        }
+        if (xhr && xhr.responseText) {
+            try {
+                const payload = JSON.parse(xhr.responseText);
+                if (payload && payload.message) {
+                    return payload.message;
+                }
+            } catch (e) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
+
     // 根据弹窗中的选项生成分享链接
     function generateShareLink() {
         const payloadOverride = window.editorPendingSharePayloadOverride || null;
@@ -718,6 +736,10 @@ except KeyboardInterrupt as _codemark_interrupt:
             dataType: 'json',
             data: shareRequest.requestData,
             success: function (d) {
+                if (d && d.ok === false) {
+                    alert(d.message || "分享生成失败，请稍后再试。");
+                    return;
+                }
                 let shareLink = d.share_link;
                 prepareHiddenShareQrSource();
                 $('#qrcode').qrcode({
@@ -765,6 +787,9 @@ except KeyboardInterrupt as _codemark_interrupt:
                 copyToClipboard(shareLink);
                 // 保持分享弹窗显示
                 $('#share-modal').modal('show');
+            },
+            error: function (xhr) {
+                alert(getShareUploadErrorMessage(xhr, "分享生成失败，请稍后再试。"));
             }
         });
     }
@@ -1738,6 +1763,24 @@ except KeyboardInterrupt as _codemark_interrupt:
         generateShareLink();
     }
 
+    function getShareUploadErrorMessage(xhr, fallbackMessage) {
+        const fallback = fallbackMessage || "分享生成失败，请稍后再试。";
+        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+            return xhr.responseJSON.message;
+        }
+        if (xhr && xhr.responseText) {
+            try {
+                const payload = JSON.parse(xhr.responseText);
+                if (payload && payload.message) {
+                    return payload.message;
+                }
+            } catch (e) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
+
     // 根据弹窗中的选项生成分享链接
     function generateShareLink() {
         const payloadOverride = window.editorPendingSharePayloadOverride || null;
@@ -1770,6 +1813,10 @@ except KeyboardInterrupt as _codemark_interrupt:
             dataType: 'json',
             data: shareRequest.requestData,
             success: function (d) {
+                if (d && d.ok === false) {
+                    alert(d.message || "分享生成失败，请稍后再试。");
+                    return;
+                }
                 let shareLink = d.share_link;
 
                 prepareHiddenShareQrSource();
@@ -1821,6 +1868,9 @@ except KeyboardInterrupt as _codemark_interrupt:
 
                 // 保持分享弹窗显示
                 $('#share-modal').modal('show');
+            },
+            error: function (xhr) {
+                alert(getShareUploadErrorMessage(xhr, "分享生成失败，请稍后再试。"));
             }
         });
     }

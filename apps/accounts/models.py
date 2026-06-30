@@ -64,6 +64,18 @@ class UserProfile(models.Model):
     original_avatar = models.ImageField("原始头像", upload_to="accounts/original_avatars/", blank=True)
     is_vip = models.BooleanField("VIP 用户", default=False, db_index=True)
     is_permanent_vip = models.BooleanField("永久 VIP", default=False, db_index=True)
+    share_storage_quota_mb = models.PositiveIntegerField(
+        "分享空间上限（MB）",
+        null=True,
+        blank=True,
+        help_text="留空使用默认规则：非会员 100 MB，VIP/管理员不限额。",
+    )
+    share_storage_quota_expires_at = models.DateTimeField(
+        "分享空间有效期",
+        null=True,
+        blank=True,
+        help_text="留空表示长期有效；到期后恢复默认空间规则。",
+    )
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 

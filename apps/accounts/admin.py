@@ -12,6 +12,8 @@ class UserProfileAdmin(admin.ModelAdmin):
         "display_name",
         "is_vip",
         "is_permanent_vip",
+        "share_storage_quota_mb",
+        "share_storage_quota_expires_at",
         "default_avatar",
         "avatar",
         "original_avatar",
@@ -19,7 +21,12 @@ class UserProfileAdmin(admin.ModelAdmin):
         "updated_at",
     )
     list_filter = ("is_vip", "is_permanent_vip")
-    list_editable = ("is_vip", "is_permanent_vip")
+    list_editable = (
+        "is_vip",
+        "is_permanent_vip",
+        "share_storage_quota_mb",
+        "share_storage_quota_expires_at",
+    )
     search_fields = ("user__username", "user__email", "display_name")
 
 

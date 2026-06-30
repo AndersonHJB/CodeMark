@@ -9,18 +9,21 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 
 from apps.common.project_payload import ASSET_MARKER, FILENAME_MARKER, FILE_LANGUAGE_MARKER
+from apps.accounts.models import UserProfile
 
 from . import views
 from .models import SharedFileAdminEntry
 from .share_files import (
     ADMIN_DELETED_AT_MARKER,
     ADMIN_SHARE_ACCESS_PARAM,
+    DEFAULT_NON_MEMBER_SHARE_STORAGE_BYTES,
     OWNER_ID_MARKER,
     USER_DELETED_AT_MARKER,
     USER_DELETED_BY_MARKER,
     classify_asset_preview_type,
     format_share_metadata_datetime,
     get_shared_code_record,
+    get_user_share_storage_summary,
     hard_delete_shared_code_record,
     list_shared_code_records,
     restore_shared_code_record,
@@ -441,6 +444,46 @@ class ShareUploadTests(TestCase):
             )
             self.assertTrue(os.path.exists(saved_asset_path))
 
+    def test_non_member_share_storage_defaults_to_100mb(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            User = get_user_model()
+            owner = User.objects.create_user(
+                username="quota-default-owner",
+                email="quota-default@example.com",
+                password="test-password",
+            )
+
+            summary = get_user_share_storage_summary(owner)
+
+            self.assertEqual(summary["limit_bytes"], DEFAULT_NON_MEMBER_SHARE_STORAGE_BYTES)
+            self.assertEqual(summary["limit_display"], "100 MB")
+            self.assertEqual(summary["limit_label"], "非会员默认空间")
+
+    def test_authenticated_upload_rejects_share_when_storage_quota_exceeded(self):
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
+            User = get_user_model()
+            owner = User.objects.create_user(
+                username="quota-limited-owner",
+                email="quota-limited@example.com",
+                password="test-password",
+            )
+            UserProfile.objects.create(user=owner, share_storage_quota_mb=0)
+            self.client.force_login(owner)
+
+            response = self.client.post(reverse("upload_code"), {
+                "code": "print('quota exceeded')\n",
+                "language": "python",
+                "template": "editor",
+                "theme": "monokai",
+            })
+
+            self.assertEqual(response.status_code, 413)
+            payload = response.json()
+            self.assertEqual(payload["ok"], False)
+            self.assertEqual(payload["error"], "share_storage_quota_exceeded")
+            self.assertIn("分享空间不足", payload["message"])
+            self.assertEqual(list_shared_code_records(owner_user_id=owner.pk), [])
+
     def test_authenticated_upload_is_listed_deleted_and_restored_from_account_page(self):
         with tempfile.TemporaryDirectory() as tmpdir, override_settings(CODEMARK_SHARECODE_DIR=tmpdir):
             User = get_user_model()
@@ -484,6 +527,8 @@ class ShareUploadTests(TestCase):
             self.assertEqual(page_response.status_code, 200)
             self.assertContains(page_response, project_id)
             self.assertContains(page_response, "owned share")
+            self.assertContains(page_response, "存储用量")
+            self.assertContains(page_response, "100 MB")
             self.assertNotContains(page_response, other_project_id)
             self.assertNotContains(page_response, "other share")
 
