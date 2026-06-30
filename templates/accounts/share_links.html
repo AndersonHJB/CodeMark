@@ -13,8 +13,31 @@
     <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
     <link rel="icon" href="https://bornforthis.cn/favicon.ico">
     <style>
+        .account-shares-page {
+            --shares-surface: #ffffff;
+            --shares-surface-soft: #f8fafc;
+            --shares-surface-tint: #eef7f5;
+            --shares-line: #dce5ef;
+            --shares-line-strong: #c6d3e1;
+            --shares-ink: #101828;
+            --shares-muted: #667085;
+            --shares-faint: #98a2b3;
+            --shares-teal: #0f766e;
+            --shares-teal-strong: #0b5e57;
+            --shares-indigo: #3f5bf6;
+            --shares-amber: #b7791f;
+            --shares-danger: #b42318;
+            --shares-success: #027a48;
+            --shares-radius: 8px;
+            --shares-shadow: 0 24px 70px rgba(16, 24, 40, 0.09);
+            min-height: 100vh;
+            background:
+                linear-gradient(180deg, rgba(248, 251, 255, 0.96) 0%, rgba(244, 247, 251, 1) 52%, rgba(238, 246, 245, 0.72) 100%);
+        }
         .account-shares-page .account-profile-shell {
-            max-width: 1180px;
+            width: min(100% - 32px, 1280px);
+            max-width: 1280px;
+            padding: 30px 0 44px;
         }
         .account-shares-page .account-profile-layout {
             display: block;
@@ -22,168 +45,404 @@
         .account-shares-page .account-profile-layout[hidden] {
             display: none !important;
         }
-        .account-shares-layout {
+        .account-shares-page .account-profile-guest {
+            display: block;
+            padding-top: 54px;
+        }
+        .account-shares-page .account-profile-guest[hidden] {
+            display: none !important;
+        }
+        .account-shares-page .account-profile-guest-card {
             display: grid;
-            grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
-            gap: 20px;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 18px;
+            width: min(100%, 820px);
+            margin: 0 auto;
+            padding: 24px;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            background: var(--shares-surface);
+            box-shadow: var(--shares-shadow);
         }
-        .account-shares-card,
-        .account-shares-panel,
-        .account-shares-empty {
-            position: relative;
-            overflow: hidden;
-            border: 1px solid var(--account-page-line);
-            border-radius: var(--account-page-radius);
-            background: var(--account-page-surface);
-            box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
+        .account-shares-page .account-profile-guest-card::before {
+            display: none;
         }
-        .account-shares-card::before,
-        .account-shares-panel::before,
-        .account-shares-empty::before {
-            content: "";
-            position: absolute;
-            inset: 0 0 auto;
-            height: 4px;
-            background: linear-gradient(90deg, var(--account-page-primary), var(--account-page-blue) 54%, var(--account-page-warm));
+        .account-shares-page .account-profile-guest-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--shares-radius);
+            color: var(--shares-teal);
+            background: var(--shares-surface-tint);
         }
-        .account-shares-card {
-            padding: 22px;
-            align-self: start;
-        }
-        .account-shares-card h1 {
-            margin: 0 0 8px;
-            color: var(--account-page-ink);
+        .account-shares-page .account-profile-guest-card h1 {
+            margin: 0 0 6px;
+            color: var(--shares-ink);
             font-size: 24px;
             line-height: 1.2;
         }
-        .account-shares-card p,
-        .account-shares-muted,
-        .account-shares-meta {
-            color: var(--account-page-muted);
-        }
-        .account-shares-card p {
-            margin: 0 0 18px;
+        .account-shares-page .account-profile-guest-card p {
+            margin: 0;
+            color: var(--shares-muted);
             line-height: 1.65;
         }
-        .account-shares-stat {
-            display: grid;
-            gap: 4px;
-            padding-top: 16px;
-            border-top: 1px solid var(--account-page-line);
+        .account-shares-page .account-profile-guest-actions {
+            justify-content: flex-end;
         }
-        .account-shares-stat strong {
-            color: var(--account-page-primary-strong);
-            font-size: 34px;
-            line-height: 1;
+        .account-shares-page .account-profile-guest .account-primary-btn,
+        .account-shares-page .account-profile-guest .account-secondary-btn {
+            min-height: 40px;
+            border-radius: var(--shares-radius);
+        }
+        .account-shares-intro {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .account-shares-intro h1 {
+            margin: 0;
+            color: var(--shares-ink);
             font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+            font-size: clamp(30px, 4vw, 44px);
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0;
         }
+        .account-shares-intro p {
+            margin: 10px 0 0;
+            color: var(--shares-muted);
+            font-size: 15px;
+            line-height: 1.65;
+        }
+        .account-shares-intro strong {
+            color: var(--shares-ink);
+            font-weight: 800;
+        }
+        .account-shares-intro-actions,
         .account-shares-quick-actions,
         .account-shares-actions,
         .account-shares-tabs,
-        .account-shares-toolbar,
         .account-shares-row-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
         }
-        .account-shares-quick-actions {
-            margin-top: 20px;
+        .account-shares-workspace {
+            display: grid;
+            grid-template-columns: minmax(250px, 292px) minmax(0, 1fr);
+            min-height: 580px;
+            overflow: hidden;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            background: var(--shares-surface);
+            box-shadow: var(--shares-shadow);
+        }
+        .account-shares-rail {
+            position: relative;
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            gap: 22px;
+            padding: 22px;
+            border-right: 1px solid var(--shares-line);
+            background:
+                linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.96));
+        }
+        .account-shares-rail::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--shares-teal), var(--shares-indigo) 58%, var(--shares-amber));
+        }
+        .account-shares-rail-head {
+            display: grid;
+            gap: 10px;
+            padding-left: 4px;
+        }
+        .account-shares-rail-mark {
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(15, 118, 110, 0.22);
+            border-radius: var(--shares-radius);
+            color: var(--shares-teal);
+            background: var(--shares-surface-tint);
+        }
+        .account-shares-rail-mark svg,
+        .account-shares-empty-icon svg,
+        .account-shares-search-icon {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .account-shares-rail-head h2 {
+            margin: 0;
+            color: var(--shares-ink);
+            font-size: 20px;
+            line-height: 1.25;
+        }
+        .account-shares-rail-head p {
+            margin: 0;
+            color: var(--shares-muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .account-shares-stats {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+        }
+        .account-shares-stat {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 12px;
+            padding: 14px 0;
+            border-top: 1px solid var(--shares-line);
+        }
+        .account-shares-stat:last-child {
+            border-bottom: 1px solid var(--shares-line);
+        }
+        .account-shares-stat dt {
+            color: var(--shares-muted);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.25;
+        }
+        .account-shares-stat dd {
+            margin: 0;
+            color: var(--shares-teal-strong);
+            font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .account-shares-rail-section {
+            display: grid;
+            gap: 10px;
+        }
+        .account-shares-rail-section h3 {
+            margin: 0;
+            color: var(--shares-faint);
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .account-shares-muted,
+        .account-shares-meta {
+            color: var(--shares-muted);
         }
         .account-shares-link,
         .account-shares-button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 38px;
-            padding: 0 14px;
-            border: 1px solid var(--account-page-line);
-            border-radius: var(--account-page-radius);
-            color: var(--account-page-primary-strong);
-            background: #fff;
-            font: 700 13px/1 "Noto Sans SC", sans-serif;
+            gap: 7px;
+            min-height: 40px;
+            padding: 0 13px;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            color: var(--shares-ink);
+            background: var(--shares-surface);
+            font: 800 13px/1 "Noto Sans SC", sans-serif;
             text-decoration: none;
             cursor: pointer;
+            transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease, transform 0.14s ease;
         }
         .account-shares-link:hover,
         .account-shares-link:focus,
         .account-shares-button:hover,
         .account-shares-button:focus {
             color: #fff;
-            border-color: var(--account-page-primary);
-            background: var(--account-page-primary);
+            border-color: var(--shares-teal);
+            background: var(--shares-teal);
+            box-shadow: 0 10px 24px rgba(15, 118, 110, 0.18);
             text-decoration: none;
         }
-        .account-shares-button-danger {
-            color: #b42318;
-            border-color: #f4c7c3;
+        .account-shares-link:active,
+        .account-shares-button:active {
+            transform: translateY(1px);
         }
-        .account-shares-button-danger:hover,
-        .account-shares-button-danger:focus {
-            border-color: #b42318;
-            background: #b42318;
+        .account-shares-link:focus-visible,
+        .account-shares-button:focus-visible,
+        .account-shares-search input:focus-visible {
+            outline: 3px solid rgba(63, 91, 246, 0.18);
+            outline-offset: 2px;
         }
-        .account-shares-button-success {
-            color: #027a48;
-            border-color: #a6f4c5;
+        .account-shares-link svg,
+        .account-shares-button svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            flex: 0 0 auto;
         }
-        .account-shares-button-success:hover,
-        .account-shares-button-success:focus {
-            border-color: #027a48;
-            background: #027a48;
+        .account-shares-link-primary {
+            color: #fff;
+            border-color: var(--shares-teal);
+            background: var(--shares-teal);
+            box-shadow: 0 10px 22px rgba(15, 118, 110, 0.18);
+        }
+        .account-shares-link-primary:hover,
+        .account-shares-link-primary:focus {
+            border-color: var(--shares-teal-strong);
+            background: var(--shares-teal-strong);
+        }
+        .account-shares-quick-actions {
+            flex-direction: column;
+        }
+        .account-shares-quick-actions .account-shares-link {
+            width: 100%;
+            justify-content: flex-start;
         }
         .account-shares-panel {
-            padding: 22px;
+            min-width: 0;
+            padding: 24px;
         }
         .account-shares-panel-head {
             display: flex;
-            flex-wrap: wrap;
             align-items: flex-start;
             justify-content: space-between;
-            gap: 14px;
+            gap: 16px;
             margin-bottom: 18px;
         }
-        .account-shares-panel-head h2 {
-            margin: 0 0 6px;
-            color: var(--account-page-ink);
-            font-size: 22px;
-            line-height: 1.25;
+        .account-shares-panel-title h2 {
+            margin: 0 0 7px;
+            color: var(--shares-ink);
+            font-size: 24px;
+            line-height: 1.2;
         }
-        .account-shares-panel-head p {
+        .account-shares-panel-title p {
             margin: 0;
-            color: var(--account-page-muted);
+            color: var(--shares-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .account-shares-visible-count {
+            flex: 0 0 auto;
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            color: var(--shares-muted);
+            background: var(--shares-surface-soft);
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .account-shares-toolbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 480px);
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .account-shares-tabs {
+            align-items: center;
+            width: fit-content;
+            padding: 4px;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            background: var(--shares-surface-soft);
+        }
+        .account-shares-tabs .account-shares-link {
+            min-height: 34px;
+            border-color: transparent;
+            background: transparent;
+            color: var(--shares-muted);
+            box-shadow: none;
+        }
+        .account-shares-tabs .account-shares-link:hover,
+        .account-shares-tabs .account-shares-link:focus {
+            color: var(--shares-ink);
+            border-color: rgba(198, 211, 225, 0.9);
+            background: #fff;
+        }
+        .account-shares-tab-active,
+        .account-shares-tabs .account-shares-tab-active:hover,
+        .account-shares-tabs .account-shares-tab-active:focus {
+            color: #fff;
+            border-color: var(--shares-ink);
+            background: var(--shares-ink);
         }
         .account-shares-search {
             display: flex;
-            flex: 1 1 320px;
-            max-width: 520px;
+            min-width: 0;
             gap: 8px;
         }
-        .account-shares-tabs {
-            margin: 0 0 16px;
+        .account-shares-search-field {
+            position: relative;
+            display: flex;
+            min-width: 0;
+            flex: 1 1 auto;
+            align-items: center;
         }
-        .account-shares-tab-active {
-            color: #fff;
-            border-color: var(--account-page-primary);
-            background: var(--account-page-primary);
+        .account-shares-search-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--shares-faint);
+            pointer-events: none;
         }
         .account-shares-search input {
+            width: 100%;
             min-width: 0;
-            flex: 1;
-            height: 38px;
-            padding: 0 12px;
-            border: 1px solid var(--account-page-line);
-            border-radius: var(--account-page-radius);
-            color: var(--account-page-ink);
+            height: 40px;
+            padding: 0 12px 0 40px;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            color: var(--shares-ink);
             background: #fff;
-            font: 500 14px/1.4 "Noto Sans SC", sans-serif;
+            font: 600 14px/1.4 "Noto Sans SC", sans-serif;
+        }
+        .account-shares-search input::placeholder {
+            color: var(--shares-faint);
+        }
+        .account-shares-search input:focus {
+            border-color: rgba(63, 91, 246, 0.56);
+        }
+        .account-shares-button-danger {
+            color: var(--shares-danger);
+            border-color: #f3c6c1;
+            background: #fff;
+        }
+        .account-shares-button-danger:hover,
+        .account-shares-button-danger:focus {
+            border-color: var(--shares-danger);
+            background: var(--shares-danger);
+        }
+        .account-shares-button-success {
+            color: var(--shares-success);
+            border-color: #a6f4c5;
+            background: #fff;
+        }
+        .account-shares-button-success:hover,
+        .account-shares-button-success:focus {
+            border-color: var(--shares-success);
+            background: var(--shares-success);
         }
         .account-shares-message {
-            margin: 0 0 14px;
-            padding: 10px 12px;
+            margin: 0 0 16px;
+            padding: 11px 13px;
             border: 1px solid #b7e4d8;
-            border-radius: var(--account-page-radius);
+            border-radius: var(--shares-radius);
             color: #0f5d51;
             background: #ecfdf7;
+            font-size: 14px;
+            line-height: 1.55;
         }
         .account-shares-list {
             display: grid;
@@ -191,62 +450,99 @@
         }
         .account-shares-item {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 14px;
-            padding: 15px;
-            border: 1px solid var(--account-page-line);
-            border-radius: var(--account-page-radius);
-            background: #fff;
+            grid-template-columns: minmax(0, 1fr) minmax(126px, auto);
+            gap: 18px;
+            padding: 18px;
+            border: 1px solid var(--shares-line);
+            border-radius: var(--shares-radius);
+            background: var(--shares-surface);
+            transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.14s ease;
+        }
+        .account-shares-item:hover {
+            border-color: var(--shares-line-strong);
+            box-shadow: 0 14px 34px rgba(16, 24, 40, 0.08);
+            transform: translateY(-1px);
         }
         .account-shares-item-trash {
-            border-color: #fedf89;
-            background: #fffaf0;
+            border-color: #f5d28a;
+            background: linear-gradient(180deg, #fffaf0, #ffffff);
+        }
+        .account-shares-item-main {
+            min-width: 0;
         }
         .account-shares-title {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         .account-shares-title a {
-            color: var(--account-page-ink);
+            color: var(--shares-ink);
             font-weight: 800;
+            line-height: 1.35;
             word-break: break-all;
         }
+        .account-shares-title a:hover,
+        .account-shares-title a:focus {
+            color: var(--shares-teal-strong);
+        }
         .account-shares-deleted-title {
-            color: var(--account-page-ink);
+            color: var(--shares-ink);
             font-weight: 800;
+            line-height: 1.35;
             word-break: break-all;
         }
         .account-shares-pill {
             display: inline-flex;
             align-items: center;
-            min-height: 24px;
+            min-height: 23px;
             padding: 0 8px;
-            border: 1px solid var(--account-page-line);
+            border: 1px solid rgba(63, 91, 246, 0.16);
             border-radius: 999px;
-            color: var(--account-page-muted);
-            background: var(--account-page-surface-soft);
+            color: #344054;
+            background: #f2f5ff;
             font-size: 12px;
             font-weight: 700;
         }
+        .account-shares-pill-warning {
+            border-color: #f5d28a;
+            color: #92400e;
+            background: #fff7ed;
+        }
         .account-shares-preview {
-            margin: 8px 0 0;
+            margin: 12px 0 0;
             max-width: 760px;
-            color: var(--account-page-muted);
+            max-height: 138px;
+            overflow: auto;
+            color: #344054;
             white-space: pre-wrap;
             word-break: break-word;
-            font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            border: 1px solid #e4e9f1;
+            border-radius: var(--shares-radius);
+            padding: 12px;
+            background: #f8fafc;
+            font: 12.5px/1.58 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         }
         .account-shares-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px 12px;
             font-size: 13px;
             line-height: 1.55;
         }
+        .account-shares-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .account-shares-meta strong {
+            color: var(--shares-ink);
+            font-size: 12px;
+            font-weight: 800;
+        }
         .account-shares-row-actions {
+            min-width: 0;
             align-content: start;
             justify-content: flex-end;
         }
@@ -255,46 +551,127 @@
         }
         .account-shares-trash-note {
             flex: 1 1 100%;
+            max-width: 180px;
             color: #b54708;
             font-size: 13px;
             line-height: 1.5;
+            text-align: right;
         }
         .account-shares-empty {
-            padding: 34px 22px;
+            display: grid;
+            justify-items: center;
+            gap: 12px;
+            padding: 46px 22px;
+            border: 1px dashed var(--shares-line-strong);
+            border-radius: var(--shares-radius);
+            background: var(--shares-surface-soft);
             text-align: center;
         }
+        .account-shares-empty-icon {
+            width: 48px;
+            height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(15, 118, 110, 0.18);
+            border-radius: var(--shares-radius);
+            color: var(--shares-teal);
+            background: #ffffff;
+        }
         .account-shares-empty h2 {
-            margin: 0 0 8px;
-            color: var(--account-page-ink);
+            margin: 0;
+            color: var(--shares-ink);
             font-size: 22px;
+            line-height: 1.25;
         }
         .account-shares-empty p {
-            margin: 0 0 18px;
-            color: var(--account-page-muted);
+            max-width: 460px;
+            margin: 0;
+            color: var(--shares-muted);
+            line-height: 1.65;
         }
-        @media (max-width: 900px) {
-            .account-shares-layout,
+        .account-shares-empty .account-shares-actions {
+            justify-content: center;
+            margin-top: 2px;
+        }
+        @media (max-width: 1040px) {
+            .account-shares-workspace {
+                grid-template-columns: 1fr;
+            }
+            .account-shares-rail {
+                border-right: 0;
+                border-bottom: 1px solid var(--shares-line);
+            }
+            .account-shares-quick-actions {
+                flex-direction: row;
+            }
+            .account-shares-quick-actions .account-shares-link {
+                width: auto;
+            }
+            .account-shares-toolbar {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 760px) {
+            .account-shares-page .account-profile-shell {
+                width: min(100% - 24px, 1280px);
+                padding-top: 18px;
+            }
+            .account-shares-page .account-profile-guest-card,
+            .account-shares-intro,
+            .account-shares-panel-head,
             .account-shares-item {
                 grid-template-columns: 1fr;
+            }
+            .account-shares-page .account-profile-guest-card,
+            .account-shares-intro {
+                align-items: stretch;
+            }
+            .account-shares-page .account-profile-guest-actions,
+            .account-shares-intro-actions {
+                justify-content: flex-start;
+            }
+            .account-shares-panel,
+            .account-shares-rail {
+                padding: 18px;
             }
             .account-shares-row-actions {
                 justify-content: flex-start;
             }
-            .account-shares-search {
+            .account-shares-trash-note {
                 max-width: none;
+                text-align: left;
             }
         }
         @media (max-width: 560px) {
-            .account-shares-toolbar,
+            .account-shares-intro h1 {
+                font-size: 30px;
+            }
+            .account-shares-tabs {
+                width: 100%;
+            }
+            .account-shares-tabs .account-shares-link {
+                flex: 1 1 0;
+            }
+            .account-shares-search {
+                flex-wrap: wrap;
+            }
+            .account-shares-search-field {
+                flex-basis: 100%;
+            }
             .account-shares-tabs,
-            .account-shares-search,
             .account-shares-actions,
-            .account-shares-row-actions {
+            .account-shares-row-actions,
+            .account-shares-intro-actions,
+            .account-shares-quick-actions {
                 width: 100%;
             }
             .account-shares-link,
             .account-shares-button {
                 flex: 1 1 auto;
+            }
+            .account-shares-quick-actions .account-shares-link {
+                width: 100%;
             }
         }
     </style>
@@ -326,34 +703,110 @@
     </section>
 
     <section class="account-profile-layout" data-account-auth-only{% if not codemark_account.is_authenticated %} hidden{% endif %}>
-        <div class="account-shares-layout">
-            <aside class="account-shares-card" aria-label="分享概览">
+        <header class="account-shares-intro">
+            <div>
                 <h1>我的分享</h1>
-                <p>{{ codemark_account.display_name }} 的代码分享链接。</p>
-                <div class="account-shares-stat">
-                    <strong>{{ record_count }}</strong>
-                    <span class="account-shares-muted">当前分享</span>
+                <p><strong>{{ codemark_account.display_name }}</strong> 的代码分享链接和回收站。</p>
+            </div>
+            <div class="account-shares-intro-actions">
+                <a class="account-shares-link account-shares-link-primary" href="{% url 'sharecode' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <path d="m8.6 10.6 6.8-4.2"></path>
+                        <path d="m8.6 13.4 6.8 4.2"></path>
+                    </svg>
+                    <span>分享工具</span>
+                </a>
+                <a class="account-shares-link" href="{% url 'editor' %}">Python 编辑器</a>
+                <a class="account-shares-link" href="{% url 'cpp_editor' %}">C++ 编辑器</a>
+            </div>
+        </header>
+
+        <div class="account-shares-workspace">
+            <aside class="account-shares-rail" aria-label="分享概览">
+                <div class="account-shares-rail-head">
+                    <span class="account-shares-rail-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+                            <path d="M8 9h8"></path>
+                            <path d="M8 13h5"></path>
+                            <path d="M16 17l2-2 2 2"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2>分享概览</h2>
+                        <p>{% if is_trash_view %}回收站内分享保留 {{ share_trash_retention_days }} 天。{% else %}当前账号生成的分享会归档在这里。{% endif %}</p>
+                    </div>
                 </div>
-                <div class="account-shares-stat">
-                    <strong>{{ trash_count }}</strong>
-                    <span class="account-shares-muted">回收站</span>
-                </div>
-                <div class="account-shares-quick-actions">
-                    <a class="account-shares-link" href="{% url 'sharecode' %}">分享工具</a>
-                    <a class="account-shares-link" href="{% url 'editor' %}">Python 编辑器</a>
-                    <a class="account-shares-link" href="{% url 'cpp_editor' %}">C++ 编辑器</a>
+
+                <dl class="account-shares-stats">
+                    <div class="account-shares-stat">
+                        <dt>当前分享</dt>
+                        <dd>{{ record_count }}</dd>
+                    </div>
+                    <div class="account-shares-stat">
+                        <dt>回收站</dt>
+                        <dd>{{ trash_count }}</dd>
+                    </div>
+                </dl>
+
+                <div class="account-shares-rail-section">
+                    <h3>快捷入口</h3>
+                    <div class="account-shares-quick-actions">
+                        <a class="account-shares-link" href="{% url 'sharecode' %}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M4 12h12"></path>
+                                <path d="m12 6 6 6-6 6"></path>
+                            </svg>
+                            <span>分享工具</span>
+                        </a>
+                        <a class="account-shares-link" href="{% url 'editor' %}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="m9 18-6-6 6-6"></path>
+                                <path d="m15 6 6 6-6 6"></path>
+                                <path d="m14 4-4 16"></path>
+                            </svg>
+                            <span>Python 编辑器</span>
+                        </a>
+                        <a class="account-shares-link" href="{% url 'cpp_editor' %}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M8.5 7 3.5 12l5 5"></path>
+                                <path d="M12.5 17 17.5 12l-5-5"></path>
+                                <path d="M18 6.5v4"></path>
+                                <path d="M16 8.5h4"></path>
+                            </svg>
+                            <span>C++ 编辑器</span>
+                        </a>
+                    </div>
                 </div>
             </aside>
 
             <section class="account-shares-panel" aria-labelledby="accountSharesTitle">
                 <div class="account-shares-panel-head">
-                    <div>
-                        <h2 id="accountSharesTitle">分享链接</h2>
-                        <p>{% if is_trash_view %}回收站内分享保留 {{ share_trash_retention_days }} 天。{% else %}只显示当前登录账号生成的分享。{% endif %}</p>
+                    <div class="account-shares-panel-title">
+                        <h2 id="accountSharesTitle">{% if is_trash_view %}回收站{% else %}当前分享{% endif %}</h2>
+                        <p>{% if is_trash_view %}删除后的分享链接不可访问，恢复后会回到当前分享。{% else %}打开、复制或删除你已经发布的分享链接。{% endif %}</p>
                     </div>
+                    <span class="account-shares-visible-count">显示 {{ visible_record_count }} 项</span>
+                </div>
+
+                <div class="account-shares-toolbar">
+                    <nav class="account-shares-tabs" aria-label="分享列表筛选">
+                        <a class="account-shares-link{% if not is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}">当前分享 {{ record_count }}</a>
+                        <a class="account-shares-link{% if is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">回收站 {{ trash_count }}</a>
+                    </nav>
+
                     <form class="account-shares-search" action="{% url 'account_share_links' %}" method="get">
                         {% if is_trash_view %}<input type="hidden" name="view" value="trash">{% endif %}
-                        <input type="search" name="q" value="{{ query }}" placeholder="搜索 project_id、文件名或代码">
+                        <label class="account-shares-search-field">
+                            <svg class="account-shares-search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="m16.5 16.5 4 4"></path>
+                            </svg>
+                            <input type="search" name="q" value="{{ query }}" placeholder="搜索 project_id、文件名或代码" aria-label="搜索 project_id、文件名或代码">
+                        </label>
                         <button class="account-shares-button" type="submit">搜索</button>
                         {% if query %}
                             {% if is_trash_view %}
@@ -365,11 +818,6 @@
                     </form>
                 </div>
 
-                <nav class="account-shares-tabs" aria-label="分享列表筛选">
-                    <a class="account-shares-link{% if not is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}">当前分享 {{ record_count }}</a>
-                    <a class="account-shares-link{% if is_trash_view %} account-shares-tab-active{% endif %}" href="{% url 'account_share_links' %}?view=trash">回收站 {{ trash_count }}</a>
-                </nav>
-
                 {% if messages %}
                     {% for message in messages %}
                         <p class="account-shares-message">{{ message }}</p>
@@ -380,7 +828,7 @@
                     <div class="account-shares-list">
                         {% for record in records %}
                             <article class="account-shares-item{% if is_trash_view %} account-shares-item-trash{% endif %}">
-                                <div>
+                                <div class="account-shares-item-main">
                                     <div class="account-shares-title">
                                         {% if is_trash_view %}
                                             <span class="account-shares-deleted-title">{{ record.project_id }}</span>
@@ -390,26 +838,26 @@
                                         <span class="account-shares-pill">{{ record.template_type }}</span>
                                         <span class="account-shares-pill">{{ record.language }}</span>
                                         {% if is_trash_view %}
-                                            <span class="account-shares-pill">用户已删除</span>
+                                            <span class="account-shares-pill account-shares-pill-warning">用户已删除</span>
                                         {% endif %}
                                     </div>
                                     <div class="account-shares-meta">
-                                        <span>{{ record.created_at|date:"Y-m-d H:i:s" }}</span>
-                                        <span>文件 {{ record.text_file_count }}</span>
-                                        <span>文件夹 {{ record.folder_count }}</span>
-                                        <span>资源 {{ record.asset_count }}</span>
-                                        <span>{{ record.content_chars }} 字符</span>
+                                        <span><strong>创建</strong>{{ record.created_at|date:"Y-m-d H:i:s" }}</span>
+                                        <span><strong>文件</strong>{{ record.text_file_count }}</span>
+                                        <span><strong>文件夹</strong>{{ record.folder_count }}</span>
+                                        <span><strong>资源</strong>{{ record.asset_count }}</span>
+                                        <span><strong>字符</strong>{{ record.content_chars }}</span>
                                         {% if is_trash_view %}
-                                            <span>删除 {{ record.user_deleted_at|date:"Y-m-d H:i:s" }}</span>
-                                            <span>到期 {{ record.user_delete_expires_at|date:"Y-m-d H:i:s" }}</span>
-                                            <span>剩余 {{ record.trash_days_remaining }} 天</span>
+                                            <span><strong>删除</strong>{{ record.user_deleted_at|date:"Y-m-d H:i:s" }}</span>
+                                            <span><strong>到期</strong>{{ record.user_delete_expires_at|date:"Y-m-d H:i:s" }}</span>
+                                            <span><strong>剩余</strong>{{ record.trash_days_remaining }} 天</span>
                                         {% endif %}
                                     </div>
                                     {% if record.preview_text %}
                                         <pre class="account-shares-preview">{{ record.preview_text }}</pre>
                                     {% endif %}
                                 </div>
-                                <div class="account-shares-row-actions">
+                                <div class="account-shares-row-actions" aria-label="{{ record.project_id }} 操作">
                                     {% if is_trash_view %}
                                         <span class="account-shares-trash-note">删除后的分享链接不可访问。</span>
                                         <form class="account-shares-delete-form"
@@ -435,13 +883,20 @@
                     </div>
                 {% else %}
                     <div class="account-shares-empty">
+                        <span class="account-shares-empty-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M5 5h14v14H5z"></path>
+                                <path d="M8 10h8"></path>
+                                <path d="M8 14h5"></path>
+                            </svg>
+                        </span>
                         <h2>{% if query %}没有匹配的分享{% elif is_trash_view %}回收站为空{% else %}暂无分享链接{% endif %}</h2>
                         <p>{% if query %}换一个关键词试试。{% elif is_trash_view %}用户删除的分享会在这里保留 {{ share_trash_retention_days }} 天。{% else %}在编辑器或分享工具里点击 share 后会自动出现在这里。{% endif %}</p>
                         <div class="account-shares-actions">
                             {% if is_trash_view %}
                                 <a class="account-shares-link" href="{% url 'account_share_links' %}">返回当前分享</a>
                             {% else %}
-                                <a class="account-shares-link" href="{% url 'sharecode' %}">打开分享工具</a>
+                                <a class="account-shares-link account-shares-link-primary" href="{% url 'sharecode' %}">打开分享工具</a>
                                 <a class="account-shares-link" href="{% url 'editor' %}">打开 Python 编辑器</a>
                             {% endif %}
                         </div>
