@@ -755,6 +755,30 @@ class AdminAvatarGalleryViewTests(TestCase):
         self.assertContains(response, "分享空间上限（MB）")
         self.assertContains(response, "分享空间有效期")
 
+    def test_user_profile_admin_changelist_uses_scoped_layout_assets(self):
+        User = get_user_model()
+        admin_user = User.objects.create_user(
+            username="profile-list-admin",
+            password="test-password",
+            is_staff=True,
+            is_superuser=True,
+        )
+        target_user = User.objects.create_user(
+            username="profile-list-target",
+            email="profile-list@example.com",
+            password="test-password",
+        )
+        UserProfile.objects.create(user=target_user, display_name="列表样式用户")
+        client = Client()
+        client.force_login(admin_user)
+
+        response = client.get(reverse("admin:accounts_userprofile_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "userprofile-changelist", html=False)
+        self.assertContains(response, "css/admin-userprofile-changelist.css", html=False)
+        self.assertContains(response, "列表样式用户")
+
     def test_login_settings_admin_opens_singleton_config(self):
         User = get_user_model()
         user = User.objects.create_user(

@@ -7,6 +7,7 @@ from .models import AccountLoginSettings, AvatarGalleryAdminEntry, EmailVerifica
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
+    change_list_template = "admin/accounts/userprofile/change_list.html"
     list_display = (
         "user",
         "display_name",

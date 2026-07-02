@@ -1,0 +1,567 @@
+/*
+ * Scoped refinements for /admin/accounts/userprofile/.
+ * Keep this file page-local: the body class is added by the model-specific
+ * change_list template so other Django admin screens keep their default layout.
+ */
+
+body.userprofile-changelist {
+    --profile-admin-bg: #f4f7fb;
+    --profile-admin-card: #ffffff;
+    --profile-admin-border: #dfe7ef;
+    --profile-admin-muted: #64748b;
+    --profile-admin-text: #1f2937;
+    --profile-admin-accent: #2f6f8f;
+    --profile-admin-accent-strong: #1f556e;
+    --profile-admin-row: #fbfdff;
+    --profile-admin-row-alt: #f6f9fc;
+    --profile-admin-shadow: 0 14px 34px rgba(31, 41, 55, 0.08);
+    background: var(--profile-admin-bg);
+}
+
+body.userprofile-changelist #content {
+    max-width: none;
+    padding: 24px 30px 34px;
+}
+
+body.userprofile-changelist #content h1 {
+    margin: 0 0 18px;
+    color: var(--profile-admin-text);
+    font-size: 1.35rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+body.userprofile-changelist #content-main {
+    min-width: 0;
+}
+
+body.userprofile-changelist .object-tools {
+    margin: -48px 0 18px;
+}
+
+body.userprofile-changelist .object-tools a,
+body.userprofile-changelist .object-tools input[type="submit"] {
+    border-radius: 999px;
+    background: var(--profile-admin-accent);
+    box-shadow: 0 8px 20px rgba(47, 111, 143, 0.2);
+    font-weight: 650;
+}
+
+body.userprofile-changelist .object-tools a:focus,
+body.userprofile-changelist .object-tools a:hover {
+    background: var(--profile-admin-accent-strong);
+}
+
+body.userprofile-changelist #changelist {
+    box-sizing: border-box;
+    overflow: visible;
+    border: 1px solid var(--profile-admin-border);
+    border-radius: 10px;
+    background: var(--profile-admin-card);
+    box-shadow: var(--profile-admin-shadow);
+}
+
+body.userprofile-changelist #changelist .changelist-form-container {
+    box-sizing: border-box;
+    gap: 22px;
+    padding: 18px;
+}
+
+body.userprofile-changelist #changelist .changelist-form-container > div {
+    min-width: 0;
+}
+
+body.userprofile-changelist #changelist .changelist-form-container:has(#changelist-filter) > div {
+    max-width: calc(100% - 284px);
+}
+
+body.userprofile-changelist #toolbar {
+    box-sizing: border-box;
+    margin: 0 0 16px;
+    padding: 13px 14px;
+    border: 1px solid var(--profile-admin-border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff, #f8fbfd);
+    color: var(--profile-admin-muted);
+}
+
+body.userprofile-changelist #changelist-search > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: none;
+}
+
+body.userprofile-changelist #changelist-search label {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+}
+
+body.userprofile-changelist #changelist-search img {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    opacity: 0.72;
+}
+
+body.userprofile-changelist #toolbar #searchbar {
+    width: min(440px, 52vw);
+    min-width: 220px;
+    height: 34px;
+    margin: 0;
+    padding: 6px 10px;
+    border-color: #cbd5e1;
+    border-radius: 7px;
+    background: #ffffff;
+    color: var(--profile-admin-text);
+    font-size: 0.875rem;
+}
+
+body.userprofile-changelist #toolbar #searchbar:focus {
+    border-color: var(--profile-admin-accent);
+    box-shadow: 0 0 0 3px rgba(47, 111, 143, 0.14);
+    outline: none;
+}
+
+body.userprofile-changelist #toolbar form input[type="submit"],
+body.userprofile-changelist #changelist .actions .button,
+body.userprofile-changelist #changelist .changelist-footer input.default {
+    min-height: 34px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--profile-admin-accent);
+    box-shadow: none;
+    color: #ffffff;
+    font-weight: 650;
+}
+
+body.userprofile-changelist #toolbar form input[type="submit"]:focus,
+body.userprofile-changelist #toolbar form input[type="submit"]:hover,
+body.userprofile-changelist #changelist .actions .button:focus,
+body.userprofile-changelist #changelist .actions .button:hover,
+body.userprofile-changelist #changelist .changelist-footer input.default:focus,
+body.userprofile-changelist #changelist .changelist-footer input.default:hover {
+    background: var(--profile-admin-accent-strong);
+}
+
+body.userprofile-changelist #changelist .actions {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--profile-admin-border);
+    border-radius: 8px;
+    background: #fbfdff;
+    color: var(--profile-admin-muted);
+}
+
+body.userprofile-changelist #changelist .actions label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+body.userprofile-changelist #changelist .actions select {
+    height: 34px;
+    margin: 0;
+    padding: 0 30px 0 9px;
+    border-color: #cbd5e1;
+    border-radius: 7px;
+    background: #ffffff;
+    color: var(--profile-admin-text);
+}
+
+body.userprofile-changelist #changelist .actions span.all,
+body.userprofile-changelist #changelist .actions span.action-counter,
+body.userprofile-changelist #changelist .actions span.clear,
+body.userprofile-changelist #changelist .actions span.question {
+    margin: 0 3px;
+    color: var(--profile-admin-muted);
+}
+
+body.userprofile-changelist #changelist-form .results {
+    box-sizing: border-box;
+    overflow: auto;
+    width: 100%;
+    border: 1px solid var(--profile-admin-border);
+    border-radius: 8px;
+    background: var(--profile-admin-card);
+}
+
+body.userprofile-changelist #result_list {
+    min-width: 1870px;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body.userprofile-changelist #result_list thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    border-bottom: 1px solid var(--profile-admin-border);
+    background: #eef4f8;
+    color: #34495e;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+}
+
+body.userprofile-changelist #result_list thead th .text a,
+body.userprofile-changelist #result_list thead th .text span {
+    padding: 12px 10px;
+}
+
+body.userprofile-changelist #result_list tbody th,
+body.userprofile-changelist #result_list tbody td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #edf2f7;
+    color: var(--profile-admin-text);
+    font-size: 0.875rem;
+    line-height: 1.42;
+    vertical-align: top;
+}
+
+body.userprofile-changelist #result_list tbody tr {
+    background: var(--profile-admin-row);
+}
+
+body.userprofile-changelist #result_list tbody tr:nth-child(even) {
+    background: var(--profile-admin-row-alt);
+}
+
+body.userprofile-changelist #result_list tbody tr:hover {
+    background: #eef8fc;
+}
+
+body.userprofile-changelist #result_list tbody tr.selected,
+body.userprofile-changelist #result_list tbody tr:has(.action-select:checked) {
+    background: #fff7d6;
+}
+
+body.userprofile-changelist #result_list .action-checkbox-column,
+body.userprofile-changelist #result_list .action-checkbox {
+    width: 44px;
+    min-width: 44px;
+    text-align: center;
+}
+
+body.userprofile-changelist #result_list .field-user {
+    width: 170px;
+    min-width: 170px;
+}
+
+body.userprofile-changelist #result_list .column-user {
+    width: 170px;
+}
+
+body.userprofile-changelist #result_list .field-display_name {
+    width: 140px;
+    min-width: 140px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+body.userprofile-changelist #result_list .column-display_name {
+    width: 140px;
+}
+
+body.userprofile-changelist #result_list .field-is_vip,
+body.userprofile-changelist #result_list .field-is_permanent_vip {
+    width: 76px;
+    min-width: 76px;
+    text-align: center;
+}
+
+body.userprofile-changelist #result_list .column-is_vip,
+body.userprofile-changelist #result_list .column-is_permanent_vip {
+    width: 76px;
+}
+
+body.userprofile-changelist #result_list .field-share_storage_quota_mb {
+    width: 150px;
+    min-width: 150px;
+}
+
+body.userprofile-changelist #result_list .column-share_storage_quota_mb {
+    width: 150px;
+}
+
+body.userprofile-changelist #result_list .field-share_storage_quota_expires_at {
+    width: 300px;
+    min-width: 300px;
+}
+
+body.userprofile-changelist #result_list .column-share_storage_quota_expires_at {
+    width: 300px;
+}
+
+body.userprofile-changelist #result_list .field-default_avatar {
+    width: 135px;
+    min-width: 135px;
+    word-break: keep-all;
+}
+
+body.userprofile-changelist #result_list .column-default_avatar {
+    width: 135px;
+}
+
+body.userprofile-changelist #result_list .field-avatar {
+    width: 90px;
+    min-width: 90px;
+    text-align: center;
+}
+
+body.userprofile-changelist #result_list .column-avatar {
+    width: 90px;
+}
+
+body.userprofile-changelist #result_list .field-original_avatar {
+    width: 260px;
+    min-width: 260px;
+    overflow-wrap: anywhere;
+}
+
+body.userprofile-changelist #result_list .column-original_avatar {
+    width: 260px;
+}
+
+body.userprofile-changelist #result_list .field-created_at,
+body.userprofile-changelist #result_list .field-updated_at {
+    width: 170px;
+    min-width: 170px;
+    color: var(--profile-admin-muted);
+    white-space: nowrap;
+}
+
+body.userprofile-changelist #result_list .column-created_at,
+body.userprofile-changelist #result_list .column-updated_at {
+    width: 170px;
+}
+
+body.userprofile-changelist #result_list .action-checkbox-column,
+body.userprofile-changelist #result_list tbody td.action-checkbox {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+}
+
+body.userprofile-changelist #result_list thead .column-user,
+body.userprofile-changelist #result_list tbody th.field-user {
+    position: sticky;
+    left: 44px;
+    z-index: 3;
+    box-shadow: 1px 0 0 var(--profile-admin-border), 8px 0 12px -14px rgba(15, 23, 42, 0.45);
+}
+
+body.userprofile-changelist #result_list thead .action-checkbox-column,
+body.userprofile-changelist #result_list thead .column-user {
+    background: #e4eef5;
+}
+
+body.userprofile-changelist #result_list tbody td.action-checkbox,
+body.userprofile-changelist #result_list tbody th.field-user {
+    background: inherit;
+}
+
+body.userprofile-changelist #result_list tbody th.field-user a {
+    display: block;
+    max-width: 100%;
+    color: var(--profile-admin-accent-strong);
+    font-weight: 650;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+body.userprofile-changelist #result_list tbody th.field-user.nowrap,
+body.userprofile-changelist #result_list tbody td.field-share_storage_quota_expires_at.nowrap {
+    white-space: normal;
+}
+
+body.userprofile-changelist #result_list input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--profile-admin-accent);
+}
+
+body.userprofile-changelist #result_list input[type="number"],
+body.userprofile-changelist #result_list input[type="text"] {
+    min-height: 32px;
+    border-color: #cbd5e1;
+    border-radius: 7px;
+    background: #ffffff;
+}
+
+body.userprofile-changelist #result_list input[type="number"]:focus,
+body.userprofile-changelist #result_list input[type="text"]:focus {
+    border-color: var(--profile-admin-accent);
+    box-shadow: 0 0 0 3px rgba(47, 111, 143, 0.12);
+    outline: none;
+}
+
+body.userprofile-changelist #result_list .field-share_storage_quota_mb input {
+    width: 104px;
+}
+
+body.userprofile-changelist #result_list p.datetime {
+    display: grid;
+    grid-template-columns: auto 96px auto;
+    gap: 7px 8px;
+    align-items: center;
+    margin: 0;
+    color: var(--profile-admin-muted);
+}
+
+body.userprofile-changelist #result_list p.datetime br {
+    display: none;
+}
+
+body.userprofile-changelist #result_list p.datetime label {
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    color: var(--profile-admin-muted);
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+body.userprofile-changelist #result_list p.datetime input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body.userprofile-changelist #result_list .datetimeshortcuts {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+body.userprofile-changelist #changelist .changelist-footer {
+    margin-top: 0;
+    padding: 14px 0 0;
+    border-top: 0;
+    border-bottom: 0;
+    background: transparent;
+}
+
+body.userprofile-changelist #changelist .paginator {
+    border: 0;
+    background: transparent;
+    color: var(--profile-admin-muted);
+}
+
+body.userprofile-changelist #changelist-filter {
+    box-sizing: border-box;
+    flex: 0 0 260px;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--profile-admin-border);
+    border-radius: 8px;
+    background: var(--profile-admin-card);
+}
+
+body.userprofile-changelist #changelist-filter h2 {
+    margin: 0 0 8px;
+    padding: 12px 16px;
+    background: var(--profile-admin-accent);
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+body.userprofile-changelist #changelist-filter h3,
+body.userprofile-changelist #changelist-filter details summary {
+    margin: 0 0 8px;
+    padding: 0 16px;
+    color: var(--profile-admin-text);
+    font-weight: 650;
+}
+
+body.userprofile-changelist #changelist-filter ul {
+    margin: 0 0 12px;
+    padding: 0 16px 12px;
+    border-bottom: 1px solid #edf2f7;
+}
+
+body.userprofile-changelist #changelist-filter li {
+    margin: 4px 0;
+}
+
+body.userprofile-changelist #changelist-filter a {
+    display: inline-flex;
+    min-height: 26px;
+    align-items: center;
+    border-radius: 6px;
+    color: var(--profile-admin-muted);
+}
+
+body.userprofile-changelist #changelist-filter li.selected {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+}
+
+body.userprofile-changelist #changelist-filter li.selected a {
+    padding: 0 8px;
+    background: #e8f2f6;
+    color: var(--profile-admin-accent-strong);
+    font-weight: 650;
+}
+
+@media (max-width: 1100px) {
+    body.userprofile-changelist #content {
+        padding: 18px 18px 28px;
+    }
+
+    body.userprofile-changelist .object-tools {
+        margin: 0 0 16px;
+        text-align: left;
+    }
+
+    body.userprofile-changelist #changelist .changelist-form-container {
+        flex-direction: column;
+        padding: 14px;
+    }
+
+    body.userprofile-changelist #changelist .changelist-form-container:has(#changelist-filter) > div {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    body.userprofile-changelist #changelist-filter {
+        width: 100%;
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 720px) {
+    body.userprofile-changelist #content {
+        padding: 14px;
+    }
+
+    body.userprofile-changelist #changelist-search > div,
+    body.userprofile-changelist #changelist .actions {
+        align-items: stretch;
+    }
+
+    body.userprofile-changelist #changelist-search > div {
+        flex-wrap: wrap;
+    }
+
+    body.userprofile-changelist #toolbar #searchbar {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 210px;
+    }
+
+    body.userprofile-changelist #result_list {
+        min-width: 1870px;
+    }
+}
