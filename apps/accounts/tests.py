@@ -6,6 +6,7 @@ import tempfile
 from urllib.parse import unquote, urlparse
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
@@ -985,6 +986,20 @@ class AccountTemplateTests(TestCase):
         self.assertContains(response, "profile-page@example.com")
         self.assertContains(response, "profile-page-user")
         self.assertNotContains(response, 'data-account-tab="profile"', html=False)
+
+    def test_profile_page_css_keeps_light_form_controls_visible(self):
+        css_path = finders.find("css/accounts.css")
+
+        self.assertTrue(css_path)
+        with open(css_path, encoding="utf-8") as css_file:
+            css = css_file.read()
+
+        self.assertIn("--account-control-bg: #ffffff;", css)
+        self.assertIn("--account-control-border: var(--account-page-line);", css)
+        self.assertIn("--account-control-text: var(--account-page-ink);", css)
+        self.assertIn(".account-profile-form .account-field > span:first-child", css)
+        self.assertIn("border: 1px solid var(--account-page-line);", css)
+        self.assertIn("background: #ffffff !important;", css)
 
     def test_profile_page_shows_unbound_email_when_user_has_no_email(self):
         user = get_user_model().objects.create_user(

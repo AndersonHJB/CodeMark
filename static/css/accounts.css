@@ -1260,9 +1260,16 @@
     --account-page-blue: #2563eb;
     --account-page-warm: #c77700;
     --account-page-radius: 8px;
+    --account-control-bg: #ffffff;
+    --account-control-bg-focus: #ffffff;
+    --account-control-border: var(--account-page-line);
+    --account-control-border-focus: rgba(15, 118, 110, 0.62);
+    --account-control-text: var(--account-page-ink);
+    --account-control-placeholder: rgba(100, 113, 132, 0.74);
     margin: 0;
     min-height: 100vh;
     color: var(--account-page-ink);
+    color-scheme: light;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 247, 251, 0.96)),
         repeating-linear-gradient(90deg, rgba(23, 32, 51, 0.034) 0 1px, transparent 1px 80px);
@@ -1546,12 +1553,20 @@
     font-weight: 850;
 }
 
+.account-profile-form .account-field > span:first-child {
+    color: var(--account-page-ink);
+    font-size: 0.82rem;
+    font-weight: 850;
+}
+
 .account-profile-form .account-field input,
 .account-profile-form .account-field textarea {
-    border-color: var(--account-page-line);
+    border: 1px solid var(--account-page-line);
     border-radius: var(--account-page-radius);
-    color: var(--account-page-ink);
-    background: #ffffff;
+    color: var(--account-page-ink) !important;
+    -webkit-text-fill-color: var(--account-page-ink);
+    background: #ffffff !important;
+    caret-color: var(--account-page-ink);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
